@@ -79,17 +79,65 @@ export async function GET(
           return;
         }
 
-        if (!clientModel.launchesPodFolderId) {
-          sendEvent('error', { message: 'Model does not have a launches pod folder configured' });
-          controller.close();
-          return;
-        }
 
-        const launchesFolderId = extractFolderId(clientModel.launchesPodFolderId);
+        let launchesFolderId: string | null = clientModel.launchesPodFolderId ? extractFolderId(clientModel.launchesPodFolderId) : null;
+
+        // If launchesPodFolderId is missing, create the folder in Google Drive and update the DB
         if (!launchesFolderId) {
-          sendEvent('error', { message: 'Invalid launches pod folder ID' });
-          controller.close();
-          return;
+          sendEvent('progress', { step: 'folder', message: `Creating [${clientModel.clientName}] - POD folder in Launches`, progress: 5 });
+
+          // Setup Google APIs (service account recommended for folder creation)
+          const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+          );
+
+          oauth2Client.setCredentials({
+            access_token: session.accessToken,
+            refresh_token: session.refreshToken,
+            expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+          });
+
+          const drive = google.drive({ version: 'v3', auth: oauth2Client });
+
+          // Parent folder ID for all POD folders
+          const POD_PARENT_FOLDER_ID = '1M23UBT4E0oD1nR7CYVEuc-a5oVVtkeqc';
+          const podFolderName = `${clientModel.clientName} - POD`;
+
+          // Check if folder already exists (avoid duplicates)
+          const folderQuery = `name='${podFolderName}' and '${POD_PARENT_FOLDER_ID}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`;
+          const folderSearchResponse = await drive.files.list({
+            q: folderQuery,
+            fields: 'files(id, name)',
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true,
+          });
+
+          if (folderSearchResponse.data.files && folderSearchResponse.data.files.length > 0) {
+            launchesFolderId = folderSearchResponse.data.files[0].id!;
+            sendEvent('progress', { step: 'folder', message: `Found existing POD folder`, progress: 10 });
+          } else {
+            // Create the folder
+            const folderMetadata = {
+              name: podFolderName,
+              mimeType: 'application/vnd.google-apps.folder',
+              parents: [POD_PARENT_FOLDER_ID],
+            };
+            const folderResponse = await drive.files.create({
+              requestBody: folderMetadata,
+              fields: 'id',
+              supportsAllDrives: true,
+            });
+            launchesFolderId = folderResponse.data.id!;
+            sendEvent('progress', { step: 'folder', message: `Created POD folder`, progress: 15 });
+          }
+
+          // Update ClientModel with new launchesPodFolderId
+          await prisma.clientModel.update({
+            where: { clientName: clientModel.clientName },
+            data: { launchesPodFolderId: launchesFolderId },
+          });
         }
 
         // Setup Google APIs
