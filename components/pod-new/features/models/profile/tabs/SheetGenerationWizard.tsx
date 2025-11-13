@@ -91,6 +91,7 @@ export function SheetGenerationWizard({ isOpen, onClose, modelName }: SheetGener
     currentStep: string;
     progress: number;
     completedSteps: string[];
+    message?: string;
   } | null>(null);
 
   const totalSteps = 3;
@@ -232,13 +233,167 @@ export function SheetGenerationWizard({ isOpen, onClose, modelName }: SheetGener
     setIsGenerating(true);
     
     try {
-      // For now, only Caption Bank is supported via the generate-stream endpoint
-      // POD Sheets generation will be added in the future
+      let podSheetLinks: any[] = [];
       
-      if (config.captionBank.enabled) {
-        // Prepare scheduler sheet URLs for the backend
-        const schedulerUrls: { free?: string; paid?: string } = {};
+      // Step 1: Generate POD Sheets first if selected (they provide scheduler URLs for Caption Bank)
+      if (config.podSheets.free || config.podSheets.paid || config.podSheets.oftv) {
+        podSheetLinks = await generatePODSheets();
         
+        // Reset progress state before starting Caption Bank generation
+        if (config.captionBank.enabled) {
+          await new Promise(resolve => setTimeout(resolve, 500));
+          setGenerationProgress(null);
+        }
+      }
+      
+      // Step 2: Generate Caption Bank if enabled
+      if (config.captionBank.enabled) {
+        await generateCaptionBank(podSheetLinks);
+      }
+      
+      // If neither was selected (shouldn't happen due to validation), show error
+      if (!config.captionBank.enabled && !config.podSheets.free && !config.podSheets.paid && !config.podSheets.oftv) {
+        toast.error('Please select at least one sheet type to generate');
+        setIsGenerating(false);
+        return;
+      }
+      
+      // All generation complete
+      setTimeout(() => {
+        setIsGenerating(false);
+        setGenerationProgress(null);
+        onClose();
+      }, 1500);
+      
+    } catch (error: any) {
+      console.error('Error generating sheets:', error);
+      setIsGenerating(false);
+      setGenerationProgress(null);
+      toast.error(error.message || 'Failed to generate sheets');
+    }
+  };
+
+  const generatePODSheets = (): Promise<any[]> => {
+    return new Promise((resolve, reject) => {
+      const params = new URLSearchParams();
+      params.append('free', config.podSheets.free.toString());
+      params.append('paid', config.podSheets.paid.toString());
+      params.append('oftv', config.podSheets.oftv.toString());
+
+      const eventSource = new EventSource(
+        `/api/models/${encodeURIComponent(modelName)}/sheet-links/generate-pod-sheets?${params}`
+      );
+
+      // Map backend step names to frontend step IDs
+      const stepMap: Record<string, string> = {
+        'validate': 'validate',
+        'folder': 'folder',
+        'copy': 'copy',
+        'save': 'save',
+        'complete': 'complete',
+      };
+
+      // Track the last step we received
+      let lastStepId: string | null = null;
+
+      eventSource.addEventListener('progress', (e) => {
+        const data = JSON.parse(e.data);
+        const stepId = stepMap[data.step] || data.step.toLowerCase();
+        
+        setGenerationProgress((prev) => {
+          const completedSteps = prev?.completedSteps || [];
+          
+          // If we have a new step and there was a previous step, mark the previous step as completed
+          if (lastStepId && lastStepId !== stepId && !completedSteps.includes(lastStepId)) {
+            completedSteps.push(lastStepId);
+          }
+          
+          // Update the last step
+          if (stepId !== lastStepId) {
+            lastStepId = stepId;
+          }
+          
+          return {
+            currentSheet: 'POD Sheets',
+            currentStep: data.step,
+            progress: data.progress || 50,
+            completedSteps: [...completedSteps],
+            message: data.message,
+          };
+        });
+      });
+
+      eventSource.addEventListener('complete', (e) => {
+        const data = JSON.parse(e.data);
+        
+        // Mark all steps as completed
+        setGenerationProgress({
+          currentSheet: 'POD Sheets',
+          currentStep: 'Complete',
+          progress: 100,
+          completedSteps: ['validate', 'folder', 'copy', 'save', 'complete'],
+        });
+
+        eventSource.close();
+        
+        queryClient.invalidateQueries({ queryKey: ['model-sheet-links', modelName] });
+        
+        toast.success(data.message || 'POD Sheets generated successfully!');
+        
+        // Open the first generated sheet if available
+        if (data.sheetLinks && data.sheetLinks.length > 0 && data.sheetLinks[0].sheetUrl) {
+          window.open(data.sheetLinks[0].sheetUrl, '_blank');
+        }
+        
+        // Resolve with the generated sheet links for Caption Bank to use
+        resolve(data.sheetLinks || []);
+      });
+
+      eventSource.addEventListener('error', (e: any) => {
+        const data = e.data ? JSON.parse(e.data) : { message: 'Unknown error' };
+        eventSource.close();
+        setGenerationProgress(null);
+        
+        toast.error(data.message || 'Failed to generate POD Sheets');
+        reject(new Error(data.message || 'Failed to generate POD Sheets'));
+      });
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setGenerationProgress(null);
+        
+        toast.error('Lost connection to server');
+        reject(new Error('Lost connection to server'));
+      };
+    });
+  };
+
+  const generateCaptionBank = (podSheetLinks: any[] = []): Promise<void> => {
+    return new Promise((resolve, reject) => {
+      // Prepare scheduler sheet URLs for the backend
+      const schedulerUrls: { free?: string; paid?: string } = {};
+      
+      // If POD Sheets were generated, extract scheduler URLs from them
+      if (podSheetLinks.length > 0) {
+        // Find FREE Scheduler Sheet
+        const freeScheduler = podSheetLinks.find(
+          (link: any) => link.folderName === 'FREE' && link.sheetType === 'Scheduler Sheet'
+        );
+        if (freeScheduler && config.captionBank.free) {
+          schedulerUrls.free = freeScheduler.sheetUrl;
+          console.log('📋 Using auto-fetched FREE Scheduler URL:', schedulerUrls.free);
+        }
+        
+        // Find PAID Scheduler Sheet
+        const paidScheduler = podSheetLinks.find(
+          (link: any) => link.folderName === 'PAID' && link.sheetType === 'Scheduler Sheet'
+        );
+        if (paidScheduler && config.captionBank.paid) {
+          schedulerUrls.paid = paidScheduler.sheetUrl;
+          console.log('📋 Using auto-fetched PAID Scheduler URL:', schedulerUrls.paid);
+        }
+      } else {
+        // Fallback to original logic if POD Sheets weren't generated
         // Get FREE scheduler URL (from POD Sheet or user-provided)
         if (config.podSheets.free) {
           // FREE POD Sheet is being generated, backend will handle scheduler URL
@@ -262,125 +417,115 @@ export function SheetGenerationWizard({ isOpen, onClose, modelName }: SheetGener
           // Generate new PAID scheduler (will be implemented later)
           schedulerUrls.paid = 'GENERATE_NEW';
         }
-
-        // Use the existing generate-stream endpoint for Caption Bank
-        const params = new URLSearchParams();
-        params.append('free', config.captionBank.free.toString());
-        params.append('paid', config.captionBank.paid.toString());
-        
-        // Add scheduler URLs to params
-        if (schedulerUrls.free) {
-          params.append('freeSchedulerUrl', schedulerUrls.free);
-        }
-        if (schedulerUrls.paid) {
-          params.append('paidSchedulerUrl', schedulerUrls.paid);
-        }
-
-        const eventSource = new EventSource(
-          `/api/models/${encodeURIComponent(modelName)}/sheet-links/generate-stream?${params}`
-        );
-
-        // Map backend step names to frontend step IDs
-        const stepMap: Record<string, string> = {
-          'validate': 'validate',
-          'folder': 'folder',
-          'copy': 'copy',
-          'duplicate': 'duplicate',
-          'update': 'update',
-          'protect': 'protect',
-          'formulas': 'formulas',
-          'save': 'save',
-          'complete': 'complete',
-        };
-
-        // Track the last step we received
-        let lastStepId: string | null = null;
-
-        eventSource.addEventListener('progress', (e) => {
-          const data = JSON.parse(e.data);
-          const stepId = stepMap[data.step] || data.step.toLowerCase();
-          
-          setGenerationProgress((prev) => {
-            const completedSteps = prev?.completedSteps || [];
-            
-            // If we have a new step and there was a previous step, mark the previous step as completed
-            if (lastStepId && lastStepId !== stepId && !completedSteps.includes(lastStepId)) {
-              completedSteps.push(lastStepId);
-            }
-            
-            // Update the last step
-            if (stepId !== lastStepId) {
-              lastStepId = stepId;
-            }
-            
-            return {
-              currentSheet: 'Caption Bank',
-              currentStep: data.step,
-              progress: data.progress,
-              completedSteps: [...completedSteps],
-            };
-          });
-        });
-
-        eventSource.addEventListener('complete', (e) => {
-          const data = JSON.parse(e.data);
-          
-          // Mark all steps as completed
-          setGenerationProgress({
-            currentSheet: 'Caption Bank',
-            currentStep: 'Complete',
-            progress: 100,
-            completedSteps: ['validate', 'folder', 'copy', 'duplicate', 'update', 'protect', 'formulas', 'save', 'complete'],
-          });
-
-          eventSource.close();
-          
-          // Wait a moment to show completed state
-          setTimeout(() => {
-            setIsGenerating(false);
-            setGenerationProgress(null);
-            
-            queryClient.invalidateQueries({ queryKey: ['model-sheet-links', modelName] });
-            
-            toast.success('Caption Bank generated successfully!');
-            onClose();
-            
-            // Open the caption bank sheet
-            if (data.sheetLink?.sheetUrl) {
-              window.open(data.sheetLink.sheetUrl, '_blank');
-            } else if (data.sheetUrl) {
-              window.open(data.sheetUrl, '_blank');
-            }
-          }, 1500);
-        });
-
-        eventSource.addEventListener('error', (e: any) => {
-          const data = e.data ? JSON.parse(e.data) : { message: 'Unknown error' };
-          eventSource.close();
-          setIsGenerating(false);
-          setGenerationProgress(null);
-          
-          toast.error(data.message || 'Failed to generate Caption Bank');
-        });
-
-        eventSource.onerror = () => {
-          eventSource.close();
-          setIsGenerating(false);
-          setGenerationProgress(null);
-          
-          toast.error('Lost connection to server');
-        };
-      } else if (config.podSheets.free || config.podSheets.paid || config.podSheets.oftv) {
-        // POD Sheets not implemented yet
-        toast.error('POD Sheets generation is coming soon!');
-        setIsGenerating(false);
       }
-    } catch (error: any) {
-      console.error('Error generating sheets:', error);
-      setIsGenerating(false);
-      setGenerationProgress(null);
-      toast.error(error.message || 'Failed to generate sheets');
-    }
+
+      // Use the existing generate-stream endpoint for Caption Bank
+      const params = new URLSearchParams();
+      params.append('free', config.captionBank.free.toString());
+      params.append('paid', config.captionBank.paid.toString());
+      
+      // Add scheduler URLs to params
+      if (schedulerUrls.free) {
+        params.append('freeSchedulerUrl', schedulerUrls.free);
+      }
+      if (schedulerUrls.paid) {
+        params.append('paidSchedulerUrl', schedulerUrls.paid);
+      }
+
+      const eventSource = new EventSource(
+        `/api/models/${encodeURIComponent(modelName)}/sheet-links/generate-stream?${params}`
+      );
+
+      // Map backend step names to frontend step IDs
+      const stepMap: Record<string, string> = {
+        'validate': 'validate',
+        'folder': 'folder',
+        'copy': 'copy',
+        'duplicate': 'duplicate',
+        'update': 'update',
+        'protect': 'protect',
+        'formulas': 'formulas',
+        'save': 'save',
+        'complete': 'complete',
+      };
+
+      // Track the last step we received
+      let lastStepId: string | null = null;
+
+      eventSource.addEventListener('progress', (e) => {
+        const data = JSON.parse(e.data);
+        const stepId = stepMap[data.step] || data.step.toLowerCase();
+        
+        setGenerationProgress((prev) => {
+          const completedSteps = prev?.completedSteps || [];
+          
+          // If we have a new step and there was a previous step, mark the previous step as completed
+          if (lastStepId && lastStepId !== stepId && !completedSteps.includes(lastStepId)) {
+            completedSteps.push(lastStepId);
+          }
+          
+          // Update the last step
+          if (stepId !== lastStepId) {
+            lastStepId = stepId;
+          }
+          
+          return {
+            currentSheet: 'Caption Bank',
+            currentStep: data.step,
+            progress: data.progress,
+            completedSteps: [...completedSteps],
+            message: data.message,
+          };
+        });
+      });
+
+      eventSource.addEventListener('complete', (e) => {
+        const data = JSON.parse(e.data);
+        
+        // Mark all steps as completed
+        setGenerationProgress({
+          currentSheet: 'Caption Bank',
+          currentStep: 'Complete',
+          progress: 100,
+          completedSteps: ['validate', 'folder', 'copy', 'duplicate', 'update', 'protect', 'formulas', 'save', 'complete'],
+        });
+
+        eventSource.close();
+        
+        queryClient.invalidateQueries({ queryKey: ['model-sheet-links', modelName] });
+        
+        toast.success('Caption Bank generated successfully!');
+        
+        // Open the caption bank sheet
+        if (data.sheetLink?.sheetUrl) {
+          window.open(data.sheetLink.sheetUrl, '_blank');
+        } else if (data.sheetUrl) {
+          window.open(data.sheetUrl, '_blank');
+        }
+        
+        // Wait a moment before resolving
+        setTimeout(() => {
+          resolve();
+        }, 1000);
+      });
+
+      eventSource.addEventListener('error', (e: any) => {
+        const data = e.data ? JSON.parse(e.data) : { message: 'Unknown error' };
+        eventSource.close();
+        setGenerationProgress(null);
+        
+        toast.error(data.message || 'Failed to generate Caption Bank');
+        reject(new Error(data.message || 'Failed to generate Caption Bank'));
+      });
+
+      eventSource.onerror = () => {
+        eventSource.close();
+        setGenerationProgress(null);
+        
+        toast.error('Lost connection to server');
+        reject(new Error('Lost connection to server'));
+      };
+    });
   };
 
   const getSummary = () => {
@@ -1112,17 +1257,41 @@ export function SheetGenerationWizard({ isOpen, onClose, modelName }: SheetGener
                         {/* Step-by-Step Progress */}
                         <div className="space-y-3">
                           {(() => {
-                            const steps = [
-                              { id: 'validate', label: 'Validating model configuration' },
-                              { id: 'folder', label: 'Finding/creating folder' },
-                              { id: 'copy', label: 'Copying template sheet' },
-                              { id: 'duplicate', label: 'Duplicating tabs' },
-                              { id: 'update', label: 'Updating headers' },
-                              { id: 'protect', label: 'Protecting cells' },
-                              { id: 'formulas', label: 'Adding formulas' },
-                              { id: 'save', label: 'Saving to database' },
-                              { id: 'complete', label: 'Finalizing' },
-                            ];
+                            // Dynamic steps based on what's being generated
+                            let steps;
+                            
+                            if (generationProgress.currentSheet === 'Caption Bank') {
+                              // Caption Bank steps
+                              steps = [
+                                { id: 'validate', label: 'Validating model configuration' },
+                                { id: 'folder', label: 'Finding/creating CAPTION BANK folder' },
+                                { id: 'copy', label: 'Copying template sheet' },
+                                { id: 'duplicate', label: 'Duplicating tabs' },
+                                { id: 'update', label: 'Updating headers' },
+                                { id: 'protect', label: 'Protecting cells' },
+                                { id: 'formulas', label: 'Adding formulas' },
+                                { id: 'save', label: 'Saving to database' },
+                                { id: 'complete', label: 'Finalizing' },
+                              ];
+                            } else if (generationProgress.currentSheet === 'POD Sheets') {
+                              // POD Sheets steps
+                              steps = [
+                                { id: 'validate', label: 'Validating model configuration' },
+                                { id: 'folder', label: 'Checking/creating tier folders' },
+                                { id: 'copy', label: 'Generating sheets' },
+                                { id: 'save', label: 'Saving to database' },
+                                { id: 'complete', label: 'Finalizing' },
+                              ];
+                            } else {
+                              // Default fallback
+                              steps = [
+                                { id: 'validate', label: 'Validating model configuration' },
+                                { id: 'folder', label: 'Finding/creating folder' },
+                                { id: 'copy', label: 'Copying template sheet' },
+                                { id: 'save', label: 'Saving to database' },
+                                { id: 'complete', label: 'Finalizing' },
+                              ];
+                            }
                             
                             // Calculate progress based on completed steps
                             const completedCount = generationProgress.completedSteps.length;
@@ -1137,24 +1306,21 @@ export function SheetGenerationWizard({ isOpen, onClose, modelName }: SheetGener
                                   <div className="flex-1">
                                     <div className="font-medium">{generationProgress.currentSheet}</div>
                                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                                      Step {Math.min(completedCount + 1, totalSteps)} of {totalSteps}
+                                      {generationProgress.message || `Step ${Math.min(completedCount + 1, totalSteps)} of ${totalSteps}`}
                                     </div>
                                   </div>
-                                  <Badge variant="secondary">{calculatedProgress}%</Badge>
+                                  <Badge variant="secondary">{generationProgress.progress || calculatedProgress}%</Badge>
                                 </div>
 
                                 {/* Steps List */}
                                 {steps.map((step, index, array) => {
                                   const isCompleted = generationProgress.completedSteps.includes(step.id);
                                   
-                                  // Check if this is the current step (either by matching the step name or being the next after completed steps)
-                                  const currentStepMatch = generationProgress.currentStep.toLowerCase().includes(step.id);
-                                  
-                                  // If the previous step is completed and this one isn't, mark as in progress
-                                  const previousStepCompleted = index === 0 || generationProgress.completedSteps.includes(array[index - 1].id);
-                                  const isInProgress = !isCompleted && previousStepCompleted && (
-                                    currentStepMatch || 
-                                    (index > 0 && generationProgress.completedSteps.includes(array[index - 1].id) && !isCompleted)
+                                  // Check if this is the current step by matching the backend step name
+                                  const currentBackendStep = generationProgress.currentStep.toLowerCase();
+                                  const isInProgress = !isCompleted && (
+                                    currentBackendStep === step.id || 
+                                    currentBackendStep.includes(step.id)
                                   );
                                   
                                   return (
