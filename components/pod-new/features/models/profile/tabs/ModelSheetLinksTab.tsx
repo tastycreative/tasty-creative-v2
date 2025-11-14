@@ -568,17 +568,7 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
               </tbody>
             </table>
           </div>
-          {isAdmin && selectedIds.length > 0 && (
-            <div className="flex justify-end mb-2">
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeleteModal(true)}
-                className="bg-red-600 hover:bg-red-700 text-white"
-              >
-                Delete Selected ({selectedIds.length})
-              </Button>
-            </div>
-          )}
+      
           {showDeleteModal && (
             <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
               <div className="bg-white dark:!bg-[oklch(0.205_0_0)] rounded-lg shadow-lg p-6 max-w-md w-full border border-gray-200 dark:border-pink-900">
