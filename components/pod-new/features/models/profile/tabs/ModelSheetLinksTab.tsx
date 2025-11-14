@@ -110,6 +110,8 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState("");
+  const [pendingDeleteId, setPendingDeleteId] = useState<string | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleSelect = (id: string, checked: boolean) => {
     setSelectedIds((prev) =>
@@ -548,10 +550,13 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setShowDeleteModal(true)}
+                            onClick={() => {
+                              setShowDeleteModal(true);
+                              setPendingDeleteId(link.id);
+                            }}
                             className="p-1"
-                            title="Delete Selected"
-                            aria-label="Delete Selected"
+                            title="Delete"
+                            aria-label="Delete"
                           >
                             <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                           </Button>
@@ -578,19 +583,16 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
             <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
               <div className="bg-white dark:!bg-[oklch(0.205_0_0)] rounded-lg shadow-lg p-6 max-w-md w-full border border-gray-200 dark:border-pink-900">
                 <h2 className="text-lg font-bold mb-2 text-gray-900 dark:text-gray-100">
-                  Confirm Bulk Delete
+                  Confirm Delete
                 </h2>
                 <p className="mb-4 text-gray-700 dark:text-gray-300">
-                  Are you sure you want to delete{" "}
-                  <span className="font-bold">{selectedIds.length}</span> sheet
-                  link(s)? This action cannot be undone.
+                  {pendingDeleteId
+                    ? <>Are you sure you want to delete <span className="font-bold">1</span> sheet link? This action cannot be undone.</>
+                    : <>Are you sure you want to delete <span className="font-bold">{selectedIds.length}</span> sheet link(s)? This action cannot be undone.</>
+                  }
                 </p>
                 <p className="mb-2 text-sm text-gray-500 dark:text-gray-400">
-                  Type{" "}
-                  <span className="font-mono font-bold text-pink-600">
-                    confirm delete
-                  </span>{" "}
-                  to proceed.
+                  Type <span className="font-mono font-bold text-pink-600">confirm delete</span> to proceed.
                 </p>
                 <input
                   type="text"
@@ -605,18 +607,70 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
                     onClick={() => {
                       setShowDeleteModal(false);
                       setDeleteConfirmText("");
+                      setPendingDeleteId(null);
                     }}
                   >
                     Cancel
                   </Button>
-                  <Button
-                    variant="destructive"
-                    className="bg-red-600 hover:bg-red-700 text-white"
-                    disabled={deleteConfirmText !== "confirm delete"}
-                    onClick={handleGroupDelete}
-                  >
-                    Delete
-                  </Button>
+                  {pendingDeleteId ? (
+                    <Button
+                      variant="destructive"
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      disabled={deleteConfirmText !== "confirm delete" || isDeleting}
+                      onClick={async () => {
+                        if (!isAdmin || !pendingDeleteId || deleteConfirmText !== "confirm delete") return;
+                        setIsDeleting(true);
+                        try {
+                          const response = await fetch(`/api/models/${encodeURIComponent(modelName)}/sheet-links/${pendingDeleteId}`, {
+                            method: "DELETE",
+                          });
+                          if (!response.ok) throw new Error("Failed to delete sheet link");
+                          toast.success("Sheet link deleted successfully");
+                          setPendingDeleteId(null);
+                          setShowDeleteModal(false);
+                          setDeleteConfirmText("");
+                          queryClient.invalidateQueries({ queryKey: ["model-sheet-links", modelName] });
+                        } catch (error) {
+                          toast.error("Failed to delete sheet link");
+                        } finally {
+                          setIsDeleting(false);
+                        }
+                      }}
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  ) : (
+                    <Button
+                      variant="destructive"
+                      className="bg-red-600 hover:bg-red-700 text-white"
+                      disabled={deleteConfirmText !== "confirm delete" || isDeleting}
+                      onClick={async () => {
+                        if (!isAdmin || selectedIds.length === 0 || deleteConfirmText !== "confirm delete") return;
+                        setIsDeleting(true);
+                        try {
+                          await Promise.all(
+                            selectedIds.map(async (id) => {
+                              const response = await fetch(`/api/models/${encodeURIComponent(modelName)}/sheet-links/${id}`, {
+                                method: "DELETE",
+                              });
+                              if (!response.ok) throw new Error("Failed to delete sheet link");
+                            })
+                          );
+                          toast.success("Selected sheet links deleted successfully");
+                          setSelectedIds([]);
+                          setShowDeleteModal(false);
+                          setDeleteConfirmText("");
+                          queryClient.invalidateQueries({ queryKey: ["model-sheet-links", modelName] });
+                        } catch (error) {
+                          toast.error("Failed to delete selected sheet links");
+                        } finally {
+                          setIsDeleting(false);
+                        }
+                      }}
+                    >
+                      {isDeleting ? 'Deleting...' : 'Delete'}
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
