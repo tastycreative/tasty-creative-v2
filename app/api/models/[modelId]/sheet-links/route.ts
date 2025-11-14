@@ -77,13 +77,14 @@ export async function GET(
       );
     }
 
-    // Find the client model
+    // Find the client model and include launchesPodFolderId
     const clientModel = await prisma.clientModel.findUnique({
       where: {
         clientName: decodeURIComponent(modelId),
       },
       select: {
         id: true,
+        launchesPodFolderId: true,
       },
     });
 
@@ -104,7 +105,10 @@ export async function GET(
       },
     });
 
-    return NextResponse.json(sheetLinks);
+    return NextResponse.json({
+      sheetLinks,
+      launchesPodFolderId: clientModel.launchesPodFolderId || null,
+    });
   } catch (error) {
     console.error("Error fetching sheet links:", error);
     return NextResponse.json(

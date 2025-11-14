@@ -37,13 +37,14 @@ interface ModelSheetLinksTabProps {
 }
 
 export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
-  const { data: session } = useSession();
-  const queryClient = useQueryClient();
-  const [isWizardOpen, setIsWizardOpen] = useState(false);
-  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
+  // Filter and sort state
+  const [filterType, setFilterType] = useState<string>('');
+  const [filterFolder, setFilterFolder] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'name' | 'updatedAt'>('updatedAt');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
 
-  // Fetch sheet links for the model
-  const { data: sheetLinks, isLoading, error } = useQuery<SheetLink[]>({
+  // Fetch sheet links and launchesPodFolderId for the model
+  const { data: sheetLinksData, isLoading: sheetLinksLoading, error: sheetLinksError } = useQuery<{ sheetLinks: SheetLink[], launchesPodFolderId?: string }>({
     queryKey: ['model-sheet-links', modelName],
     queryFn: async () => {
       const response = await fetch(`/api/models/${encodeURIComponent(modelName)}/sheet-links`);
@@ -53,7 +54,40 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
       return response.json();
     },
     enabled: !!modelName,
+    select: (data) => {
+      // If API returns array, treat as legacy, else expect launchesPodFolderId
+      if (Array.isArray(data)) return { sheetLinks: data };
+      return data;
+    }
   });
+
+  // Filtered and sorted sheetLinks (guard against undefined)
+  const filteredLinks = Array.isArray(sheetLinksData?.sheetLinks)
+    ? sheetLinksData.sheetLinks
+        .filter(link =>
+          (!filterType || (link.sheetType && link.sheetType.toLowerCase() === filterType)) &&
+          (!filterFolder || (link.folderName && link.folderName.toLowerCase() === filterFolder))
+        )
+        .sort((a, b) => {
+          if (sortBy === 'name') {
+            const nameA = (a.sheetName || '').toLowerCase();
+            const nameB = (b.sheetName || '').toLowerCase();
+            if (nameA < nameB) return sortOrder === 'asc' ? -1 : 1;
+            if (nameA > nameB) return sortOrder === 'asc' ? 1 : -1;
+            return 0;
+          } else {
+            const dateA = new Date(a.updatedAt).getTime();
+            const dateB = new Date(b.updatedAt).getTime();
+            return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+          }
+        })
+    : [];
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  const [isWizardOpen, setIsWizardOpen] = useState(false);
+  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
+
+  // Remove duplicate useQuery for sheetLinks
 
   const getSheetTypeColor = (type: string | null) => {
     switch (type?.toLowerCase()) {
@@ -98,32 +132,64 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
     }
   };
 
-  if (isLoading) {
+  if (sheetLinksLoading) {
     return (
       <div className="space-y-6 p-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between mb-4">
           <Skeleton className="h-8 w-48" />
           <Skeleton className="h-10 w-32" />
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <Card key={i}>
-              <CardHeader>
-                <Skeleton className="h-5 w-full mb-2" />
-                <Skeleton className="h-4 w-24" />
-              </CardHeader>
-              <CardContent>
-                <Skeleton className="h-4 w-full mb-2" />
-                <Skeleton className="h-4 w-32" />
-              </CardContent>
-            </Card>
-          ))}
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+            <thead className="bg-gray-50 dark:bg-gray-800">
+              <tr>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300"><Skeleton className="h-4 w-24" /></th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300"><Skeleton className="h-4 w-20" /></th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300"><Skeleton className="h-4 w-20" /></th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300"><Skeleton className="h-4 w-20" /></th>
+                <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300"><Skeleton className="h-4 w-20" /></th>
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+              {[...Array(6)].map((_, i) => (
+                <tr key={i} className="hover:bg-pink-50 dark:hover:bg-gray-800 transition">
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-5 h-5" />
+                      <Skeleton className="h-4 w-32" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <Skeleton className="h-4 w-24" />
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-4 h-4" />
+                      <Skeleton className="h-4 w-24" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-3.5 h-3.5" />
+                      <Skeleton className="h-4 w-20" />
+                    </div>
+                  </td>
+                  <td className="px-4 py-2 whitespace-nowrap">
+                    <div className="flex items-center gap-2">
+                      <Skeleton className="w-4 h-4" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (sheetLinksError) {
     return (
       <div className="flex flex-col items-center justify-center py-16 text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mb-4 bg-red-100 dark:bg-red-900/20">
@@ -148,16 +214,28 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
             Sheet Links
           </h2>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-            {sheetLinks?.length || 0} {sheetLinks?.length === 1 ? 'sheet' : 'sheets'} linked to {modelName}
+            {(sheetLinksData?.sheetLinks?.length || 0)} {(sheetLinksData?.sheetLinks?.length === 1 ? 'sheet' : 'sheets')} linked to {modelName}
           </p>
-          </div>
-          {isAdmin && (
-            <Button onClick={() => setIsWizardOpen(true)} className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white">
-              <Sparkles className="w-4 h-4 mr-2" />
-              Generate Sheets
-            </Button>
+          {/* External link to Launches POD parent folder */}
+          {sheetLinksData?.launchesPodFolderId && (
+            <a
+              href={`https://drive.google.com/drive/folders/${sheetLinksData.launchesPodFolderId}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-2 px-3 py-1 border rounded text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-pink-100 dark:hover:bg-pink-900 transition"
+            >
+              <Folder className="w-4 h-4 text-pink-600 dark:text-pink-400" />
+              View Launches POD Folder
+            </a>
           )}
         </div>
+        {isAdmin && (
+          <Button onClick={() => setIsWizardOpen(true)} className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white">
+            <Sparkles className="w-4 h-4 mr-2" />
+            Generate Sheets
+          </Button>
+        )}
+      </div>
         
         {/* Sheet Generation Wizard */}
         <SheetGenerationWizard 
@@ -166,99 +244,158 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
           modelName={modelName}
         />
         
-        {/* Sheet Links Grid */}
-        {sheetLinks && sheetLinks.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {sheetLinks.map((link) => (
-              <Card 
-                key={link.id}
-                className="group hover:shadow-lg transition-all duration-300 relative overflow-hidden min-w-0 flex flex-col"
-              >
-                {/* Background gradient */}
-                <div className="absolute inset-0 bg-gradient-to-br from-pink-50/50 via-purple-50/50 to-blue-50/50 dark:from-gray-800/50 dark:via-purple-900/20 dark:to-blue-900/20 opacity-0 group-hover:opacity-100 transition-opacity" />
-                
-                <CardHeader className="relative min-w-0">
-                  <div className="flex items-start justify-between gap-2 min-w-0">
-                    <div className="flex items-center gap-2 flex-1 min-w-0 overflow-hidden">
-                      <div className="p-2 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-lg flex-shrink-0">
-                        <FileSpreadsheet className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                      </div>
-                      <div className="flex-1 min-w-0 overflow-hidden space-y-1">
-                        <h3 
-                          className="text-base font-semibold text-gray-900 dark:text-gray-100 truncate w-full block" 
-                          title={link.sheetName || 'Untitled Sheet'}
-                        >
-                          {link.sheetName || 'Untitled Sheet'}
-                        </h3>
+  {/* Filter and Sort Controls */}
+  {sheetLinksData?.sheetLinks && sheetLinksData.sheetLinks.length > 0 ? (
+          <>
+            <div className="flex flex-wrap gap-4 items-center mb-4">
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by Type:</label>
+                <select
+                  value={filterType}
+                  onChange={e => setFilterType(e.target.value)}
+                  className="px-2 py-1 border rounded text-sm bg-white dark:bg-gray-900 dark:text-gray-100"
+                >
+                  <option value="">All</option>
+                  <option value="analyst sheet">Analyst Sheet</option>
+                  <option value="creator sheet">Creator Sheet</option>
+                  <option value="scheduler sheet">Scheduler Sheet</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mr-2">Filter by Folder:</label>
+                <select
+                  value={filterFolder}
+                  onChange={e => setFilterFolder(e.target.value)}
+                  className="px-2 py-1 border rounded text-sm bg-white dark:bg-gray-900 dark:text-gray-100"
+                >
+                  <option value="">All</option>
+                  {/* Dynamically list unique folder names */}
+                  {Array.isArray(sheetLinksData?.sheetLinks) &&
+                    Array.from(new Set(sheetLinksData.sheetLinks.map((l: SheetLink) => l.folderName).filter((f): f is string => !!f))).map(folder => (
+                      <option key={folder} value={folder.toLowerCase()}>{folder}</option>
+                    ))}
+                </select>
+              </div>
+              <div>
+                <button
+                  type="button"
+                  onClick={() => { setFilterType(''); setFilterFolder(''); }}
+                  className="px-3 py-1 border rounded text-sm bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-200 hover:bg-pink-100 dark:hover:bg-pink-900 transition"
+                >
+                  Clear Filters
+                </button>
+              </div>
+              <div>
+                <label className="text-xs font-medium text-gray-700 dark:text-gray-300 mr-2">Sort by:</label>
+                <select
+                  value={sortBy}
+                  onChange={e => setSortBy(e.target.value as 'name' | 'updatedAt')}
+                  className="px-2 py-1 border rounded text-sm bg-white dark:bg-gray-900 dark:text-gray-100 mr-2"
+                >
+                  <option value="name">Name</option>
+                  <option value="updatedAt">Updated</option>
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                  className="px-2 py-1 border rounded text-sm bg-white dark:bg-gray-900 dark:text-gray-100"
+                  title={sortOrder === 'asc' ? 'Ascending' : 'Descending'}
+                >
+                  {sortOrder === 'asc' ? '↑' : '↓'}
+                </button>
+              </div>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-800">
+                  <tr>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Name</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Type</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Folder</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Updated</th>
+                    <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white dark:bg-gray-900 divide-y divide-gray-200 dark:divide-gray-800">
+                  {filteredLinks.map((link) => (
+                    <tr key={link.id} className="hover:bg-pink-50 dark:hover:bg-gray-800 transition">
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <FileSpreadsheet className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                          <span className="font-semibold text-gray-900 dark:text-gray-100 truncate" title={link.sheetName || 'Untitled Sheet'}>
+                            {link.sheetName || 'Untitled Sheet'}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
                         {link.sheetType && (
                           <Badge className={`${getSheetTypeColor(link.sheetType)} w-fit`} variant="secondary">
                             {link.sheetType}
                           </Badge>
                         )}
-                      </div>
-                    </div>
-                    {isAdmin && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteLink(link.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-                      >
-                        <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
-                      </Button>
-                    )}
-                  </div>
-                </CardHeader>
-                
-                <CardContent className="relative space-y-3 flex-1 flex flex-col">
-                  <div className="flex-1 space-y-3">
-                    {/* Folder Info */}
-                    {link.folderName && (
-                      <div className="flex items-center gap-2 text-sm">
-                        <Folder className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
-                        <span className="text-gray-700 dark:text-gray-300 truncate flex-1">
-                          {link.folderName}
-                        </span>
-                        {link.folderId && (
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {link.folderName && (
+                            <>
+                              <Folder className="w-4 h-4 text-gray-500 dark:text-gray-400 flex-shrink-0" />
+                              <span className="text-gray-700 dark:text-gray-300 truncate">
+                                {link.folderName}
+                              </span>
+                              {link.folderId && (
+                                <a
+                                  href={`https://drive.google.com/drive/folders/${link.folderId}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 flex-shrink-0"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </a>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                          <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span>Updated {formatDate(link.updatedAt)}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2 whitespace-nowrap">
+                        <div className="flex items-center gap-2">
                           <a
-                            href={`https://drive.google.com/drive/folders/${link.folderId}`}
+                            href={link.sheetUrl}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 flex-shrink-0"
-                            onClick={(e) => e.stopPropagation()}
                           >
-                            <ExternalLink className="w-3.5 h-3.5" />
+                            <Button 
+                              variant="outline" 
+                              className="group-hover:bg-gradient-to-r group-hover:from-pink-500 group-hover:to-purple-500 group-hover:text-white group-hover:border-transparent transition-all"
+                            >
+                              <ExternalLink className="w-4 h-4 mr-2" />
+                              Open
+                            </Button>
                           </a>
-                        )}
-                      </div>
-                    )}
-
-                    {/* Updated Date */}
-                    <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
-                      <Calendar className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>Updated {formatDate(link.updatedAt)}</span>
-                    </div>
-                  </div>
-
-                  {/* Sheet Link Button - Always at bottom */}
-                  <a
-                    href={link.sheetUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block mt-auto"
-                  >
-                    <Button 
-                      variant="outline" 
-                      className="w-full group-hover:bg-gradient-to-r group-hover:from-pink-500 group-hover:to-purple-500 group-hover:text-white group-hover:border-transparent transition-all"
-                    >
-                      <ExternalLink className="w-4 h-4 mr-2" />
-                      Open Sheet
-                    </Button>
-                  </a>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                          {isAdmin && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteLink(link.id)}
+                              className="transition-opacity"
+                            >
+                              <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         ) : (
           /* Empty State */
           <div className="flex flex-col items-center justify-center py-16 text-center">
