@@ -459,7 +459,7 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
                     Updated
                   </th>
                   <th className="px-4 py-2 text-left text-xs font-semibold text-gray-700 dark:text-gray-300">
-                    Actions
+                    <div className="flex items-center gap-2">Actions</div>
                   </th>
                 </tr>
               </thead>
@@ -548,8 +548,10 @@ export function ModelSheetLinksTab({ modelName }: ModelSheetLinksTabProps) {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDeleteLink(link.id)}
-                            className="transition-opacity"
+                            onClick={() => setShowDeleteModal(true)}
+                            className="p-1"
+                            title="Delete Selected"
+                            aria-label="Delete Selected"
                           >
                             <Trash2 className="w-4 h-4 text-red-600 dark:text-red-400" />
                           </Button>
