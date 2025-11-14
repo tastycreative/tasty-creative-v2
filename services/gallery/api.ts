@@ -69,7 +69,13 @@ export async function fetchReleasesData(): Promise<GalleryApiResponse> {
 /**
  * Toggle favorite status
  */
-export async function toggleFavorite(itemId: string, tableName: string, title: string, action: 'add' | 'remove'): Promise<void> {
+export async function toggleFavorite(
+  itemId: string,
+  tableName: string,
+  title: string,
+  action: 'add' | 'remove',
+  userId?: string
+): Promise<void> {
   const response = await fetch('/api/favorites-db', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -78,7 +84,7 @@ export async function toggleFavorite(itemId: string, tableName: string, title: s
       itemId,
       tableName,
       title,
-      userId: 'current-user' // TODO: Get from session
+      userId: userId || 'current-user'
     })
   });
 
@@ -90,7 +96,13 @@ export async function toggleFavorite(itemId: string, tableName: string, title: s
 /**
  * Toggle PTR status
  */
-export async function togglePTR(itemId: string, tableName: string, title: string, action: 'add' | 'remove'): Promise<void> {
+export async function togglePTR(
+  itemId: string,
+  tableName: string,
+  title: string,
+  action: 'add' | 'remove',
+  userId?: string
+): Promise<void> {
   const response = await fetch('/api/releases-db', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -99,11 +111,50 @@ export async function togglePTR(itemId: string, tableName: string, title: string
       itemId,
       tableName,
       title,
-      userId: 'current-user' // TODO: Get from session
+      userId: userId || 'current-user'
     })
   });
 
   if (!response.ok) {
     throw new Error('Failed to update PTR status');
+  }
+}
+
+/**
+ * Mark PTR as sent
+ */
+export async function markPTRAsSent(itemId: string, tableName: string, userId: string): Promise<void> {
+  const response = await fetch('/api/ptr-sent', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      itemId,
+      tableName,
+      userId
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to mark PTR as sent');
+  }
+}
+
+/**
+ * Unmark PTR as sent (rollback)
+ */
+export async function unmarkPTRAsSent(itemId: string, tableName: string): Promise<void> {
+  const response = await fetch('/api/ptr-sent', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      itemId,
+      tableName
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || 'Failed to unmark PTR as sent');
   }
 }

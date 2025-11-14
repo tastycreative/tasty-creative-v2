@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useMemo } from "react";
-import { Grid3X3, TrendingUp, DollarSign, User, Award, Percent } from "lucide-react";
+import { Grid3X3, TrendingUp, DollarSign, User } from "lucide-react";
 import { GalleryItem } from "@/types/gallery";
 
 export interface StatsCardsProps {
@@ -25,7 +25,6 @@ const StatsCards: React.FC<StatsCardsProps> = ({
       return {
         avgRevenue: 0,
         topCreator: "N/A",
-        successRate: 0,
         avgPrice: 0,
         totalEarnings: 0,
         itemsWithRevenue: 0,
@@ -50,17 +49,9 @@ const StatsCards: React.FC<StatsCardsProps> = ({
     });
     const topCreator = Object.entries(creatorRevenues).sort(([, a], [, b]) => b - a)[0]?.[0] || "N/A";
 
-    // Calculate success rate (Good outcomes)
-    const itemsWithOutcome = items.filter((item) => item.outcome);
-    const goodOutcomes = items.filter((item) => item.outcome?.toLowerCase() === "good");
-    const successRate = itemsWithOutcome.length > 0
-      ? (goodOutcomes.length / itemsWithOutcome.length) * 100
-      : 0;
-
     return {
       avgRevenue,
       topCreator,
-      successRate,
       avgPrice,
       totalEarnings,
       itemsWithRevenue: itemsWithRevenue.length,
@@ -123,21 +114,10 @@ const StatsCards: React.FC<StatsCardsProps> = ({
       iconBg: "bg-gradient-to-br from-indigo-500 to-blue-500",
       trend: null,
     },
-    {
-      label: "Success Rate",
-      value: `${enhancedMetrics.successRate.toFixed(1)}%`,
-      subtitle: "Good outcomes",
-      icon: Award,
-      gradient: "from-green-500 to-emerald-500",
-      bgGradient:
-        "from-green-50 to-emerald-100 dark:from-green-900/20 dark:to-emerald-800/30",
-      iconBg: "bg-gradient-to-br from-green-500 to-emerald-500",
-      trend: enhancedMetrics.successRate > 50 ? "Above avg" : null,
-    },
   ];
 
   return (
-    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 pb-8 ${className}`}>
+    <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 pb-8 ${className}`}>
       {stats.map((stat, index) => {
         const IconComponent = stat.icon;
         return (

@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import ContentCard from "@/components/gallery/ContentCard";
+import BulkActionsToolbar from "@/components/gallery/BulkActionsToolbar";
+import KeyboardShortcutsModal from "@/components/gallery/KeyboardShortcutsModal";
 import {
   SearchBar,
   TabSelector,
@@ -11,16 +13,19 @@ import { StatsCards } from "@/components/gallery/Stats";
 import Pagination from "@/components/gallery/Pagination";
 import GallerySkeleton from "@/components/gallery/GallerySkeleton";
 import { GalleryItem, FilterState } from "@/types/gallery";
-import { Grid3X3, SlidersHorizontal, RotateCcw } from "lucide-react";
+import { Grid3X3, SlidersHorizontal, RotateCcw, CheckSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
   useGalleryData,
   useToggleFavorite,
   useTogglePTR,
+  useMarkPTRAsSent,
   QUERY_KEYS,
 } from "@/hooks/useGalleryQuery";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSession } from "next-auth/react";
+import { useDebounce } from "@/hooks/useDebounce";
 
 // Error Boundary Component for robust error handling
 class ErrorBoundary extends React.Component<
@@ -88,11 +93,23 @@ const GalleryContent = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
+  // Bulk selection state (Set-based for O(1) lookups)
+  const [selectionMode, setSelectionMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // Keyboard shortcuts state
+  const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+
   // React Query hooks for data management
   const { data: galleryData, isLoading, error } = useGalleryData();
   const toggleFavoriteMutation = useToggleFavorite();
   const togglePTRMutation = useTogglePTR();
+  const markPTRAsSentMutation = useMarkPTRAsSent();
   const queryClient = useQueryClient();
+
+  // Get user session for userId
+  const { data: session } = useSession();
 
   // Extract data with fallbacks
   const galleryItems = galleryData?.items || [];
@@ -148,23 +165,26 @@ const GalleryContent = () => {
       );
     }
 
-    // Apply search filter
-    if (filters.search) {
+    // Apply search filter (using debounced search)
+    if (debouncedSearch) {
       filteredItems = filteredItems.filter(
         (item) =>
-          item.title.toLowerCase().includes(filters.search.toLowerCase()) ||
+          item.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
           item.captionText
             .toLowerCase()
-            .includes(filters.search.toLowerCase()) ||
-          item.category.toLowerCase().includes(filters.search.toLowerCase()) ||
+            .includes(debouncedSearch.toLowerCase()) ||
+          item.category.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
           (item.contentStyle || "")
             .toLowerCase()
-            .includes(filters.search.toLowerCase())
+            .includes(debouncedSearch.toLowerCase())
       );
     }
 
     return filteredItems;
   };
+
+  // Debounce search query to reduce filtering operations
+  const debouncedSearch = useDebounce(filters.search, 300);
 
   // Apply filters to gallery data using useMemo for performance
   const allFilteredItems = useMemo(() => {
@@ -172,7 +192,7 @@ const GalleryContent = () => {
     return filtered;
   }, [
     galleryItems,
-    filters.search,
+    debouncedSearch, // Use debounced search instead of direct search
     filters.category,
     filters.creator,
     filters.revenue,
@@ -225,6 +245,11 @@ const GalleryContent = () => {
     }
   }, [sortedItems, activeTab]);
 
+  // Calculate total revenue from all gallery items
+  const totalRevenue = useMemo(() => {
+    return galleryItems.reduce((sum, item) => sum + (item.totalRevenue || 0), 0);
+  }, [galleryItems]);
+
   // Pagination logic
   const totalItems = filteredContent.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -235,13 +260,207 @@ const GalleryContent = () => {
   // Handle favorite toggle with React Query
   const handleToggleFavorite = (item: GalleryItem) => {
     const action = item.isFavorite ? "remove" : "add";
-    toggleFavoriteMutation.mutate({ item, action });
+    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    toggleFavoriteMutation.mutate({ item, action, userId });
   };
 
   // Handle PTR toggle with React Query
   const handleTogglePTR = (item: GalleryItem) => {
     const action = item.isPTR ? "remove" : "add";
-    togglePTRMutation.mutate({ item, action });
+    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    togglePTRMutation.mutate({ item, action, userId });
+  };
+
+  // Handle mark PTR as sent
+  const handleMarkPTRAsSent = (item: GalleryItem) => {
+    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    markPTRAsSentMutation.mutate({ item, userId });
+  };
+
+  // Bulk selection handlers
+  const toggleSelection = (id: string) => {
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAll = () => {
+    const allIds = new Set(paginatedContent.map(item => item.id));
+    setSelectedIds(allIds);
+  };
+
+  const clearSelection = () => {
+    setSelectedIds(new Set());
+  };
+
+  const toggleSelectionMode = () => {
+    setSelectionMode(prev => !prev);
+    if (selectionMode) {
+      clearSelection();
+    }
+  };
+
+  // Get selected items
+  const selectedItems = paginatedContent.filter(item => selectedIds.has(item.id));
+
+  // Keyboard shortcuts handler
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Don't trigger if user is typing in input/textarea
+      if (
+        e.target instanceof HTMLInputElement ||
+        e.target instanceof HTMLTextAreaElement
+      ) {
+        return;
+      }
+
+      switch (e.key.toLowerCase()) {
+        case 's':
+          // Toggle selection mode
+          toggleSelectionMode();
+          e.preventDefault();
+          break;
+
+        case 'f':
+        case '/':
+          // Focus search bar
+          searchInputRef.current?.focus();
+          e.preventDefault();
+          break;
+
+        case 'escape':
+          // Clear selection / Close modals
+          if (selectionMode) {
+            clearSelection();
+            setSelectionMode(false);
+          }
+          if (showShortcutsHelp) {
+            setShowShortcutsHelp(false);
+          }
+          break;
+
+        case 'a':
+          // Select all visible items (Cmd/Ctrl + A)
+          if (e.metaKey || e.ctrlKey) {
+            if (selectionMode) {
+              selectAll();
+              e.preventDefault();
+            }
+          }
+          break;
+
+        case 'd':
+          // Deselect all (Cmd/Ctrl + D)
+          if (e.metaKey || e.ctrlKey) {
+            if (selectionMode) {
+              clearSelection();
+              e.preventDefault();
+            }
+          }
+          break;
+
+        case '?':
+          // Show keyboard shortcuts help
+          setShowShortcutsHelp(prev => !prev);
+          e.preventDefault();
+          break;
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, [selectionMode, showShortcutsHelp]);
+
+  // Bulk operations
+  const handleBulkFavorite = async () => {
+    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    let successCount = 0;
+    let errorCount = 0;
+
+    toast.loading(`Adding ${selectedItems.length} items to favorites...`);
+
+    for (const item of selectedItems) {
+      try {
+        const action = item.isFavorite ? "remove" : "add";
+        await toggleFavoriteMutation.mutateAsync({ item, action, userId });
+        successCount++;
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    if (errorCount === 0) {
+      toast.success(`Successfully updated ${successCount} items`);
+    } else {
+      toast.warning(`Updated ${successCount} items, ${errorCount} failed`);
+    }
+
+    clearSelection();
+  };
+
+  const handleBulkPTR = async () => {
+    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    let successCount = 0;
+    let errorCount = 0;
+
+    toast.loading(`Updating ${selectedItems.length} items for PTR...`);
+
+    for (const item of selectedItems) {
+      try {
+        const action = item.isPTR ? "remove" : "add";
+        await togglePTRMutation.mutateAsync({ item, action, userId });
+        successCount++;
+      } catch (error) {
+        errorCount++;
+      }
+    }
+
+    if (errorCount === 0) {
+      toast.success(`Successfully updated ${successCount} items`);
+    } else {
+      toast.warning(`Updated ${successCount} items, ${errorCount} failed`);
+    }
+
+    clearSelection();
+  };
+
+  const handleBulkExport = () => {
+    // Export selected items to CSV
+    const headers = ['ID', 'Title', 'Category', 'Creator', 'Revenue', 'Buys', 'Outcome', 'Date Added'];
+    const rows = selectedItems.map(item => [
+      item.id,
+      item.title,
+      item.category,
+      item.creatorName || '',
+      item.totalRevenue,
+      item.totalBuys,
+      item.outcome || '',
+      item.dateAdded
+    ]);
+
+    const csv = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+    ].join('\n');
+
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `gallery-export-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success(`Exported ${selectedItems.length} items to CSV`);
+    clearSelection();
   };
 
   // Handle clear cache
@@ -332,6 +551,20 @@ const GalleryContent = () => {
                 </Button>
 
                 <Button
+                  variant={selectionMode ? "default" : "outline"}
+                  size="sm"
+                  onClick={toggleSelectionMode}
+                  className={
+                    selectionMode
+                      ? "bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white shadow-lg shadow-blue-500/25"
+                      : "border-gray-200 dark:border-gray-700 hover:border-blue-200 dark:hover:border-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/10"
+                  }
+                >
+                  <CheckSquare className="w-4 h-4 mr-2" />
+                  {selectionMode ? "Exit Selection" : "Select Mode"}
+                </Button>
+
+                <Button
                   variant={showFilters ? "default" : "outline"}
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
@@ -352,6 +585,7 @@ const GalleryContent = () => {
         {/* Search Bar */}
         <div className="mb-6">
           <SearchBar
+            ref={searchInputRef}
             searchQuery={filters.search}
             onSearchChange={(value) =>
               setFilters((prev) => ({ ...prev, search: value }))
@@ -426,7 +660,7 @@ const GalleryContent = () => {
         <StatsCards
           totalContent={breakdown.library}
           totalSales={breakdown.releases}
-          totalRevenue={2957.54} // TODO: Calculate from data
+          totalRevenue={totalRevenue}
         />
 
         {/* Content Grid */}
@@ -446,10 +680,10 @@ const GalleryContent = () => {
                 content={content}
                 onToggleFavorite={handleToggleFavorite}
                 onTogglePTR={handleTogglePTR}
-                onMarkPTRAsSent={() => {
-                  // TODO: Implement PTR sent functionality
-                  toast.info("PTR sent functionality coming soon");
-                }}
+                onMarkPTRAsSent={handleMarkPTRAsSent}
+                selectionMode={selectionMode}
+                isSelected={selectedIds.has(content.id)}
+                onToggleSelection={toggleSelection}
               />
             </ErrorBoundary>
           ))}
@@ -472,6 +706,22 @@ const GalleryContent = () => {
             onItemsPerPageChange={setItemsPerPage}
           />
         )}
+
+        {/* Bulk Actions Toolbar (fixed bottom) */}
+        <BulkActionsToolbar
+          selectedCount={selectedIds.size}
+          onBulkFavorite={handleBulkFavorite}
+          onBulkPTR={handleBulkPTR}
+          onBulkExport={handleBulkExport}
+          onSelectAll={selectAll}
+          onClearSelection={clearSelection}
+        />
+
+        {/* Keyboard Shortcuts Help Modal */}
+        <KeyboardShortcutsModal
+          isOpen={showShortcutsHelp}
+          onClose={() => setShowShortcutsHelp(false)}
+        />
       </div>
     </div>
   );
