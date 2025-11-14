@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo, useCallback } from "react";
 import { Card } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import MediaDisplay from "./MediaDisplay";
 import CardActions from "./CardActions";
 import CardMetadata from "./CardMetadata";
@@ -17,6 +18,9 @@ const ContentCard: React.FC<ContentCardProps> = ({
   onToggleFavorite,
   onTogglePTR,
   onMarkPTRAsSent,
+  selectionMode = false,
+  isSelected = false,
+  onToggleSelection,
 }) => {
   const [useProxy, setUseProxy] = useState(false);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -128,7 +132,13 @@ const ContentCard: React.FC<ContentCardProps> = ({
   return (
     <>
       <Card
-        onClick={() => setIsDetailModalOpen(true)}
+        onClick={() => {
+          if (selectionMode && onToggleSelection) {
+            onToggleSelection(content.id);
+          } else {
+            setIsDetailModalOpen(true);
+          }
+        }}
         className={cn(
           "group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden",
           "hover:shadow-xl dark:hover:shadow-2xl transition-all duration-300 hover:scale-[1.02]",
@@ -136,7 +146,8 @@ const ContentCard: React.FC<ContentCardProps> = ({
           // Override default Card padding and gap
           "p-0 gap-0",
           content.isPTR && "ring-2 ring-purple-500/20",
-          content.ptrSent && "ring-2 ring-green-500/20"
+          content.ptrSent && "ring-2 ring-green-500/20",
+          isSelected && "ring-4 ring-blue-500 ring-offset-2"
         )}
       >
       {/* Media Preview */}
@@ -149,8 +160,27 @@ const ContentCard: React.FC<ContentCardProps> = ({
           onError={handleMediaError}
         />
 
-        {/* Category Badge - Top Left */}
-        {content.category && (
+        {/* Selection Checkbox - Top Left (in selection mode) */}
+        {selectionMode && onToggleSelection && (
+          <div className="absolute top-2 left-2 z-20">
+            <div
+              className="bg-white dark:bg-gray-800 rounded-lg p-2 shadow-lg"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleSelection(content.id);
+              }}
+            >
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={() => onToggleSelection(content.id)}
+                className="w-5 h-5"
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Category Badge - Top Left (when not in selection mode) */}
+        {!selectionMode && content.category && (
           <div className="absolute top-2 left-2 z-10">
             <div className="bg-green-500 text-white text-xs font-medium px-3 py-1 rounded-full">
               {content.category}
@@ -158,18 +188,20 @@ const ContentCard: React.FC<ContentCardProps> = ({
           </div>
         )}
 
-        {/* Action Buttons - Positioned over media */}
-        <div
-          className="absolute top-2 right-2 z-10"
-          onClick={(e) => e.stopPropagation()} // Prevent card click when clicking action buttons
-        >
-          <CardActions
-            content={content}
-            onToggleFavorite={handleToggleFavorite}
-            onTogglePTR={handleTogglePTR}
-            onMarkPTRAsSent={handleMarkPTRAsSent}
-          />
-        </div>
+        {/* Action Buttons - Positioned over media (hidden in selection mode) */}
+        {!selectionMode && (
+          <div
+            className="absolute top-2 right-2 z-10"
+            onClick={(e) => e.stopPropagation()} // Prevent card click when clicking action buttons
+          >
+            <CardActions
+              content={content}
+              onToggleFavorite={handleToggleFavorite}
+              onTogglePTR={handleTogglePTR}
+              onMarkPTRAsSent={handleMarkPTRAsSent}
+            />
+          </div>
+        )}
       </div>
 
       {/* Metadata Section */}
@@ -196,6 +228,8 @@ export default React.memo(ContentCard, (prevProps, nextProps) => {
     prevProps.content.isFavorite === nextProps.content.isFavorite &&
     prevProps.content.isPTR === nextProps.content.isPTR &&
     prevProps.content.ptrSent === nextProps.content.ptrSent &&
-    prevProps.content.outcome === nextProps.content.outcome
+    prevProps.content.outcome === nextProps.content.outcome &&
+    prevProps.selectionMode === nextProps.selectionMode &&
+    prevProps.isSelected === nextProps.isSelected
   );
 });
