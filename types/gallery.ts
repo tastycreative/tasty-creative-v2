@@ -104,6 +104,9 @@ export interface ContentCardProps {
   onToggleFavorite?: (content: GalleryItem) => Promise<void> | void;
   onTogglePTR?: (content: GalleryItem) => Promise<void> | void;
   onMarkPTRAsSent?: (content: GalleryItem) => Promise<void> | void;
+  selectionMode?: boolean;
+  isSelected?: boolean;
+  onToggleSelection?: (id: string) => void;
 }
 
 export interface MediaDisplayProps {
