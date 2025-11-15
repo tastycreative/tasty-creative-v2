@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react';
 import NextImage from 'next/image';
+import GalleryFolderFavoriteButton from '@/components/GalleryFolderFavoriteButton';
 import { Image, Grid3x3, List, Search, Eye, X, Folder, ExternalLink, Filter, SlidersHorizontal } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 
 interface GalleryProps {
   teamName: string;
@@ -117,6 +118,11 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
   const [previewFile, setPreviewFile] = useState<GalleryItem | null>(null);
   const [imageLoading, setImageLoading] = useState(false);
   const [featuredImageLoading, setFeaturedImageLoading] = useState(false);
+  const [folderFavorites, setFolderFavorites] = useState<Record<string, boolean>>({});
+  const [favoritesLoading, setFavoritesLoading] = useState(false);
+  const [favoritesOnly, setFavoritesOnly] = useState(false);
+  // Number of favorited folders currently known for this gallery
+  const favoriteCount = Object.values(folderFavorites).filter(Boolean).length;
 
   // Debounce search query
   useEffect(() => {
@@ -201,7 +207,111 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
   const clientModels: ClientModelFilter[] = galleryData?.clientModels || [];
   const pagination: PaginationInfo | undefined = galleryData?.pagination;
 
-  const filteredFolders = folders;
+  const filteredFolders = favoritesOnly
+    ? folders.filter(f => !!folderFavorites[f.folderName || ''])
+    : folders;
+
+  // Load folder favorites for the current gallery (use first folder's galleryId)
+  useEffect(() => {
+    const galleryId = folders?.[0]?.galleryId;
+    if (!galleryId) return;
+    setFavoritesLoading(true);
+    fetch(`/api/oftv-gallery/folder-favorite?galleryId=${encodeURIComponent(galleryId)}`)
+      .then(res => res.json())
+      .then(data => {
+        const favs: Record<string, boolean> = {};
+        (data?.favorites || []).forEach((f: any) => {
+          if (f.folderName) favs[f.folderName] = true;
+        });
+        setFolderFavorites(favs);
+      })
+      .catch(() => {})
+      .finally(() => setFavoritesLoading(false));
+  }, [folders]);
+
+  // React Query mutations for optimistic updates
+  const queryClient = useQueryClient();
+
+  const postFavorite = async (galleryId: string, folderName: string) => {
+    await fetch('/api/oftv-gallery/folder-favorite', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ galleryId, folderName }),
+    });
+  };
+
+  const deleteFavorite = async (galleryId: string, folderName: string) => {
+    await fetch('/api/oftv-gallery/folder-favorite', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ galleryId, folderName }),
+    });
+  };
+  // React Query mutations with optimistic updates
+  const postMutation = useMutation<void, Error, { galleryId: string; folderName: string }, { previous?: Record<string, boolean> }>({
+    mutationFn: (vars: { galleryId: string; folderName: string }) => postFavorite(vars.galleryId, vars.folderName),
+    onMutate: async (variables: { galleryId: string; folderName: string }) => {
+      const { folderName } = variables;
+      await queryClient.cancelQueries({ queryKey: ['oftv-gallery-folder-favorites'] });
+      const previous = queryClient.getQueryData<Record<string, boolean>>(['oftv-gallery-folder-favorites']);
+      setFolderFavorites(prev => ({ ...prev, [folderName]: true }));
+      return { previous };
+    },
+    onError: (err: Error, variables: { galleryId: string; folderName: string }, context?: { previous?: Record<string, boolean> }) => {
+      const { folderName } = variables;
+      if (context?.previous) queryClient.setQueryData(['oftv-gallery-folder-favorites'], context.previous);
+      setFolderFavorites(prev => ({ ...prev, [folderName]: !!context?.previous?.[folderName] }));
+    },
+    onSettled: () => {
+      const galleryId = folders?.[0]?.galleryId;
+      if (galleryId) {
+        fetch(`/api/oftv-gallery/folder-favorite?galleryId=${encodeURIComponent(galleryId)}`)
+          .then(r => r.json())
+          .then(data => {
+            const favs: Record<string, boolean> = {};
+            (data?.favorites || []).forEach((f: any) => { if (f.folderName) favs[f.folderName] = true; });
+            setFolderFavorites(favs);
+          }).catch(() => {});
+      }
+    }
+  });
+
+  const deleteMutation = useMutation<void, Error, { galleryId: string; folderName: string }, { previous?: Record<string, boolean> }>({
+    mutationFn: (vars: { galleryId: string; folderName: string }) => deleteFavorite(vars.galleryId, vars.folderName),
+    onMutate: async (variables: { galleryId: string; folderName: string }) => {
+      const { folderName } = variables;
+      await queryClient.cancelQueries({ queryKey: ['oftv-gallery-folder-favorites'] });
+      const previous = queryClient.getQueryData<Record<string, boolean>>(['oftv-gallery-folder-favorites']);
+      setFolderFavorites(prev => ({ ...prev, [folderName]: false }));
+      return { previous };
+    },
+    onError: (err: Error, variables: { galleryId: string; folderName: string }, context?: { previous?: Record<string, boolean> }) => {
+      const { folderName } = variables;
+      if (context?.previous) queryClient.setQueryData(['oftv-gallery-folder-favorites'], context.previous);
+      setFolderFavorites(prev => ({ ...prev, [folderName]: !!context?.previous?.[folderName] }));
+    },
+    onSettled: () => {
+      const galleryId = folders?.[0]?.galleryId;
+      if (galleryId) {
+        fetch(`/api/oftv-gallery/folder-favorite?galleryId=${encodeURIComponent(galleryId)}`)
+          .then(r => r.json())
+          .then(data => {
+            const favs: Record<string, boolean> = {};
+            (data?.favorites || []).forEach((f: any) => { if (f.folderName) favs[f.folderName] = true; });
+            setFolderFavorites(favs);
+          }).catch(() => {});
+      }
+    }
+  });
+
+  const handleFavoriteToggle = (folderName: string, newState: boolean, galleryId?: string) => {
+    const gid = galleryId || folders?.[0]?.galleryId || '';
+    if (newState) {
+      postMutation.mutate({ galleryId: gid, folderName });
+    } else {
+      deleteMutation.mutate({ galleryId: gid, folderName });
+    }
+  };
 
   // Open folder modal - TanStack Query will handle fetching
   const openFolderModal = (folderName: string) => {
@@ -238,8 +348,18 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+        <div className="flex items-center gap-3">
           <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">OFTV Gallery</h2>
+          <button
+            type="button"
+            onClick={() => setFavoritesOnly(prev => !prev)}
+            title={favoritesOnly ? 'Show all folders' : 'Show favorites only'}
+            className={`ml-2 text-sm font-medium transition-colors flex items-center gap-2 px-2 py-0.5 rounded-full ${favoritesOnly ? 'bg-pink-600 text-white' : 'bg-pink-50 text-pink-600 dark:bg-pink-900/10 dark:text-pink-300'}`}
+          >
+            <span className="font-semibold">{favoriteCount}</span>
+            <span className="text-xs opacity-90">{favoriteCount === 1 ? 'favorite' : 'favorites'}</span>
+            <span className="sr-only">Toggle favorites-only view</span>
+          </button>
           <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {isLoading ? (
               <span className="inline-block h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></span>
@@ -331,6 +451,16 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
               <List className="h-4 w-4" />
             </button>
           </div>
+          {/* Favorites Only Toggle */}
+          <label className="flex items-center gap-2 ml-3 text-sm text-gray-600 dark:text-gray-400">
+            <input
+              type="checkbox"
+              checked={favoritesOnly}
+              onChange={(e) => setFavoritesOnly(e.target.checked)}
+              className="w-4 h-4"
+            />
+            <span className="hidden sm:inline">Favorites only</span>
+          </label>
         </div>
 
         {/* Advanced Filters Panel */}
@@ -483,11 +613,20 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
                     </div>
 
                     {/* Info */}
-                    <div className="p-3">
+                      <div className="p-3">
                       <div className="flex items-center gap-1 mb-1 min-w-0">
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                           {folder.folderName || 'Uncategorized'}
                         </h3>
+                        <div className="ml-auto">
+                          <GalleryFolderFavoriteButton
+                            folderName={folder.folderName || 'Uncategorized'}
+                            galleryId={folder.galleryId}
+                            isFavorite={!!folderFavorites[folder.folderName || 'Uncategorized']}
+                            onToggle={(newState) => handleFavoriteToggle(folder.folderName || 'Uncategorized', newState)}
+                            disabled={favoritesLoading}
+                          />
+                        </div>
                         {folder.folderDriveId && (
                           <a
                             href={`https://drive.google.com/drive/folders/${folder.folderDriveId}`}
@@ -568,6 +707,15 @@ export default function GalleryNew({ teamName, teamId }: GalleryProps) {
                         <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate">
                           {folder.folderName || 'Uncategorized'}
                         </h3>
+                        <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <GalleryFolderFavoriteButton
+                            folderName={folder.folderName || 'Uncategorized'}
+                            galleryId={folder.galleryId}
+                            isFavorite={!!folderFavorites[folder.folderName || 'Uncategorized']}
+                            onToggle={(newState) => handleFavoriteToggle(folder.folderName || 'Uncategorized', newState)}
+                            disabled={favoritesLoading}
+                          />
+                        </div>
                         {folder.folderDriveId && (
                           <a
                             href={`https://drive.google.com/drive/folders/${folder.folderDriveId}`}
