@@ -5,6 +5,18 @@ import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
 
+interface LiveFlyerItem {
+  id: string;
+  date: string;
+  clientModelId?: string;
+  finalOutput: string;
+  finalOutputThumbnail?: string | null;
+  psdFile?: string | null;
+  createdById?: string;
+  requestId?: string;
+  createdAt?: string;
+}
+
 import { TIMEZONES } from "@/lib/lib";
 import { toast } from "sonner";
 import SharedModelsDropdown from "./SharedModelsDropdown";
@@ -44,6 +56,11 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
   >(null);
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null);
 
+  // LiveFlyer gallery data (from LiveFlyerGallery table)
+  const [liveFlyerItems, setLiveFlyerItems] = useState<LiveFlyerItem[]>([]);
+  const [isLoadingLiveFlyers, setIsLoadingLiveFlyers] = useState(false);
+  const [liveFlyerError, setLiveFlyerError] = useState<string | null>(null);
+
   const [dtmzoption, setDtmzoption] = useState<
     "MonthDay" | "DayOfWeek" | "MMDD"
   >("MonthDay");
@@ -70,6 +87,24 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
   });
 
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  // Tab state for lazy loading gallery
+  const [activeTab, setActiveTab] = useState<'create' | 'outputs'>('create');
+  const [loadOutputs, setLoadOutputs] = useState(false);
+  // dynamic import will only run on client when requested
+  const [LiveFlyerGallery, setLiveFlyerGallery] = useState<any>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    if (loadOutputs && typeof window !== 'undefined' && !LiveFlyerGallery) {
+      import('@/components/LiveFlyerGallery')
+        .then((mod) => {
+          if (mounted) setLiveFlyerGallery(() => mod.default);
+        })
+        .catch((err) => console.error('Failed to load LiveFlyerGallery', err));
+    }
+    return () => { mounted = false; };
+  }, [loadOutputs, LiveFlyerGallery]);
 
   useEffect(() => {
     const { date, time, timezone } = formData;
@@ -479,15 +514,83 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
     }
   }, [formData.date, formData.time, formData.timezone, dtmzoption]);
 
+  // Fetch LiveFlyerGallery items for the selected model (clientModel name)
+  useEffect(() => {
+    const clientModelName = formData.model;
+    if (!clientModelName) return;
+
+    let cancelled = false;
+    setIsLoadingLiveFlyers(true);
+    setLiveFlyerError(null);
+
+    // API route should return items from LiveFlyerGallery by client model name
+    fetch(`/api/liveflyer/gallery?model=${encodeURIComponent(clientModelName)}`)
+      .then(async (res) => {
+        if (!res.ok) {
+          const t = await res.text();
+          throw new Error(t || "Failed to fetch live flyers");
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (cancelled) return;
+        setLiveFlyerItems(Array.isArray(data) ? data : data.items || []);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setLiveFlyerError(String(err.message || err));
+      })
+      .finally(() => {
+        if (!cancelled) setIsLoadingLiveFlyers(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.model]);
+
+  // If outputs tab selected, render only the gallery (full-width)
+  if (activeTab === 'outputs') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-2">
+              <button onClick={() => { setActiveTab('create'); }} className={`px-3 py-1 rounded-full ${activeTab === 'create' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Create</button>
+              <button onClick={() => { setActiveTab('outputs'); setLoadOutputs(true); }} className={`px-3 py-1 rounded-full ${activeTab === 'outputs' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Outputs</button>
+            </div>
+            <div className="text-sm text-gray-500">{isLoadingLiveFlyers ? 'Loading...' : liveFlyerItems.length + ' items'}</div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 bg-white/70 dark:bg-gray-900">
+            {LiveFlyerGallery ? (
+              <LiveFlyerGallery clientModelName={formData.model} clientModelId={undefined} />
+            ) : (
+              <div className="text-sm text-gray-500">Loading gallery...</div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
       <div className="container mx-auto px-4 py-8">
         {response?.error === "Invalid JSON response from webhook" && (
           <ServerOffline />
         )}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-2">
+            <button onClick={() => { setActiveTab('create'); }} className={`px-3 py-1 rounded-full ${activeTab === 'create' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Create</button>
+            <button onClick={() => { setActiveTab('outputs'); setLoadOutputs(true); }} className={`px-3 py-1 rounded-full ${activeTab === 'outputs' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Outputs</button>
+          </div>
+          <div className="text-sm text-gray-500">{isLoadingLiveFlyers ? 'Loading...' : liveFlyerItems.length + ' items'}</div>
+        </div>
+
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Form Section */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg col-span-1 flex flex-col gap-4 lg:max-w-lg w-full p-8">
+          {/* Form Section - only show when Create tab active */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg col-span-1 flex flex-col gap-4 lg:max-w-lg w-full p-8">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
@@ -510,8 +613,8 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                     Create stunning promotional flyers for live events
                   </p>
                 </div>
-              </div>
-            </div>
+        </div>
+      </div>
 
             <form onSubmit={handleSubmit} className="relative grid grid-cols-2 gap-4">
               <div className="col-span-2">
@@ -850,8 +953,8 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
             </form>
           </div>
 
-          {/* Preview Section */}
-          <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg col-span-2 flex flex-col gap-4 w-full p-8">
+          {/* Preview Section or Outputs - if Outputs active, make this span full width */}
+          <div className={`relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg ${activeTab === 'outputs' ? 'col-span-3' : 'col-span-2'} flex flex-col gap-4 w-full p-8`}>
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
@@ -1071,6 +1174,58 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                         </div>
                       </>
                     )}
+                    {/* The preview area remains here for creation flow */}
+                    <>
+                        <div className="h-full flex flex-col gap-4 mt-6">
+                          <hr className="border-pink-400/60 dark:border-pink-500/30" />
+                          <span className="text-gray-600 dark:text-gray-300 font-medium">Generated: {history.length}</span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 overflow-y-auto">
+                            {history.map((item, index) => (
+                              <div key={index} className="border border-pink-400/60 dark:border-pink-500/30 p-3 rounded-2xl flex flex-col items-center justify-center hover:bg-gradient-to-br hover:from-pink-50/40 hover:to-purple-50/40 dark:hover:from-pink-500/10 dark:hover:to-purple-500/10 transition-all duration-200 cursor-pointer shadow-lg">
+                                <div className="w-24 h-24 rounded-2xl overflow-hidden">
+                                  <Image src={item.thumbnail} alt="Generated Flyer" width={200} height={200} className={cn("object-contain max-h-full rounded-2xl max-w-full cursor-pointer hover:scale-105 transition-all duration-200", { "cursor-not-allowed": isFetchingImage || isLoading })} loading="lazy" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        {/* Inline DB gallery preview for quick view */}
+                        <div className="mt-6">
+                          <hr className="border-pink-400/60 dark:border-pink-500/30 mb-4" />
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-lg font-semibold">LiveFlyer Gallery</h3>
+                            <div className="text-sm text-gray-500">{isLoadingLiveFlyers ? 'Loading...' : liveFlyerItems.length + ' items'}</div>
+                          </div>
+
+                          {liveFlyerError && <div className="text-sm text-red-600">{liveFlyerError}</div>}
+
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            {isLoadingLiveFlyers ? (
+                              [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)
+                            ) : liveFlyerItems.length === 0 ? (
+                              <div className="text-sm text-gray-500 col-span-4">No live flyers found for this model.</div>
+                            ) : (
+                              liveFlyerItems.map((item) => (
+                                <div key={item.id} className="border border-pink-200 dark:border-pink-500/30 rounded-2xl p-2 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition">
+                                  <div className="w-full h-24 rounded overflow-hidden bg-white/80 dark:bg-gray-700/50 flex items-center justify-center">
+                                    {item.finalOutputThumbnail ? (
+                                      <Image src={item.finalOutputThumbnail} alt={`LiveFlyer ${item.id}`} width={400} height={400} className="object-contain" />
+                                    ) : item.finalOutput ? (
+                                      <Image src={item.finalOutput.replace(/=s\d+$/, "=s400")} alt={`LiveFlyer ${item.id}`} width={400} height={400} className="object-contain" />
+                                    ) : (
+                                      <div className="text-sm text-gray-500">No image</div>
+                                    )}
+                                  </div>
+                                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 text-center">{new Date(item.date).toLocaleString()}</div>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </div>
+                      </>
+                    )}
+
+                    {/* Outputs handled by top-level early return to keep rendering simple */}
                     
                     <div className="mt-6 flex justify-center">
                       <button
