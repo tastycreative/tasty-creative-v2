@@ -46,7 +46,7 @@ export function ModelProfileLayout({
         return <ModelAssetsTab modelName={creatorName || modelData.name} />;
       case "chatters":
         return (
-          <div className="p-8">
+          <div className="w-full p-8">
             <h2 className="text-2xl font-bold mb-4">Chatters</h2>
             <p className="text-gray-600 dark:text-gray-400">
               Chatters management coming soon...
@@ -55,7 +55,7 @@ export function ModelProfileLayout({
         );
       case "apps":
         return (
-          <div className="p-8">
+          <div className="w-full p-8">
             <h2 className="text-2xl font-bold mb-4">Apps</h2>
             <p className="text-gray-600 dark:text-gray-400">
               Apps integration coming soon...
@@ -63,17 +63,9 @@ export function ModelProfileLayout({
           </div>
         );
       case "gallery":
-        return (
-          <div className="p-8">
-            <ModelGalleryTab />
-          </div>
-        );
+        return <ModelGalleryTab />;
       case "forum":
-        return (
-          <div className="p-8">
-            <ModelForumTab modelName={modelData.name} />
-          </div>
-        );
+        return <ModelForumTab modelName={modelData.name} />;
       default:
         return (
           <ModelInformationTab
