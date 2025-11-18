@@ -1,6 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { google } from "googleapis";
+
+
+// Helper to extract Google Sheet file ID from URL
+function extractSheetId(url: string): string | null {
+  if (!url) return null;
+  const match = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9-_]+)/);
+  return match ? match[1] : null;
+}
 
 export async function DELETE(
   request: NextRequest,
@@ -8,24 +17,19 @@ export async function DELETE(
 ) {
   try {
     const session = await auth();
-    
     if (!session?.user) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
-
-    // Check if user is admin or moderator
     if (session.user.role !== 'ADMIN' && session.user.role !== 'MODERATOR') {
       return NextResponse.json(
         { error: "Insufficient permissions" },
         { status: 403 }
       );
     }
-
     const { linkId } = await params;
-    
     if (!linkId) {
       return NextResponse.json(
         { error: "Link ID is required" },
@@ -33,12 +37,41 @@ export async function DELETE(
       );
     }
 
-    // Delete the sheet link
-    await prisma.clientModelSheetLinks.delete({
-      where: {
-        id: linkId,
-      },
+    // Find the sheet link to get the sheetUrl
+    const sheetLink = await prisma.clientModelSheetLinks.findUnique({
+      where: { id: linkId },
+      select: { sheetUrl: true },
     });
+
+    // Delete the sheet link from DB
+    await prisma.clientModelSheetLinks.delete({
+      where: { id: linkId },
+    });
+
+    // If sheetUrl exists, try to delete the Google Sheet from Drive
+    if (sheetLink?.sheetUrl) {
+      const fileId = extractSheetId(sheetLink.sheetUrl);
+      if (fileId) {
+        try {
+          // Setup Google OAuth2 client (same as generation logic)
+          const oauth2Client = new google.auth.OAuth2(
+            process.env.GOOGLE_CLIENT_ID,
+            process.env.GOOGLE_CLIENT_SECRET,
+            process.env.GOOGLE_REDIRECT_URI
+          );
+          oauth2Client.setCredentials({
+            access_token: session.accessToken,
+            refresh_token: session.refreshToken,
+            expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+          });
+          const drive = google.drive({ version: "v3", auth: oauth2Client });
+          await drive.files.delete({ fileId });
+        } catch (err) {
+          console.error("Failed to delete Google Sheet from Drive:", err);
+          // Don't fail the API if Drive deletion fails
+        }
+      }
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

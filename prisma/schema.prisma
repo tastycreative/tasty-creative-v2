@@ -51,6 +51,8 @@ model User {
   verificationTokens         VerificationToken[]
   voiceNoteHistory           VoiceNoteHistory[]
   voiceNoteSales             VoiceNoteSale[]
+  oftvGalleryFolderFavorites OFTVGalleryFolderFavorite[]
+  liveFlyerGalleries         LiveFlyerGallery[]
 }
 
 model Account {
@@ -346,6 +348,8 @@ model ClientModel {
   contentDetails        ContentDetails?
   notifications         Notification[]
   podTeamAssignments    PodTeamClientAssignment[]
+
+  liveFlyerGalleries    LiveFlyerGallery[]
 
   @@index([clientName])
   @@index([status])
@@ -1248,6 +1252,7 @@ model OFTVGallery {
   updatedAt           DateTime            @updatedAt
   clientModel         ClientModel         @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
   items               OFTVGalleryItem[]
+  folderFavorites     OFTVGalleryFolderFavorite[]
 
   @@index([clientModelId])
   @@map("OFTVGallery")
@@ -1290,4 +1295,44 @@ enum OFTVFileType {
   IMAGE
   GIF
   OTHER
+}
+// OFTV Gallery Folder Favorites - User favorites for folders (not items)
+model OFTVGalleryFolderFavorite {
+  id           String   @id @default(cuid())
+  userId       String
+  galleryId    String
+  folderName   String
+  createdAt    DateTime @default(now())
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  gallery      OFTVGallery @relation(fields: [galleryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, galleryId, folderName])
+  @@index([userId])
+  @@index([galleryId])
+  @@index([folderName])
+  @@map("OFTVGalleryFolderFavorite")
+}
+
+// LiveFlyerGallery - simple table for migrated live flyer entries
+model LiveFlyerGallery {
+  id            String   @id @default(cuid())
+  date          DateTime
+  clientModelId String
+  finalOutput   String
+  fileName      String?
+  finalOutputThumbnail String
+  psdFile       String?
+  createdById   String
+  requestId     String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([requestId])
+  @@index([clientModelId])
+  @@index([createdById])
+  @@map("LiveFlyerGallery")
+
+  // relations
+  createdBy   User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  clientModel ClientModel @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
 }

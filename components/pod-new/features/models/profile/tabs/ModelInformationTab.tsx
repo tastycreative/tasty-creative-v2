@@ -621,7 +621,7 @@ export function ModelInformationTab({
 
   return (
     <div className="min-h-full bg-white dark:bg-gray-900">
-      <div className="max-w-7xl mx-auto p-6 space-y-6">
+      <div className="w-full p-6 space-y-6">
         {/* Hero Section */}
         <div className="relative group overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
           {/* Background Pattern */}
