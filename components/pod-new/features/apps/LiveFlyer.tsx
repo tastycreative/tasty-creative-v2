@@ -600,7 +600,38 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                 clientModelId={undefined}
               />
             ) : (
-              <div className="text-sm text-gray-500">Loading gallery...</div>
+              <div className="space-y-6">
+                {/* Header Skeleton */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Grid Skeleton */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 animate-pulse"
+                    >
+                      <div className="aspect-[3/4] bg-gray-200 dark:bg-gray-700"></div>
+                      <div className="p-3">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                        <div className="flex items-center justify-between">
+                          <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
