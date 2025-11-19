@@ -559,7 +559,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
               <button onClick={() => { setActiveTab('create'); }} className={`px-3 py-1 rounded-full ${activeTab === 'create' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Create</button>
               <button onClick={() => { setActiveTab('outputs'); setLoadOutputs(true); }} className={`px-3 py-1 rounded-full ${activeTab === 'outputs' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Outputs</button>
             </div>
-            <div className="text-sm text-gray-500">{isLoadingLiveFlyers ? 'Loading...' : liveFlyerItems.length + ' items'}</div>
+         
           </div>
 
           <div className="rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 bg-white/70 dark:bg-gray-900">
@@ -1174,58 +1174,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                         </div>
                       </>
                     )}
-                    {/* The preview area remains here for creation flow */}
-                    <>
-                        <div className="h-full flex flex-col gap-4 mt-6">
-                          <hr className="border-pink-400/60 dark:border-pink-500/30" />
-                          <span className="text-gray-600 dark:text-gray-300 font-medium">Generated: {history.length}</span>
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 overflow-y-auto">
-                            {history.map((item, index) => (
-                              <div key={index} className="border border-pink-400/60 dark:border-pink-500/30 p-3 rounded-2xl flex flex-col items-center justify-center hover:bg-gradient-to-br hover:from-pink-50/40 hover:to-purple-50/40 dark:hover:from-pink-500/10 dark:hover:to-purple-500/10 transition-all duration-200 cursor-pointer shadow-lg">
-                                <div className="w-24 h-24 rounded-2xl overflow-hidden">
-                                  <Image src={item.thumbnail} alt="Generated Flyer" width={200} height={200} className={cn("object-contain max-h-full rounded-2xl max-w-full cursor-pointer hover:scale-105 transition-all duration-200", { "cursor-not-allowed": isFetchingImage || isLoading })} loading="lazy" />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        {/* Inline DB gallery preview for quick view */}
-                        <div className="mt-6">
-                          <hr className="border-pink-400/60 dark:border-pink-500/30 mb-4" />
-                          <div className="flex items-center justify-between mb-3">
-                            <h3 className="text-lg font-semibold">LiveFlyer Gallery</h3>
-                            <div className="text-sm text-gray-500">{isLoadingLiveFlyers ? 'Loading...' : liveFlyerItems.length + ' items'}</div>
-                          </div>
-
-                          {liveFlyerError && <div className="text-sm text-red-600">{liveFlyerError}</div>}
-
-                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                            {isLoadingLiveFlyers ? (
-                              [...Array(4)].map((_, i) => <div key={i} className="h-24 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse" />)
-                            ) : liveFlyerItems.length === 0 ? (
-                              <div className="text-sm text-gray-500 col-span-4">No live flyers found for this model.</div>
-                            ) : (
-                              liveFlyerItems.map((item) => (
-                                <div key={item.id} className="border border-pink-200 dark:border-pink-500/30 rounded-2xl p-2 flex flex-col items-center justify-center cursor-pointer hover:shadow-lg transition">
-                                  <div className="w-full h-24 rounded overflow-hidden bg-white/80 dark:bg-gray-700/50 flex items-center justify-center">
-                                    {item.finalOutputThumbnail ? (
-                                      <Image src={item.finalOutputThumbnail} alt={`LiveFlyer ${item.id}`} width={400} height={400} className="object-contain" />
-                                    ) : item.finalOutput ? (
-                                      <Image src={item.finalOutput.replace(/=s\d+$/, "=s400")} alt={`LiveFlyer ${item.id}`} width={400} height={400} className="object-contain" />
-                                    ) : (
-                                      <div className="text-sm text-gray-500">No image</div>
-                                    )}
-                                  </div>
-                                  <div className="mt-2 text-xs text-gray-600 dark:text-gray-300 text-center">{new Date(item.date).toLocaleString()}</div>
-                                </div>
-                              ))
-                            )}
-                          </div>
-                        </div>
-                      </>
-                    )}
-
-                    {/* Outputs handled by top-level early return to keep rendering simple */}
+                  
                     
                     <div className="mt-6 flex justify-center">
                       <button
