@@ -69,6 +69,9 @@ export function useOptimizedModelsData(options: UseModelsOptions) {
   const filteredModels = useMemo(() => {
     let filtered = processedModels;
 
+    // Filter out dropped models by default (exclude dropped status)
+    filtered = filtered.filter(model => model.status.toLowerCase() !== 'dropped');
+
     // Apply search filter
     if (options.search) {
       const searchFn = filterFunctions.searchFilter(options.search);

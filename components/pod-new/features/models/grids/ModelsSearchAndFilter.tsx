@@ -133,7 +133,6 @@ const QuickFilters = ({
   const filters: QuickFilterChip[] = [
     { id: "all", label: "All Models", count: modelStats.total, icon: Grid3x3 },
     { id: "active", label: "Active", count: modelStats.active, icon: Activity },
-    { id: "dropped", label: "Dropped", count: modelStats.dropped },
     {
       id: "high-revenue",
       label: "Top Performers",

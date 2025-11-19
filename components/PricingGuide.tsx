@@ -536,7 +536,7 @@ const PricingGuide: React.FC<PricingGuideProps> = ({ creators = [] }) => {
 
   return (
     <div className="space-y-6">
-      <div className="max-w-5xl mx-auto">
+      <div>
         {/* Main Content Card */}
         <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-xl backdrop-blur-sm">
           {/* Background Pattern */}

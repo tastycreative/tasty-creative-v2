@@ -3,12 +3,34 @@
 import React, { useState } from "react";
 import { Session } from "next-auth";
 import {
-  X, Edit3, Calendar, Clock, Loader2, History, MessageCircle, Paperclip,
-  Activity, ExternalLink, Info, FileText, Sparkles, Users, Image as ImageIcon,
-  CheckCircle, Video, Package, Save, XCircle
+  X,
+  Edit3,
+  Calendar,
+  Clock,
+  Loader2,
+  History,
+  MessageCircle,
+  Paperclip,
+  Activity,
+  ExternalLink,
+  Info,
+  FileText,
+  Sparkles,
+  Users,
+  Image as ImageIcon,
+  CheckCircle,
+  Video,
+  Package,
+  Save,
+  XCircle,
 } from "lucide-react";
 import { Task, useBoardStore } from "@/lib/stores/boardStore";
-import { formatForTaskDetail, formatDueDate, toLocalDateTimeString, utcNow } from "@/lib/dateUtils";
+import {
+  formatForTaskDetail,
+  formatDueDate,
+  toLocalDateTimeString,
+  utcNow,
+} from "@/lib/dateUtils";
 import UserDropdown from "@/components/UserDropdown";
 import FileUpload from "@/components/ui/FileUpload";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
@@ -17,7 +39,12 @@ import TaskComments from "./TaskComments";
 import UserProfile from "@/components/ui/UserProfile";
 import { getStatusConfig } from "@/lib/config/boardConfig";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
@@ -46,19 +73,60 @@ const linkifyText = (text: string) => {
 
 // OFTV Task Status Options
 const oftvStatusOptions = [
-  { value: 'NOT_STARTED', label: 'Not Started', color: 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300' },
-  { value: 'IN_PROGRESS', label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300' },
-  { value: 'NEEDS_REVISION', label: 'Needs Revision', color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300' },
-  { value: 'APPROVED', label: 'Approved', color: 'bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300' },
-  { value: 'HOLD', label: 'Hold', color: 'bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300' },
-  { value: 'WAITING_FOR_VO', label: 'Waiting for VO', color: 'bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300' },
-  { value: 'SENT', label: 'Sent', color: 'bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300' },
-  { value: 'PUBLISHED', label: 'Published', color: 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300' },
+  {
+    value: "NOT_STARTED",
+    label: "Not Started",
+    color: "bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-300",
+  },
+  {
+    value: "IN_PROGRESS",
+    label: "In Progress",
+    color: "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300",
+  },
+  {
+    value: "NEEDS_REVISION",
+    label: "Needs Revision",
+    color:
+      "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-300",
+  },
+  {
+    value: "APPROVED",
+    label: "Approved",
+    color:
+      "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300",
+  },
+  {
+    value: "HOLD",
+    label: "Hold",
+    color:
+      "bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300",
+  },
+  {
+    value: "WAITING_FOR_VO",
+    label: "Waiting for VO",
+    color:
+      "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300",
+  },
+  {
+    value: "SENT",
+    label: "Sent",
+    color:
+      "bg-indigo-100 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300",
+  },
+  {
+    value: "PUBLISHED",
+    label: "Published",
+    color:
+      "bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300",
+  },
 ];
 
 // Helper function to get OFTV status config
 const getOFTVStatusConfig = (status: string) => {
-  return oftvStatusOptions.find(opt => opt.value === status) || oftvStatusOptions[0];
+  return (
+    oftvStatusOptions.find((opt) => opt.value === status) ||
+    oftvStatusOptions[0]
+  );
 };
 
 interface EnhancedTaskDetailModalProps {
@@ -68,8 +136,8 @@ interface EnhancedTaskDetailModalProps {
   session: Session | null;
   canEditTask: (task: Task) => boolean;
   isUserInTeam?: boolean;
-  teamMembers?: Array<{id: string, email: string, name?: string}>;
-  teamAdmins?: Array<{id: string, email: string, name?: string}>;
+  teamMembers?: Array<{ id: string; email: string; name?: string }>;
+  teamAdmins?: Array<{ id: string; email: string; name?: string }>;
   isSaving?: boolean;
   onClose: () => void;
   onUpdate?: (taskId: string, updates: Partial<Task>) => Promise<void>;
@@ -113,8 +181,11 @@ export default function EnhancedTaskDetailModalRedesigned({
   const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
 
   // Determine if user should have view-only access
-  const isViewOnly = !session?.user?.role ||
-    (session.user.role !== 'ADMIN' && !isUserInTeam && !canEditTask(selectedTask));
+  const isViewOnly =
+    !session?.user?.role ||
+    (session.user.role !== "ADMIN" &&
+      !isUserInTeam &&
+      !canEditTask(selectedTask));
 
   // Get workflow data
   const workflowData = selectedTask.ModularWorkflow as any;
@@ -125,20 +196,57 @@ export default function EnhancedTaskDetailModalRedesigned({
   const isOFTVTeam = selectedTask.podTeam?.name === "OFTV";
   const hasOFTVTask = !!oftvTaskData && isOFTVTeam;
 
+  // Determine which workflow accordions should be open by default
+  const getWorkflowDefaultValues = () => {
+    const defaults: string[] = [];
+
+    // Content Details - always open if there's workflow data
+    if (
+      workflowData?.contentType ||
+      workflowData?.contentLength ||
+      workflowData?.contentCount
+    ) {
+      defaults.push("content-details");
+    }
+
+    // PGT Team - open if caption exists
+    if (workflowData?.caption) {
+      defaults.push("pgt-team");
+    }
+
+    // Flyer Team - open if gifUrl or notes exist
+    if (workflowData?.gifUrl || workflowData?.notes) {
+      defaults.push("flyer-team");
+    }
+
+    // QA Team - open if pricing or qaTeamNotes exist
+    if (workflowData?.pricing || workflowData?.qaTeamNotes) {
+      defaults.push("qa-team");
+    }
+
+    // Assets - open if images or driveLink exist
+    if (workflowData?.images?.length > 0 || workflowData?.driveLink) {
+      defaults.push("assets");
+    }
+
+    return defaults;
+  };
+
   // Initialize OFTV editing data when edit mode starts
   React.useEffect(() => {
     if (isEditingTask && hasOFTVTask && !editingOFTVData) {
       setEditingOFTVData({
-        model: oftvTaskData.model || '',
-        folderLink: oftvTaskData.folderLink || '',
-        videoDescription: oftvTaskData.videoDescription || '',
-        videoEditor: oftvTaskData.videoEditorUser?.email || '',
-        videoEditorUserId: oftvTaskData.videoEditorUserId || '',
-        videoEditorStatus: oftvTaskData.videoEditorStatus || 'NOT_STARTED',
-        thumbnailEditor: oftvTaskData.thumbnailEditorUser?.email || '',
-        thumbnailEditorUserId: oftvTaskData.thumbnailEditorUserId || '',
-        thumbnailEditorStatus: oftvTaskData.thumbnailEditorStatus || 'NOT_STARTED',
-        specialInstructions: oftvTaskData.specialInstructions || '',
+        model: oftvTaskData.model || "",
+        folderLink: oftvTaskData.folderLink || "",
+        videoDescription: oftvTaskData.videoDescription || "",
+        videoEditor: oftvTaskData.videoEditorUser?.email || "",
+        videoEditorUserId: oftvTaskData.videoEditorUserId || "",
+        videoEditorStatus: oftvTaskData.videoEditorStatus || "NOT_STARTED",
+        thumbnailEditor: oftvTaskData.thumbnailEditorUser?.email || "",
+        thumbnailEditorUserId: oftvTaskData.thumbnailEditorUserId || "",
+        thumbnailEditorStatus:
+          oftvTaskData.thumbnailEditorStatus || "NOT_STARTED",
+        specialInstructions: oftvTaskData.specialInstructions || "",
       });
     } else if (!isEditingTask) {
       setEditingOFTVData(null);
@@ -150,11 +258,14 @@ export default function EnhancedTaskDetailModalRedesigned({
     if (hasOFTVTask && editingOFTVData && oftvTaskData?.id) {
       try {
         if (onUpdateOFTVTask) {
-          await onUpdateOFTVTask(selectedTask.id, { ...editingOFTVData, id: oftvTaskData.id });
+          await onUpdateOFTVTask(selectedTask.id, {
+            ...editingOFTVData,
+            id: oftvTaskData.id,
+          });
         }
       } catch (error) {
-        console.error('Error updating OFTV task:', error);
-        alert('Failed to update OFTV task. Please try again.');
+        console.error("Error updating OFTV task:", error);
+        alert("Failed to update OFTV task. Please try again.");
         return;
       }
     }
@@ -164,15 +275,21 @@ export default function EnhancedTaskDetailModalRedesigned({
   };
 
   // Handle OFTV status updates
-  const handleOFTVStatusUpdate = async (field: 'videoEditorStatus' | 'thumbnailEditorStatus', newStatus: string) => {
+  const handleOFTVStatusUpdate = async (
+    field: "videoEditorStatus" | "thumbnailEditorStatus",
+    newStatus: string
+  ) => {
     if (!oftvTaskData?.id) return;
     try {
       if (onUpdateOFTVTask) {
-        await onUpdateOFTVTask(selectedTask.id, { [field]: newStatus, id: oftvTaskData.id });
+        await onUpdateOFTVTask(selectedTask.id, {
+          [field]: newStatus,
+          id: oftvTaskData.id,
+        });
       }
     } catch (error) {
-      console.error('❌ Error updating OFTV status:', error);
-      alert('Failed to update status. Please try again.');
+      console.error("❌ Error updating OFTV status:", error);
+      alert("Failed to update status. Please try again.");
     }
   };
 
@@ -186,26 +303,37 @@ export default function EnhancedTaskDetailModalRedesigned({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Sticky Header */}
-        <div className="sticky top-0 z-50 bg-gradient-to-r from-pink-500/10 via-purple-500/10 to-blue-500/10 backdrop-blur-xl border-b border-gray-200/50 dark:border-gray-700/50 rounded-t-xl">
+        <div className="sticky top-0 z-50 bg-white dark:bg-gray-900 border-b border-gray-200/50 dark:border-gray-700/50 rounded-t-xl">
           <div className="px-4 sm:px-8 py-4 sm:py-6">
             <div className="flex items-start justify-between">
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-3 mb-2">
-                  <div className={cn(
-                    "w-2 h-2 rounded-full",
-                    getStatusConfig(selectedTask.status).bgColor.split(" ")[0] || "bg-gray-500"
-                  )} />
+                  <div
+                    className={cn(
+                      "w-2 h-2 rounded-full",
+                      getStatusConfig(selectedTask.status).bgColor.split(
+                        " "
+                      )[0] || "bg-gray-500"
+                    )}
+                  />
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                       Task
                     </span>
-                    {selectedTask.podTeam?.projectPrefix && selectedTask.taskNumber && (
-                      <Badge variant="outline" className="font-mono text-xs">
-                        {selectedTask.podTeam.projectPrefix}-{selectedTask.taskNumber}
-                      </Badge>
-                    )}
-                    <Badge className={cn(getStatusConfig(selectedTask.status).bgColor)}>
-                      {getStatusConfig(selectedTask.status).label || selectedTask.status}
+                    {selectedTask.podTeam?.projectPrefix &&
+                      selectedTask.taskNumber && (
+                        <Badge variant="outline" className="font-mono text-xs">
+                          {selectedTask.podTeam.projectPrefix}-
+                          {selectedTask.taskNumber}
+                        </Badge>
+                      )}
+                    <Badge
+                      className={cn(
+                        getStatusConfig(selectedTask.status).bgColor
+                      )}
+                    >
+                      {getStatusConfig(selectedTask.status).label ||
+                        selectedTask.status}
                     </Badge>
                   </div>
                 </div>
@@ -213,12 +341,14 @@ export default function EnhancedTaskDetailModalRedesigned({
                   <input
                     type="text"
                     value={editingTaskData.title || ""}
-                    onChange={(e) => onSetEditingTaskData?.({ title: e.target.value })}
+                    onChange={(e) =>
+                      onSetEditingTaskData?.({ title: e.target.value })
+                    }
                     className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100 bg-transparent border-none outline-none focus:ring-0 p-0 w-full"
                     placeholder="Task title..."
                   />
                 ) : (
-                  <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent leading-tight pr-4">
+                  <h3 className="text-xl sm:text-2xl font-bold text-gray-900 dark:bg-gradient-to-r dark:from-gray-300 dark:via-pink-400 dark:to-purple-400 dark:bg-clip-text dark:text-transparent leading-tight pr-4">
                     {selectedTask.title}
                   </h3>
                 )}
@@ -237,7 +367,10 @@ export default function EnhancedTaskDetailModalRedesigned({
                       </button>
                     )}
                     {isViewOnly && (
-                      <Badge variant="outline" className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200">
+                      <Badge
+                        variant="outline"
+                        className="bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border-amber-200"
+                      >
                         <span className="hidden sm:inline">🔒 View Only</span>
                         <span className="sm:hidden">🔒</span>
                       </Badge>
@@ -257,8 +390,14 @@ export default function EnhancedTaskDetailModalRedesigned({
                       disabled={isSaving}
                       className="flex items-center gap-2 px-3 sm:px-4 py-2 text-xs sm:text-sm font-medium bg-gradient-to-r from-green-600 to-emerald-700 text-white rounded-lg hover:from-green-700 hover:to-emerald-800 transition-all shadow-lg hover:shadow-xl disabled:opacity-50"
                     >
-                      {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-                      <span className="hidden sm:inline">{isSaving ? 'Saving...' : 'Save'}</span>
+                      {isSaving ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <Save className="h-4 w-4" />
+                      )}
+                      <span className="hidden sm:inline">
+                        {isSaving ? "Saving..." : "Save"}
+                      </span>
                     </button>
                   </div>
                 )}
@@ -273,7 +412,11 @@ export default function EnhancedTaskDetailModalRedesigned({
           </div>
 
           {/* Tab Navigation */}
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <Tabs
+            value={activeTab}
+            onValueChange={setActiveTab}
+            className="w-full"
+          >
             <TabsList className="w-full justify-start px-4 sm:px-8 pb-0 bg-transparent border-none rounded-none h-auto">
               <TabsTrigger
                 value="details"
@@ -324,15 +467,29 @@ export default function EnhancedTaskDetailModalRedesigned({
                   <div className="p-4 sm:p-8">
                     {/* Details Tab */}
                     <TabsContent value="details" className="mt-0">
-                      <Accordion type="multiple" defaultValue={["basic", "description"]} className="space-y-4">
+                      <Accordion
+                        type="multiple"
+                        defaultValue={[
+                          "basic",
+                          "description",
+                          "attachments",
+                          "metadata",
+                        ]}
+                        className="space-y-4"
+                      >
                         {/* Basic Information */}
-                        <AccordionItem value="basic" className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-200 dark:border-blue-700 rounded-xl overflow-hidden">
+                        <AccordionItem
+                          value="basic"
+                          className="bg-gradient-to-br from-blue-100 to-cyan-100 dark:from-blue-900/20 dark:to-cyan-900/20 border border-blue-300 dark:border-blue-700 rounded-xl overflow-visible"
+                        >
                           <AccordionTrigger className="px-5 hover:no-underline">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                 <Info className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                               </div>
-                              <span className="font-semibold text-gray-900 dark:text-gray-100">Basic Information</span>
+                              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                Basic Information
+                              </span>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="px-5 pb-5">
@@ -344,7 +501,11 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   </label>
                                   <textarea
                                     value={editingTaskData.description || ""}
-                                    onChange={(e) => onSetEditingTaskData?.({ description: e.target.value })}
+                                    onChange={(e) =>
+                                      onSetEditingTaskData?.({
+                                        description: e.target.value,
+                                      })
+                                    }
                                     rows={4}
                                     placeholder="Add a description..."
                                     className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500/50"
@@ -360,8 +521,15 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       Priority
                                     </label>
                                     <select
-                                      value={editingTaskData.priority || "MEDIUM"}
-                                      onChange={(e) => onSetEditingTaskData?.({ priority: e.target.value as Task["priority"] })}
+                                      value={
+                                        editingTaskData.priority || "MEDIUM"
+                                      }
+                                      onChange={(e) =>
+                                        onSetEditingTaskData?.({
+                                          priority: e.target
+                                            .value as Task["priority"],
+                                        })
+                                      }
                                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50"
                                     >
                                       <option value="LOW">🟢 Low</option>
@@ -372,12 +540,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   </div>
                                 ) : (
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Priority</label>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                      Priority
+                                    </label>
                                     <div className="flex items-center gap-2">
                                       <span className="text-sm">
-                                        {selectedTask.priority === "URGENT" ? "🚨" :
-                                         selectedTask.priority === "HIGH" ? "🔴" :
-                                         selectedTask.priority === "MEDIUM" ? "🟡" : "🟢"}
+                                        {selectedTask.priority === "URGENT"
+                                          ? "🚨"
+                                          : selectedTask.priority === "HIGH"
+                                            ? "🔴"
+                                            : selectedTask.priority === "MEDIUM"
+                                              ? "🟡"
+                                              : "🟢"}
                                       </span>
                                       <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                                         {selectedTask.priority}
@@ -390,16 +564,25 @@ export default function EnhancedTaskDetailModalRedesigned({
                                 {isEditingTask ? (
                                   <div>
                                     <div className="flex items-center gap-3 mb-2">
-                                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Due Date</label>
+                                      <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">
+                                        Due Date
+                                      </label>
                                       <input
                                         type="checkbox"
                                         checked={!!editingTaskData.dueDate}
                                         onChange={(e) => {
                                           if (!e.target.checked) {
-                                            onSetEditingTaskData?.({ dueDate: "" });
+                                            onSetEditingTaskData?.({
+                                              dueDate: "",
+                                            });
                                           } else {
-                                            const today = toLocalDateTimeString(utcNow()).split("T")[0];
-                                            onSetEditingTaskData?.({ dueDate: today });
+                                            const today =
+                                              toLocalDateTimeString(
+                                                utcNow()
+                                              ).split("T")[0];
+                                            onSetEditingTaskData?.({
+                                              dueDate: today,
+                                            });
                                           }
                                         }}
                                         className="rounded border-gray-300 text-blue-600"
@@ -409,18 +592,33 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       <input
                                         type="date"
                                         value={editingTaskData.dueDate || ""}
-                                        onChange={(e) => onSetEditingTaskData?.({ dueDate: e.target.value })}
+                                        onChange={(e) =>
+                                          onSetEditingTaskData?.({
+                                            dueDate: e.target.value,
+                                          })
+                                        }
                                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50"
                                       />
                                     )}
                                   </div>
                                 ) : selectedTask.dueDate ? (
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Due Date</label>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                      Due Date
+                                    </label>
                                     <div className="flex items-center gap-2">
                                       <Calendar className="h-4 w-4 text-gray-500" />
-                                      <span className={cn("text-sm", formatDueDate(selectedTask.dueDate).className)}>
-                                        {formatDueDate(selectedTask.dueDate).formatted}
+                                      <span
+                                        className={cn(
+                                          "text-sm",
+                                          formatDueDate(selectedTask.dueDate)
+                                            .className
+                                        )}
+                                      >
+                                        {
+                                          formatDueDate(selectedTask.dueDate)
+                                            .formatted
+                                        }
                                       </span>
                                     </div>
                                   </div>
@@ -436,16 +634,27 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   {isEditingTask ? (
                                     <UserDropdown
                                       value={editingTaskData.assignedTo || ""}
-                                      onChange={(email) => onSetEditingTaskData?.({ assignedTo: email })}
+                                      onChange={(email) =>
+                                        onSetEditingTaskData?.({
+                                          assignedTo: email,
+                                        })
+                                      }
                                       placeholder="Search and select team member..."
-                                      teamId={selectedTask.podTeamId || undefined}
+                                      teamId={
+                                        selectedTask.podTeamId || undefined
+                                      }
                                     />
                                   ) : selectedTask.assignedUser ? (
                                     <div className="flex items-center gap-3">
-                                      <UserProfile user={selectedTask.assignedUser} size="md" showTooltip />
+                                      <UserProfile
+                                        user={selectedTask.assignedUser}
+                                        size="md"
+                                        showTooltip
+                                      />
                                       <div>
                                         <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                          {selectedTask.assignedUser.name || selectedTask.assignedUser.email}
+                                          {selectedTask.assignedUser.name ||
+                                            selectedTask.assignedUser.email}
                                         </p>
                                         <p className="text-xs text-gray-500 dark:text-gray-400">
                                           {selectedTask.assignedUser.email}
@@ -453,7 +662,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       </div>
                                     </div>
                                   ) : (
-                                    <p className="text-sm text-gray-500 italic">Unassigned</p>
+                                    <p className="text-sm text-gray-500 italic">
+                                      Unassigned
+                                    </p>
                                   )}
                                 </div>
                               )}
@@ -463,13 +674,18 @@ export default function EnhancedTaskDetailModalRedesigned({
 
                         {/* Description - For non-OFTV tasks or view mode */}
                         {!hasOFTVTask && !isEditingTask && (
-                          <AccordionItem value="description" className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-200 dark:border-purple-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="description"
+                            className="bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 border border-purple-300 dark:border-purple-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <FileText className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Description</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Description
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -480,23 +696,33 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   </p>
                                 </div>
                               ) : (
-                                <p className="text-gray-400 dark:text-gray-500 italic">No description provided</p>
+                                <p className="text-gray-400 dark:text-gray-500 italic">
+                                  No description provided
+                                </p>
                               )}
                             </AccordionContent>
                           </AccordionItem>
                         )}
 
                         {/* Attachments */}
-                        <AccordionItem value="attachments" className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-200 dark:border-green-700 rounded-xl overflow-hidden">
+                        <AccordionItem
+                          value="attachments"
+                          className="bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/20 dark:to-emerald-900/20 border border-green-300 dark:border-green-700 rounded-xl overflow-hidden"
+                        >
                           <AccordionTrigger className="px-5 hover:no-underline">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                 <Paperclip className="h-5 w-5 text-green-600 dark:text-green-400" />
                               </div>
-                              <span className="font-semibold text-gray-900 dark:text-gray-100">Attachments</span>
-                              {selectedTask.attachments && selectedTask.attachments.length > 0 && (
-                                <Badge variant="outline">{selectedTask.attachments.length}</Badge>
-                              )}
+                              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                Attachments
+                              </span>
+                              {selectedTask.attachments &&
+                                selectedTask.attachments.length > 0 && (
+                                  <Badge variant="outline">
+                                    {selectedTask.attachments.length}
+                                  </Badge>
+                                )}
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="px-5 pb-5">
@@ -510,49 +736,74 @@ export default function EnhancedTaskDetailModalRedesigned({
                                 maxFiles={5}
                                 maxFileSize={10}
                               />
-                            ) : selectedTask.attachments && selectedTask.attachments.length > 0 ? (
-                              <AttachmentViewer attachments={selectedTask.attachments} showTitle={false} compact={false} />
+                            ) : selectedTask.attachments &&
+                              selectedTask.attachments.length > 0 ? (
+                              <AttachmentViewer
+                                attachments={selectedTask.attachments}
+                                showTitle={false}
+                                compact={false}
+                              />
                             ) : (
-                              <p className="text-gray-400 dark:text-gray-500 italic">No attachments</p>
+                              <p className="text-gray-400 dark:text-gray-500 italic">
+                                No attachments
+                              </p>
                             )}
                           </AccordionContent>
                         </AccordionItem>
 
                         {/* Metadata */}
-                        <AccordionItem value="metadata" className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800/20 dark:to-slate-800/20 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+                        <AccordionItem
+                          value="metadata"
+                          className="bg-gradient-to-br from-gray-100 to-slate-100 dark:from-gray-800/20 dark:to-slate-800/20 border border-gray-300 dark:border-gray-700 rounded-xl overflow-hidden"
+                        >
                           <AccordionTrigger className="px-5 hover:no-underline">
                             <div className="flex items-center gap-3">
                               <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                 <Activity className="h-5 w-5 text-gray-600 dark:text-gray-400" />
                               </div>
-                              <span className="font-semibold text-gray-900 dark:text-gray-100">Metadata</span>
+                              <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                Metadata
+                              </span>
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="px-5 pb-5">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                               <div>
-                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Created</label>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                  Created
+                                </label>
                                 <div className="space-y-2">
                                   <div className="flex items-center gap-2">
                                     <Clock className="h-4 w-4 text-gray-500" />
                                     <span className="text-xs text-gray-600 dark:text-gray-400">
-                                      {formatForTaskDetail(selectedTask.createdAt)}
+                                      {formatForTaskDetail(
+                                        selectedTask.createdAt
+                                      )}
                                     </span>
                                   </div>
                                   <div className="flex items-center gap-3">
-                                    <UserProfile user={selectedTask.createdBy} size="sm" showTooltip />
+                                    <UserProfile
+                                      user={selectedTask.createdBy}
+                                      size="sm"
+                                      showTooltip
+                                    />
                                     <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                                      {selectedTask.createdBy.name || selectedTask.createdBy.email}
+                                      {selectedTask.createdBy.name ||
+                                        selectedTask.createdBy.email}
                                     </p>
                                   </div>
                                 </div>
                               </div>
                               <div>
-                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Last Updated</label>
+                                <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                  Last Updated
+                                </label>
                                 <div className="flex items-center gap-2">
                                   <Clock className="h-4 w-4 text-gray-500" />
                                   <span className="text-xs text-gray-600 dark:text-gray-400">
-                                    {formatForTaskDetail(selectedTask.updatedAt)}
+                                    {formatForTaskDetail(
+                                      selectedTask.updatedAt
+                                    )}
                                   </span>
                                 </div>
                               </div>
@@ -565,73 +816,116 @@ export default function EnhancedTaskDetailModalRedesigned({
                     {/* Workflow Tab */}
                     {hasWorkflow && (
                       <TabsContent value="workflow" className="mt-0">
-                        <Accordion type="multiple" defaultValue={["content-details", "assets"]} className="space-y-4">
+                        <Accordion
+                          type="multiple"
+                          defaultValue={getWorkflowDefaultValues()}
+                          className="space-y-4"
+                        >
                           {/* Content Details Accordion */}
-                          <AccordionItem value="content-details" className="bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-200 dark:border-indigo-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="content-details"
+                            className="bg-gradient-to-br from-indigo-100 to-blue-100 dark:from-indigo-900/20 dark:to-blue-900/20 border border-indigo-300 dark:border-indigo-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <Package className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Content Details</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Content Details
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {workflowData?.contentType && (
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Content Type</label>
-                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{workflowData.contentType}</div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                      Content Type
+                                    </label>
+                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {workflowData.contentType}
+                                    </div>
                                   </div>
                                 )}
                                 {workflowData?.contentLength && (
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Length</label>
-                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{workflowData.contentLength}</div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                      Length
+                                    </label>
+                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {workflowData.contentLength}
+                                    </div>
                                   </div>
                                 )}
                                 {workflowData?.contentCount && (
                                   <div>
-                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Count</label>
-                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{workflowData.contentCount}</div>
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                      Count
+                                    </label>
+                                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                                      {workflowData.contentCount}
+                                    </div>
                                   </div>
                                 )}
                               </div>
                               {workflowData?.externalCreatorTags && (
                                 <div className="mt-4">
-                                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">External Creators</label>
+                                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                    External Creators
+                                  </label>
                                   <div className="flex flex-wrap gap-1.5">
-                                    {workflowData.externalCreatorTags.split(' ').filter((tag: string) => tag.trim()).map((tag: string, idx: number) => (
-                                      <Badge key={idx} variant="secondary" className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300">
-                                        {tag}
-                                      </Badge>
-                                    ))}
+                                    {workflowData.externalCreatorTags
+                                      .split(" ")
+                                      .filter((tag: string) => tag.trim())
+                                      .map((tag: string, idx: number) => (
+                                        <Badge
+                                          key={idx}
+                                          variant="secondary"
+                                          className="bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300"
+                                        >
+                                          {tag}
+                                        </Badge>
+                                      ))}
                                   </div>
                                 </div>
                               )}
-                              {workflowData?.internalModelTags && workflowData.internalModelTags.length > 0 && (
-                                <div className="mt-4">
-                                  <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Internal Models</label>
-                                  <div className="flex flex-wrap gap-1.5">
-                                    {workflowData.internalModelTags.map((tag: string, idx: number) => (
-                                      <Badge key={idx} className="bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 text-purple-800 dark:text-purple-300 border-0">
-                                        {tag}
-                                      </Badge>
-                                    ))}
+                              {workflowData?.internalModelTags &&
+                                workflowData.internalModelTags.length > 0 && (
+                                  <div className="mt-4">
+                                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                                      Internal Models
+                                    </label>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {workflowData.internalModelTags.map(
+                                        (tag: string, idx: number) => (
+                                          <Badge
+                                            key={idx}
+                                            className="bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 text-purple-800 dark:text-purple-300 border-0"
+                                          >
+                                            {tag}
+                                          </Badge>
+                                        )
+                                      )}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
                             </AccordionContent>
                           </AccordionItem>
 
                           {/* PGT Team Accordion */}
-                          <AccordionItem value="pgt-team" className="bg-gradient-to-br from-pink-50 to-rose-50 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-200 dark:border-pink-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="pgt-team"
+                            className="bg-gradient-to-br from-pink-100 to-rose-100 dark:from-pink-900/20 dark:to-rose-900/20 border border-pink-300 dark:border-pink-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <FileText className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">PGT Team</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  PGT Team
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -641,13 +935,17 @@ export default function EnhancedTaskDetailModalRedesigned({
                                 </label>
                                 {isEditingTask ? (
                                   <textarea
-                                    value={(editingTaskData as any).ModularWorkflow?.caption || ""}
+                                    value={
+                                      (editingTaskData as any).ModularWorkflow
+                                        ?.caption || ""
+                                    }
                                     onChange={(e) =>
                                       onSetEditingTaskData?.({
                                         ModularWorkflow: {
-                                          ...((editingTaskData as any).ModularWorkflow || {}),
-                                          caption: e.target.value
-                                        }
+                                          ...((editingTaskData as any)
+                                            .ModularWorkflow || {}),
+                                          caption: e.target.value,
+                                        },
                                       })
                                     }
                                     rows={4}
@@ -661,20 +959,27 @@ export default function EnhancedTaskDetailModalRedesigned({
                                     </p>
                                   </div>
                                 ) : (
-                                  <p className="text-gray-400 dark:text-gray-500 italic">No caption provided</p>
+                                  <p className="text-gray-400 dark:text-gray-500 italic">
+                                    No caption provided
+                                  </p>
                                 )}
                               </div>
                             </AccordionContent>
                           </AccordionItem>
 
                           {/* Flyer Team Accordion */}
-                          <AccordionItem value="flyer-team" className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="flyer-team"
+                            className="bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-300 dark:border-orange-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <ImageIcon className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Flyer Team</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Flyer Team
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -687,13 +992,17 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   {isEditingTask ? (
                                     <input
                                       type="url"
-                                      value={(editingTaskData as any).ModularWorkflow?.gifUrl || ""}
+                                      value={
+                                        (editingTaskData as any).ModularWorkflow
+                                          ?.gifUrl || ""
+                                      }
                                       onChange={(e) =>
                                         onSetEditingTaskData?.({
                                           ModularWorkflow: {
-                                            ...((editingTaskData as any).ModularWorkflow || {}),
-                                            gifUrl: e.target.value
-                                          }
+                                            ...((editingTaskData as any)
+                                              .ModularWorkflow || {}),
+                                            gifUrl: e.target.value,
+                                          },
                                         })
                                       }
                                       placeholder="https://giphy.com/... or https://i.imgur.com/..."
@@ -710,7 +1019,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       {workflowData.gifUrl}
                                     </a>
                                   ) : (
-                                    <p className="text-gray-400 dark:text-gray-500 italic">No GIF URL provided</p>
+                                    <p className="text-gray-400 dark:text-gray-500 italic">
+                                      No GIF URL provided
+                                    </p>
                                   )}
                                 </div>
 
@@ -721,13 +1032,17 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   </label>
                                   {isEditingTask ? (
                                     <textarea
-                                      value={(editingTaskData as any).ModularWorkflow?.notes || ""}
+                                      value={
+                                        (editingTaskData as any).ModularWorkflow
+                                          ?.notes || ""
+                                      }
                                       onChange={(e) =>
                                         onSetEditingTaskData?.({
                                           ModularWorkflow: {
-                                            ...((editingTaskData as any).ModularWorkflow || {}),
-                                            notes: e.target.value
-                                          }
+                                            ...((editingTaskData as any)
+                                              .ModularWorkflow || {}),
+                                            notes: e.target.value,
+                                          },
                                         })
                                       }
                                       rows={3}
@@ -741,7 +1056,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       </p>
                                     </div>
                                   ) : (
-                                    <p className="text-gray-400 dark:text-gray-500 italic">No notes provided</p>
+                                    <p className="text-gray-400 dark:text-gray-500 italic">
+                                      No notes provided
+                                    </p>
                                   )}
                                 </div>
                               </div>
@@ -749,13 +1066,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                           </AccordionItem>
 
                           {/* QA Team Accordion */}
-                          <AccordionItem value="qa-team" className="bg-gradient-to-br from-emerald-50 to-green-50 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="qa-team"
+                            className="bg-gradient-to-br from-emerald-100 to-green-100 dark:from-emerald-900/20 dark:to-green-900/20 border border-emerald-300 dark:border-emerald-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <CheckCircle className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">QA Team</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  QA Team
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -772,14 +1094,21 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       </span>
                                       <input
                                         type="text"
-                                        value={(editingTaskData as any).ModularWorkflow?.pricing || ""}
+                                        value={
+                                          (editingTaskData as any)
+                                            .ModularWorkflow?.pricing || ""
+                                        }
                                         onChange={(e) => {
-                                          const value = e.target.value.replace(/[^0-9\-\s]/g, '');
+                                          const value = e.target.value.replace(
+                                            /[^0-9\-\s]/g,
+                                            ""
+                                          );
                                           onSetEditingTaskData?.({
                                             ModularWorkflow: {
-                                              ...((editingTaskData as any).ModularWorkflow || {}),
-                                              pricing: value
-                                            }
+                                              ...((editingTaskData as any)
+                                                .ModularWorkflow || {}),
+                                              pricing: value,
+                                            },
                                           });
                                         }}
                                         placeholder="25-40 or 30"
@@ -791,7 +1120,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       ${workflowData.pricing}
                                     </div>
                                   ) : (
-                                    <p className="text-gray-400 dark:text-gray-500 italic">No pricing set</p>
+                                    <p className="text-gray-400 dark:text-gray-500 italic">
+                                      No pricing set
+                                    </p>
                                   )}
                                 </div>
 
@@ -802,13 +1133,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   </label>
                                   {isEditingTask ? (
                                     <textarea
-                                      value={(editingTaskData as any).ModularWorkflow?.basePriceDescription || ""}
+                                      value={
+                                        (editingTaskData as any).ModularWorkflow
+                                          ?.basePriceDescription || ""
+                                      }
                                       onChange={(e) =>
                                         onSetEditingTaskData?.({
                                           ModularWorkflow: {
-                                            ...((editingTaskData as any).ModularWorkflow || {}),
-                                            basePriceDescription: e.target.value
-                                          }
+                                            ...((editingTaskData as any)
+                                              .ModularWorkflow || {}),
+                                            basePriceDescription:
+                                              e.target.value,
+                                          },
                                         })
                                       }
                                       rows={3}
@@ -818,41 +1154,57 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   ) : workflowData?.basePriceDescription ? (
                                     <div className="prose prose-sm dark:prose-invert max-w-none">
                                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words">
-                                        {linkifyText(workflowData.basePriceDescription)}
+                                        {linkifyText(
+                                          workflowData.basePriceDescription
+                                        )}
                                       </p>
                                     </div>
                                   ) : (
-                                    <p className="text-gray-400 dark:text-gray-500 italic">No pricing details provided</p>
+                                    <p className="text-gray-400 dark:text-gray-500 italic">
+                                      No pricing details provided
+                                    </p>
                                   )}
                                 </div>
 
                                 {/* Content Tags */}
-                                {workflowData?.contentTags && workflowData.contentTags.length > 0 && (
-                                  <div>
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                      Content Tags
-                                    </label>
-                                    <div className="flex flex-wrap gap-1.5">
-                                      {workflowData.contentTags.map((tag: string, idx: number) => (
-                                        <Badge key={idx} variant="secondary" className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300">
-                                          {tag}
-                                        </Badge>
-                                      ))}
+                                {workflowData?.contentTags &&
+                                  workflowData.contentTags.length > 0 && (
+                                    <div>
+                                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                        Content Tags
+                                      </label>
+                                      <div className="flex flex-wrap gap-1.5">
+                                        {workflowData.contentTags.map(
+                                          (tag: string, idx: number) => (
+                                            <Badge
+                                              key={idx}
+                                              variant="secondary"
+                                              className="bg-emerald-100 dark:bg-emerald-900/30 text-emerald-800 dark:text-emerald-300"
+                                            >
+                                              {tag}
+                                            </Badge>
+                                          )
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
                               </div>
                             </AccordionContent>
                           </AccordionItem>
 
                           {/* Assets & Resources Accordion */}
-                          <AccordionItem value="assets" className="bg-gradient-to-br from-blue-50 to-sky-50 dark:from-blue-900/20 dark:to-sky-900/20 border border-blue-200 dark:border-blue-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="assets"
+                            className="bg-gradient-to-br from-blue-100 to-sky-100 dark:from-blue-900/20 dark:to-sky-900/20 border border-blue-300 dark:border-blue-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <Package className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Assets & Resources</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Assets & Resources
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -876,24 +1228,34 @@ export default function EnhancedTaskDetailModalRedesigned({
                                 )}
 
                                 {/* Reference Attachments */}
-                                {workflowData?.referenceAttachments && workflowData.referenceAttachments.length > 0 && (
-                                  <div>
-                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                                      Reference Attachments
-                                    </label>
-                                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                                      {workflowData.referenceAttachments.map((attachment: any, idx: number) => (
-                                        <div key={idx} className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
-                                          <img
-                                            src={attachment.url}
-                                            alt={attachment.name || `Reference ${idx + 1}`}
-                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                          />
-                                        </div>
-                                      ))}
+                                {workflowData?.referenceAttachments &&
+                                  workflowData.referenceAttachments.length >
+                                    0 && (
+                                    <div>
+                                      <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                        Reference Attachments
+                                      </label>
+                                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                        {workflowData.referenceAttachments.map(
+                                          (attachment: any, idx: number) => (
+                                            <div
+                                              key={idx}
+                                              className="relative group aspect-square rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800"
+                                            >
+                                              <img
+                                                src={attachment.url}
+                                                alt={
+                                                  attachment.name ||
+                                                  `Reference ${idx + 1}`
+                                                }
+                                                className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                                              />
+                                            </div>
+                                          )
+                                        )}
+                                      </div>
                                     </div>
-                                  </div>
-                                )}
+                                  )}
                               </div>
                             </AccordionContent>
                           </AccordionItem>
@@ -904,15 +1266,24 @@ export default function EnhancedTaskDetailModalRedesigned({
                     {/* OFTV Tab */}
                     {hasOFTVTask && (
                       <TabsContent value="oftv" className="mt-0">
-                        <Accordion type="multiple" defaultValue={["oftv-details", "video-editor"]} className="space-y-4">
+                        <Accordion
+                          type="multiple"
+                          defaultValue={["oftv-details", "video-editor"]}
+                          className="space-y-4"
+                        >
                           {/* OFTV Task Details Accordion */}
-                          <AccordionItem value="oftv-details" className="bg-gradient-to-br from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-200 dark:border-orange-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="oftv-details"
+                            className="bg-gradient-to-br from-orange-100 to-amber-100 dark:from-orange-900/20 dark:to-amber-900/20 border border-orange-300 dark:border-orange-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <Video className="h-5 w-5 text-orange-600 dark:text-orange-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Task Details</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Task Details
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -926,13 +1297,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                                     <input
                                       type="text"
                                       value={editingOFTVData.model || ""}
-                                      onChange={(e) => setEditingOFTVData({ ...editingOFTVData, model: e.target.value })}
+                                      onChange={(e) =>
+                                        setEditingOFTVData({
+                                          ...editingOFTVData,
+                                          model: e.target.value,
+                                        })
+                                      }
                                       placeholder="Model name..."
                                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                                     />
                                   ) : (
                                     <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                      {oftvTaskData?.model || 'Not set'}
+                                      {oftvTaskData?.model || "Not set"}
                                     </div>
                                   )}
                                 </div>
@@ -946,7 +1322,12 @@ export default function EnhancedTaskDetailModalRedesigned({
                                     <input
                                       type="url"
                                       value={editingOFTVData.folderLink || ""}
-                                      onChange={(e) => setEditingOFTVData({ ...editingOFTVData, folderLink: e.target.value })}
+                                      onChange={(e) =>
+                                        setEditingOFTVData({
+                                          ...editingOFTVData,
+                                          folderLink: e.target.value,
+                                        })
+                                      }
                                       placeholder="https://drive.google.com/..."
                                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
                                     />
@@ -961,7 +1342,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                                       Open Folder
                                     </a>
                                   ) : (
-                                    <p className="text-gray-400 dark:text-gray-500 italic">No folder link</p>
+                                    <p className="text-gray-400 dark:text-gray-500 italic">
+                                      No folder link
+                                    </p>
                                   )}
                                 </div>
 
@@ -972,8 +1355,15 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   </label>
                                   {isEditingTask && editingOFTVData ? (
                                     <textarea
-                                      value={editingOFTVData.videoDescription || ""}
-                                      onChange={(e) => setEditingOFTVData({ ...editingOFTVData, videoDescription: e.target.value })}
+                                      value={
+                                        editingOFTVData.videoDescription || ""
+                                      }
+                                      onChange={(e) =>
+                                        setEditingOFTVData({
+                                          ...editingOFTVData,
+                                          videoDescription: e.target.value,
+                                        })
+                                      }
                                       rows={4}
                                       placeholder="Describe the video content..."
                                       className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500/50 resize-none"
@@ -981,11 +1371,15 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   ) : oftvTaskData?.videoDescription ? (
                                     <div className="prose prose-sm dark:prose-invert max-w-none">
                                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words">
-                                        {linkifyText(oftvTaskData.videoDescription)}
+                                        {linkifyText(
+                                          oftvTaskData.videoDescription
+                                        )}
                                       </p>
                                     </div>
                                   ) : (
-                                    <p className="text-gray-400 dark:text-gray-500 italic">No description provided</p>
+                                    <p className="text-gray-400 dark:text-gray-500 italic">
+                                      No description provided
+                                    </p>
                                   )}
                                 </div>
                               </div>
@@ -993,13 +1387,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                           </AccordionItem>
 
                           {/* Video Editor Accordion */}
-                          <AccordionItem value="video-editor" className="bg-gradient-to-br from-red-50 to-rose-50 dark:from-red-900/20 dark:to-rose-900/20 border border-red-200 dark:border-red-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="video-editor"
+                            className="bg-gradient-to-br from-red-100 to-rose-100 dark:from-red-900/20 dark:to-rose-900/20 border border-red-300 dark:border-red-700 rounded-xl overflow-visible"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <Video className="h-5 w-5 text-red-600 dark:text-red-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Video Editor</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Video Editor
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -1011,10 +1410,20 @@ export default function EnhancedTaskDetailModalRedesigned({
                                         Assigned Editor
                                       </label>
                                       <UserDropdown
-                                        value={editingOFTVData.videoEditor || ""}
-                                        onChange={(email, userId) => setEditingOFTVData({ ...editingOFTVData, videoEditor: email, videoEditorUserId: userId || "" })}
+                                        value={
+                                          editingOFTVData.videoEditor || ""
+                                        }
+                                        onChange={(email, userId) =>
+                                          setEditingOFTVData({
+                                            ...editingOFTVData,
+                                            videoEditor: email,
+                                            videoEditorUserId: userId || "",
+                                          })
+                                        }
                                         placeholder="Select video editor..."
-                                        teamId={selectedTask.podTeamId || undefined}
+                                        teamId={
+                                          selectedTask.podTeamId || undefined
+                                        }
                                       />
                                     </div>
                                     <div>
@@ -1022,12 +1431,25 @@ export default function EnhancedTaskDetailModalRedesigned({
                                         Status
                                       </label>
                                       <select
-                                        value={editingOFTVData.videoEditorStatus || 'NOT_STARTED'}
-                                        onChange={(e) => setEditingOFTVData({ ...editingOFTVData, videoEditorStatus: e.target.value })}
+                                        value={
+                                          editingOFTVData.videoEditorStatus ||
+                                          "NOT_STARTED"
+                                        }
+                                        onChange={(e) =>
+                                          setEditingOFTVData({
+                                            ...editingOFTVData,
+                                            videoEditorStatus: e.target.value,
+                                          })
+                                        }
                                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                                       >
                                         {oftvStatusOptions.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                          <option
+                                            key={opt.value}
+                                            value={opt.value}
+                                          >
+                                            {opt.label}
+                                          </option>
                                         ))}
                                       </select>
                                     </div>
@@ -1040,13 +1462,23 @@ export default function EnhancedTaskDetailModalRedesigned({
                                           Assigned Editor
                                         </label>
                                         <div className="flex items-center gap-3">
-                                          <UserProfile user={oftvTaskData.videoEditorUser} size="md" showTooltip />
+                                          <UserProfile
+                                            user={oftvTaskData.videoEditorUser}
+                                            size="md"
+                                            showTooltip
+                                          />
                                           <div>
                                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                              {oftvTaskData.videoEditorUser.name || oftvTaskData.videoEditorUser.email}
+                                              {oftvTaskData.videoEditorUser
+                                                .name ||
+                                                oftvTaskData.videoEditorUser
+                                                  .email}
                                             </p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                              {oftvTaskData.videoEditorUser.email}
+                                              {
+                                                oftvTaskData.videoEditorUser
+                                                  .email
+                                              }
                                             </p>
                                           </div>
                                         </div>
@@ -1057,12 +1489,25 @@ export default function EnhancedTaskDetailModalRedesigned({
                                         Status
                                       </label>
                                       <select
-                                        value={oftvTaskData?.videoEditorStatus || 'NOT_STARTED'}
-                                        onChange={(e) => handleOFTVStatusUpdate('videoEditorStatus', e.target.value)}
+                                        value={
+                                          oftvTaskData?.videoEditorStatus ||
+                                          "NOT_STARTED"
+                                        }
+                                        onChange={(e) =>
+                                          handleOFTVStatusUpdate(
+                                            "videoEditorStatus",
+                                            e.target.value
+                                          )
+                                        }
                                         className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                                       >
                                         {oftvStatusOptions.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                          <option
+                                            key={opt.value}
+                                            value={opt.value}
+                                          >
+                                            {opt.label}
+                                          </option>
                                         ))}
                                       </select>
                                     </div>
@@ -1073,13 +1518,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                           </AccordionItem>
 
                           {/* Thumbnail Editor Accordion */}
-                          <AccordionItem value="thumbnail-editor" className="bg-gradient-to-br from-cyan-50 to-blue-50 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-200 dark:border-cyan-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="thumbnail-editor"
+                            className="bg-gradient-to-br from-cyan-100 to-blue-100 dark:from-cyan-900/20 dark:to-blue-900/20 border border-cyan-300 dark:border-cyan-700 rounded-xl overflow-visible"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <ImageIcon className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Thumbnail Editor</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Thumbnail Editor
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
@@ -1091,10 +1541,20 @@ export default function EnhancedTaskDetailModalRedesigned({
                                         Assigned Editor
                                       </label>
                                       <UserDropdown
-                                        value={editingOFTVData.thumbnailEditor || ""}
-                                        onChange={(email, userId) => setEditingOFTVData({ ...editingOFTVData, thumbnailEditor: email, thumbnailEditorUserId: userId || "" })}
+                                        value={
+                                          editingOFTVData.thumbnailEditor || ""
+                                        }
+                                        onChange={(email, userId) =>
+                                          setEditingOFTVData({
+                                            ...editingOFTVData,
+                                            thumbnailEditor: email,
+                                            thumbnailEditorUserId: userId || "",
+                                          })
+                                        }
                                         placeholder="Select thumbnail editor..."
-                                        teamId={selectedTask.podTeamId || undefined}
+                                        teamId={
+                                          selectedTask.podTeamId || undefined
+                                        }
                                       />
                                     </div>
                                     <div>
@@ -1102,12 +1562,26 @@ export default function EnhancedTaskDetailModalRedesigned({
                                         Status
                                       </label>
                                       <select
-                                        value={editingOFTVData.thumbnailEditorStatus || 'NOT_STARTED'}
-                                        onChange={(e) => setEditingOFTVData({ ...editingOFTVData, thumbnailEditorStatus: e.target.value })}
+                                        value={
+                                          editingOFTVData.thumbnailEditorStatus ||
+                                          "NOT_STARTED"
+                                        }
+                                        onChange={(e) =>
+                                          setEditingOFTVData({
+                                            ...editingOFTVData,
+                                            thumbnailEditorStatus:
+                                              e.target.value,
+                                          })
+                                        }
                                         className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-cyan-500/50"
                                       >
                                         {oftvStatusOptions.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                          <option
+                                            key={opt.value}
+                                            value={opt.value}
+                                          >
+                                            {opt.label}
+                                          </option>
                                         ))}
                                       </select>
                                     </div>
@@ -1120,13 +1594,25 @@ export default function EnhancedTaskDetailModalRedesigned({
                                           Assigned Editor
                                         </label>
                                         <div className="flex items-center gap-3">
-                                          <UserProfile user={oftvTaskData.thumbnailEditorUser} size="md" showTooltip />
+                                          <UserProfile
+                                            user={
+                                              oftvTaskData.thumbnailEditorUser
+                                            }
+                                            size="md"
+                                            showTooltip
+                                          />
                                           <div>
                                             <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                              {oftvTaskData.thumbnailEditorUser.name || oftvTaskData.thumbnailEditorUser.email}
+                                              {oftvTaskData.thumbnailEditorUser
+                                                .name ||
+                                                oftvTaskData.thumbnailEditorUser
+                                                  .email}
                                             </p>
                                             <p className="text-xs text-gray-500 dark:text-gray-400">
-                                              {oftvTaskData.thumbnailEditorUser.email}
+                                              {
+                                                oftvTaskData.thumbnailEditorUser
+                                                  .email
+                                              }
                                             </p>
                                           </div>
                                         </div>
@@ -1137,12 +1623,25 @@ export default function EnhancedTaskDetailModalRedesigned({
                                         Status
                                       </label>
                                       <select
-                                        value={oftvTaskData?.thumbnailEditorStatus || 'NOT_STARTED'}
-                                        onChange={(e) => handleOFTVStatusUpdate('thumbnailEditorStatus', e.target.value)}
+                                        value={
+                                          oftvTaskData?.thumbnailEditorStatus ||
+                                          "NOT_STARTED"
+                                        }
+                                        onChange={(e) =>
+                                          handleOFTVStatusUpdate(
+                                            "thumbnailEditorStatus",
+                                            e.target.value
+                                          )
+                                        }
                                         className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                                       >
                                         {oftvStatusOptions.map((opt) => (
-                                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                          <option
+                                            key={opt.value}
+                                            value={opt.value}
+                                          >
+                                            {opt.label}
+                                          </option>
                                         ))}
                                       </select>
                                     </div>
@@ -1153,20 +1652,32 @@ export default function EnhancedTaskDetailModalRedesigned({
                           </AccordionItem>
 
                           {/* Special Instructions Accordion */}
-                          <AccordionItem value="special-instructions" className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700 rounded-xl overflow-hidden">
+                          <AccordionItem
+                            value="special-instructions"
+                            className="bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 border border-amber-200 dark:border-amber-700 rounded-xl overflow-hidden"
+                          >
                             <AccordionTrigger className="px-5 hover:no-underline">
                               <div className="flex items-center gap-3">
                                 <div className="p-2 bg-white/60 dark:bg-black/20 rounded-lg">
                                   <FileText className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                                 </div>
-                                <span className="font-semibold text-gray-900 dark:text-gray-100">Special Instructions</span>
+                                <span className="font-semibold text-gray-900 dark:text-gray-100">
+                                  Special Instructions
+                                </span>
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
                               {isEditingTask && editingOFTVData ? (
                                 <textarea
-                                  value={editingOFTVData.specialInstructions || ""}
-                                  onChange={(e) => setEditingOFTVData({ ...editingOFTVData, specialInstructions: e.target.value })}
+                                  value={
+                                    editingOFTVData.specialInstructions || ""
+                                  }
+                                  onChange={(e) =>
+                                    setEditingOFTVData({
+                                      ...editingOFTVData,
+                                      specialInstructions: e.target.value,
+                                    })
+                                  }
                                   rows={4}
                                   placeholder="Add any special instructions or notes..."
                                   className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-amber-500/50 resize-none"
@@ -1174,17 +1685,22 @@ export default function EnhancedTaskDetailModalRedesigned({
                               ) : oftvTaskData?.specialInstructions ? (
                                 <div className="prose prose-sm dark:prose-invert max-w-none">
                                   <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words">
-                                    {linkifyText(oftvTaskData.specialInstructions)}
+                                    {linkifyText(
+                                      oftvTaskData.specialInstructions
+                                    )}
                                   </p>
                                 </div>
                               ) : (
-                                <p className="text-gray-400 dark:text-gray-500 italic">No special instructions</p>
+                                <p className="text-gray-400 dark:text-gray-500 italic">
+                                  No special instructions
+                                </p>
                               )}
                             </AccordionContent>
                           </AccordionItem>
 
                           {/* Date Fields */}
-                          {(oftvTaskData?.dateAssigned || oftvTaskData?.dateCompleted) && (
+                          {(oftvTaskData?.dateAssigned ||
+                            oftvTaskData?.dateCompleted) && (
                             <div className="bg-gradient-to-br from-gray-50 to-slate-50 dark:from-gray-800/20 dark:to-slate-800/20 border border-gray-200 dark:border-gray-700 rounded-xl p-5">
                               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {oftvTaskData?.dateAssigned && (
@@ -1195,7 +1711,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                                     <div className="flex items-center gap-2">
                                       <Calendar className="h-4 w-4 text-gray-500" />
                                       <span className="text-sm text-gray-900 dark:text-gray-100">
-                                        {formatForTaskDetail(oftvTaskData.dateAssigned)}
+                                        {formatForTaskDetail(
+                                          oftvTaskData.dateAssigned
+                                        )}
                                       </span>
                                     </div>
                                   </div>
@@ -1208,7 +1726,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                                     <div className="flex items-center gap-2">
                                       <CheckCircle className="h-4 w-4 text-green-600" />
                                       <span className="text-sm text-gray-900 dark:text-gray-100">
-                                        {formatForTaskDetail(oftvTaskData.dateCompleted)}
+                                        {formatForTaskDetail(
+                                          oftvTaskData.dateCompleted
+                                        )}
                                       </span>
                                     </div>
                                   </div>
@@ -1243,12 +1763,16 @@ export default function EnhancedTaskDetailModalRedesigned({
                         <TaskComments
                           taskId={selectedTask.id}
                           teamId={selectedTask.podTeamId || undefined}
-                          currentUser={session?.user ? {
-                            id: session.user.id!,
-                            name: session.user.name,
-                            email: session.user.email!,
-                            image: session.user.image
-                          } : null}
+                          currentUser={
+                            session?.user
+                              ? {
+                                  id: session.user.id!,
+                                  name: session.user.name,
+                                  email: session.user.email!,
+                                  image: session.user.image,
+                                }
+                              : null
+                          }
                           isViewOnly={isViewOnly}
                         />
                       </div>
@@ -1268,19 +1792,26 @@ export default function EnhancedTaskDetailModalRedesigned({
                     {canEditTask(selectedTask) ? (
                       <select
                         value={selectedTask.status}
-                        onChange={(e) => onUpdateTaskStatus?.(e.target.value as Task["status"])}
+                        onChange={(e) =>
+                          onUpdateTaskStatus?.(e.target.value as Task["status"])
+                        }
                         className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                       >
-                        {getColumnConfig && getColumnConfig().map(([status, config]) => (
-                          <option key={status} value={status}>{config.label}</option>
-                        ))}
+                        {getColumnConfig &&
+                          getColumnConfig().map(([status, config]) => (
+                            <option key={status} value={status}>
+                              {config.label}
+                            </option>
+                          ))}
                       </select>
                     ) : (
                       <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
                         {getColumnConfig
-                          ? getColumnConfig().find(([status]) => status === selectedTask.status)?.[1]?.label || selectedTask.status
-                          : getStatusConfig(selectedTask.status as any).label || selectedTask.status
-                        }
+                          ? getColumnConfig().find(
+                              ([status]) => status === selectedTask.status
+                            )?.[1]?.label || selectedTask.status
+                          : getStatusConfig(selectedTask.status as any).label ||
+                            selectedTask.status}
                       </div>
                     )}
                   </div>
@@ -1288,12 +1819,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* Priority */}
                   {!isEditingTask && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Priority</label>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                        Priority
+                      </label>
                       <div className="flex items-center gap-2">
                         <span className="text-sm">
-                          {selectedTask.priority === "URGENT" ? "🚨" :
-                           selectedTask.priority === "HIGH" ? "🔴" :
-                           selectedTask.priority === "MEDIUM" ? "🟡" : "🟢"}
+                          {selectedTask.priority === "URGENT"
+                            ? "🚨"
+                            : selectedTask.priority === "HIGH"
+                              ? "🔴"
+                              : selectedTask.priority === "MEDIUM"
+                                ? "🟡"
+                                : "🟢"}
                         </span>
                         <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                           {selectedTask.priority}
@@ -1303,24 +1840,31 @@ export default function EnhancedTaskDetailModalRedesigned({
                   )}
 
                   {/* Assignee - Regular Tasks Only */}
-                  {!hasOFTVTask && !isEditingTask && selectedTask.assignedUser && (
-                    <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                        Assignee
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <UserProfile user={selectedTask.assignedUser} size="md" showTooltip />
-                        <div>
-                          <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {selectedTask.assignedUser.name || selectedTask.assignedUser.email}
-                          </p>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">
-                            {selectedTask.assignedUser.email}
-                          </p>
+                  {!hasOFTVTask &&
+                    !isEditingTask &&
+                    selectedTask.assignedUser && (
+                      <div>
+                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                          Assignee
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <UserProfile
+                            user={selectedTask.assignedUser}
+                            size="md"
+                            showTooltip
+                          />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {selectedTask.assignedUser.name ||
+                                selectedTask.assignedUser.email}
+                            </p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">
+                              {selectedTask.assignedUser.email}
+                            </p>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  )}
+                    )}
 
                   {/* OFTV-specific fields */}
                   {hasOFTVTask && oftvTaskData?.model && (
@@ -1367,14 +1911,16 @@ export default function EnhancedTaskDetailModalRedesigned({
                           </div>
                         </div>
                       )}
-                      {(workflowData?.releaseDate || workflowData?.releaseTime) && (
+                      {(workflowData?.releaseDate ||
+                        workflowData?.releaseTime) && (
                         <div>
                           <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
                             Release Date
                           </label>
                           <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {workflowData.releaseDate || 'Not set'}
-                            {workflowData.releaseTime && ` at ${workflowData.releaseTime}`}
+                            {workflowData.releaseDate || "Not set"}
+                            {workflowData.releaseTime &&
+                              ` at ${workflowData.releaseTime}`}
                           </div>
                         </div>
                       )}
@@ -1384,10 +1930,17 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* Due Date */}
                   {!isEditingTask && selectedTask.dueDate && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Due Date</label>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                        Due Date
+                      </label>
                       <div className="flex items-center gap-2">
                         <Calendar className="h-4 w-4 text-gray-500" />
-                        <span className={cn("text-sm", formatDueDate(selectedTask.dueDate).className)}>
+                        <span
+                          className={cn(
+                            "text-sm",
+                            formatDueDate(selectedTask.dueDate).className
+                          )}
+                        >
                           {formatDueDate(selectedTask.dueDate).formatted}
                         </span>
                       </div>
@@ -1397,7 +1950,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* Created Info */}
                   {!isEditingTask && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Created</label>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                        Created
+                      </label>
                       <div className="space-y-2">
                         <div className="flex items-center gap-2">
                           <Clock className="h-4 w-4 text-gray-500" />
@@ -1406,9 +1961,14 @@ export default function EnhancedTaskDetailModalRedesigned({
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
-                          <UserProfile user={selectedTask.createdBy} size="sm" showTooltip />
+                          <UserProfile
+                            user={selectedTask.createdBy}
+                            size="sm"
+                            showTooltip
+                          />
                           <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
-                            {selectedTask.createdBy.name || selectedTask.createdBy.email}
+                            {selectedTask.createdBy.name ||
+                              selectedTask.createdBy.email}
                           </p>
                         </div>
                       </div>
@@ -1418,7 +1978,9 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* Updated Info */}
                   {!isEditingTask && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Last Updated</label>
+                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                        Last Updated
+                      </label>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-gray-500" />
                         <span className="text-xs text-gray-600 dark:text-gray-400">
