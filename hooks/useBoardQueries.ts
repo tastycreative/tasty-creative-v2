@@ -426,7 +426,7 @@ export function useTaskActivitiesQuery(teamId: string, taskId: string) {
   return useQuery<TaskActivitiesResponse>({
     queryKey: boardQueryKeys.activities(teamId || "unknown", taskId),
     queryFn: async () => {
-      const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/activities`);
+      const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/activity`);
       if (!res.ok) throw new Error(`Failed to fetch activities: ${res.statusText}`);
       return res.json();
     },
