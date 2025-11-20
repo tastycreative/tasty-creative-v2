@@ -708,14 +708,18 @@ export default function ModularWorkflowWizard() {
 
     try {
       // Upload files first (with error handling for missing AWS config)
+      let uploadedAttachments = attachments;
       if (localFiles.length > 0) {
         try {
-          await uploadAllLocalFiles(
+          const newAttachments = await uploadAllLocalFiles(
             localFiles,
             attachments,
             setAttachments,
             setLocalFiles
           );
+          // Use the returned attachments directly to avoid state timing issues
+          uploadedAttachments = [...attachments, ...newAttachments];
+          console.log('✅ Uploaded attachments:', uploadedAttachments);
         } catch (uploadError: any) {
           console.error("File upload failed:", uploadError);
 
@@ -739,6 +743,8 @@ export default function ModularWorkflowWizard() {
         }
       }
 
+      console.log('📦 Preparing payload with attachments:', uploadedAttachments);
+
       // Prepare workflow payload
       const workflowPayload = {
         submissionType: data.submissionType,
@@ -760,7 +766,7 @@ export default function ModularWorkflowWizard() {
         modelName: data.model,
         priority: data.priority,
         driveLink: data.driveLink,
-        attachments: attachments,
+        attachments: uploadedAttachments,
         // Content Details fields
         contentType: data.contentType,
         contentLength: data.contentLength,
