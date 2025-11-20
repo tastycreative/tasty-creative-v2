@@ -33,7 +33,6 @@ import {
   Bell,
 } from "lucide-react";
 import { updateUserRole } from "@/app/actions/admin";
-import { Role } from "@prisma/client";
 import { useSession } from "next-auth/react";
 import {
   formatForDisplay,
@@ -821,15 +820,15 @@ const PodAdminDashboard = () => {
     setUpdatingCreators(teamId);
     try {
 
-      // Call the API to update the database with new creators
-      const response = await fetch("/api/pod/update-team-creators", {
+    // Call the API to update the database with new creators
+    const response = await fetch("/api/pod/update-team-creators", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           teamId: teamId,
-          creatorNames: newCreators,
+      creators: newCreators,
         }),
       });
 
@@ -2018,41 +2017,24 @@ const PodAdminDashboard = () => {
                                     <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto border border-gray-300 dark:border-gray-600 rounded-lg p-2 bg-gray-50 dark:bg-gray-700">
                                       {availableCreators.length > 0 ? (
                                         availableCreators.map((creator) => {
-                                          const isSelected =
-                                            editingCreatorsValue.includes(creator);
-                                          const canSelect =
-                                            editingCreatorsValue.length < 3 ||
-                                            isSelected;
+                                          const isSelected = editingCreatorsValue.includes(creator);
 
                                           return (
                                             <button
                                               key={creator}
                                               type="button"
                                               onClick={() => {
-                                                if (!canSelect) return;
                                                 setEditingCreatorsValue((prev) =>
                                                   isSelected
-                                                    ? prev.filter(
-                                                        (c) => c !== creator
-                                                      )
-                                                    : prev.length < 3
-                                                      ? [...prev, creator]
-                                                      : prev
+                                                    ? prev.filter((c) => c !== creator)
+                                                    : [...prev, creator]
                                                 );
                                               }}
                                               className={`px-2 py-1 text-xs rounded-full transition-colors ${
                                                 isSelected
                                                   ? "bg-pink-600 text-white"
-                                                  : canSelect
-                                                    ? "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/30"
-                                                    : "bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed"
+                                                  : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 hover:bg-purple-100 dark:hover:bg-purple-900/30"
                                               }`}
-                                              disabled={!canSelect}
-                                              title={
-                                                !canSelect
-                                                  ? "Maximum 3 creators allowed"
-                                                  : ""
-                                              }
                                             >
                                               {creator}
                                             </button>
@@ -2068,8 +2050,7 @@ const PodAdminDashboard = () => {
                                     </div>
 
                                     <div className="text-xs text-gray-500 dark:text-gray-400">
-                                      Select up to 3 creators (
-                                      {editingCreatorsValue.length}/3 selected)
+                                      Select creators ({editingCreatorsValue.length} selected)
                                     </div>
                                   </div>
 
@@ -2287,7 +2268,7 @@ const PodAdminDashboard = () => {
                                 </span>
                               </div>
                               <div className="flex flex-wrap gap-2">
-                                {team.creators.slice(0, 3).map((creator, index) => (
+                                {team.creators.map((creator, index) => (
                                   <span
                                     key={index}
                                     className="text-xs px-3 py-1.5 bg-gradient-to-r from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 text-pink-700 dark:text-pink-300 rounded-full border border-pink-200/50 dark:border-pink-500/30 font-medium"
@@ -2295,11 +2276,6 @@ const PodAdminDashboard = () => {
                                     {creator}
                                   </span>
                                 ))}
-                                {team.creators.length > 3 && (
-                                  <span className="text-xs px-3 py-1.5 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 text-purple-700 dark:text-purple-300 rounded-full border border-purple-200/50 dark:border-purple-500/30 font-medium">
-                                    +{team.creators.length - 3} more
-                                  </span>
-                                )}
                               </div>
                             </div>
                           </div>

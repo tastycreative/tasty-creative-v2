@@ -89,21 +89,23 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   // Tab state for lazy loading gallery
-  const [activeTab, setActiveTab] = useState<'create' | 'outputs'>('create');
+  const [activeTab, setActiveTab] = useState<"create" | "outputs">("create");
   const [loadOutputs, setLoadOutputs] = useState(false);
   // dynamic import will only run on client when requested
   const [LiveFlyerGallery, setLiveFlyerGallery] = useState<any>(null);
 
   useEffect(() => {
     let mounted = true;
-    if (loadOutputs && typeof window !== 'undefined' && !LiveFlyerGallery) {
-      import('@/components/LiveFlyerGallery')
+    if (loadOutputs && typeof window !== "undefined" && !LiveFlyerGallery) {
+      import("@/components/LiveFlyerGallery")
         .then((mod) => {
           if (mounted) setLiveFlyerGallery(() => mod.default);
         })
-        .catch((err) => console.error('Failed to load LiveFlyerGallery', err));
+        .catch((err) => console.error("Failed to load LiveFlyerGallery", err));
     }
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, [loadOutputs, LiveFlyerGallery]);
 
   useEffect(() => {
@@ -550,23 +552,86 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
   }, [formData.model]);
 
   // If outputs tab selected, render only the gallery (full-width)
-  if (activeTab === 'outputs') {
+  if (activeTab === "outputs") {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
         <div className="container mx-auto px-4 py-8">
-          <div className="flex items-center justify-between mb-6">
-            <div className="flex items-center gap-2">
-              <button onClick={() => { setActiveTab('create'); }} className={`px-3 py-1 rounded-full ${activeTab === 'create' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Create</button>
-              <button onClick={() => { setActiveTab('outputs'); setLoadOutputs(true); }} className={`px-3 py-1 rounded-full ${activeTab === 'outputs' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Outputs</button>
+          {/* Tabs */}
+          <div className="mb-6">
+            <div className="flex items-center gap-8 border-b border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => {
+                  setActiveTab("create");
+                }}
+                className={`pb-3 px-1 font-medium transition-colors relative ${
+                  activeTab === "create"
+                    ? "text-pink-600 dark:text-pink-400"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                Create
+                {activeTab === "create" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 dark:bg-pink-400"></span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("outputs");
+                  setLoadOutputs(true);
+                }}
+                className={`pb-3 px-1 font-medium transition-colors relative ${
+                  activeTab === "outputs"
+                    ? "text-pink-600 dark:text-pink-400"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                Outputs
+                {activeTab === "outputs" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 dark:bg-pink-400"></span>
+                )}
+              </button>
             </div>
-         
           </div>
 
           <div className="rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 bg-white/70 dark:bg-gray-900">
             {LiveFlyerGallery ? (
-              <LiveFlyerGallery clientModelName={formData.model} clientModelId={undefined} />
+              <LiveFlyerGallery
+                clientModelName={formData.model}
+                clientModelId={undefined}
+              />
             ) : (
-              <div className="text-sm text-gray-500">Loading gallery...</div>
+              <div className="space-y-6">
+                {/* Header Skeleton */}
+                <div className="flex items-center justify-between">
+                  <div className="space-y-2">
+                    <div className="h-6 w-48 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="h-4 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                  <div className="flex gap-3">
+                    <div className="h-10 w-32 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                    <div className="h-10 w-10 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+                  </div>
+                </div>
+
+                {/* Grid Skeleton */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                  {Array.from({ length: 8 }).map((_, i) => (
+                    <div
+                      key={i}
+                      className="rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden bg-white dark:bg-gray-800 animate-pulse"
+                    >
+                      <div className="aspect-[3/4] bg-gray-200 dark:bg-gray-700"></div>
+                      <div className="p-3">
+                        <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-2"></div>
+                        <div className="flex items-center justify-between">
+                          <div className="h-3 w-16 bg-gray-200 dark:bg-gray-700 rounded"></div>
+                          <div className="h-6 w-6 bg-gray-200 dark:bg-gray-700 rounded-full"></div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             )}
           </div>
         </div>
@@ -580,27 +645,69 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
         {response?.error === "Invalid JSON response from webhook" && (
           <ServerOffline />
         )}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-2">
-            <button onClick={() => { setActiveTab('create'); }} className={`px-3 py-1 rounded-full ${activeTab === 'create' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Create</button>
-            <button onClick={() => { setActiveTab('outputs'); setLoadOutputs(true); }} className={`px-3 py-1 rounded-full ${activeTab === 'outputs' ? 'bg-pink-600 text-white' : 'bg-white dark:bg-gray-800'}`}>Outputs</button>
+
+        {/* Tabs */}
+        <div className="mb-6">
+          <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+            <div className="flex items-center gap-8">
+              <button
+                onClick={() => {
+                  setActiveTab("create");
+                }}
+                className={`pb-3 px-1 font-medium transition-colors relative ${
+                  activeTab === "create"
+                    ? "text-pink-600 dark:text-pink-400"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                Create
+                {activeTab === "create" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 dark:bg-pink-400"></span>
+                )}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab("outputs");
+                  setLoadOutputs(true);
+                }}
+                className={`pb-3 px-1 font-medium transition-colors relative ${
+                  activeTab === "outputs"
+                    ? "text-pink-600 dark:text-pink-400"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                Outputs
+                {activeTab === "outputs" && (
+                  <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-pink-600 dark:bg-pink-400"></span>
+                )}
+              </button>
+            </div>
           </div>
-          <div className="text-sm text-gray-500">{isLoadingLiveFlyers ? 'Loading...' : liveFlyerItems.length + ' items'}</div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Form Section - only show when Create tab active */}
-            <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg col-span-1 flex flex-col gap-4 lg:max-w-lg w-full p-8">
+          <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg col-span-1 flex flex-col gap-4 lg:max-w-lg w-full p-8">
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
             </div>
-            
+
             <div className="relative">
               <div className="flex items-start gap-4 mb-6">
                 <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
-                  <svg className="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <svg
+                    className="w-6 h-6 text-pink-600 dark:text-pink-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                    />
                   </svg>
                 </div>
                 <div>
@@ -613,10 +720,13 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                     Create stunning promotional flyers for live events
                   </p>
                 </div>
-        </div>
-      </div>
+              </div>
+            </div>
 
-            <form onSubmit={handleSubmit} className="relative grid grid-cols-2 gap-4">
+            <form
+              onSubmit={handleSubmit}
+              className="relative grid grid-cols-2 gap-4"
+            >
               <div className="col-span-2">
                 <SharedModelsDropdown
                   formData={formData}
@@ -713,7 +823,8 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                       className={cn(
                         "rounded-2xl p-3 flex-1 bg-white/70 dark:bg-gray-700 text-gray-700 dark:text-gray-100 border border-pink-200 dark:border-pink-500/30 focus:border-pink-400 dark:focus:border-pink-400 focus:ring-pink-300 transition-all duration-200",
                         {
-                          "border border-red-500 text-red-500": fieldErrors.time,
+                          "border border-red-500 text-red-500":
+                            fieldErrors.time,
                         }
                       )}
                       value={formData.time}
@@ -954,18 +1065,35 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
           </div>
 
           {/* Preview Section or Outputs - if Outputs active, make this span full width */}
-          <div className={`relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg ${activeTab === 'outputs' ? 'col-span-3' : 'col-span-2'} flex flex-col gap-4 w-full p-8`}>
+          <div
+            className={`relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-lg ${activeTab === "outputs" ? "col-span-3" : "col-span-2"} flex flex-col gap-4 w-full p-8`}
+          >
             {/* Background Pattern */}
             <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
               <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
             </div>
-            
+
             <div className="relative">
               <div className="flex items-start gap-4 mb-6">
                 <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
-                  <svg className="w-6 h-6 text-pink-600 dark:text-pink-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  <svg
+                    className="w-6 h-6 text-pink-600 dark:text-pink-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
                   </svg>
                 </div>
                 <div>
@@ -1005,8 +1133,8 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                       ⚠️ Webhook Communication Failed! 🚫
                     </div>
                     <p className="text-red-800 text-opacity-80">
-                      Unable to send message to Discord. Please check your webhook
-                      configuration. 🔧❌
+                      Unable to send message to Discord. Please check your
+                      webhook configuration. 🔧❌
                     </p>
                     <p className="h-full text-wrap">Details: {error}</p>
                   </div>
@@ -1116,7 +1244,10 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                             title="Click to view flyer"
                           >
                             <Image
-                              src={webhookData.thumbnail.replace(/=s\d+$/, "=s800")}
+                              src={webhookData.thumbnail.replace(
+                                /=s\d+$/,
+                                "=s800"
+                              )}
                               alt={"Generated Flyer"}
                               width={400}
                               height={400}
@@ -1133,7 +1264,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                         </div>
                       )}
                     </div>
-                    
+
                     {webhookData && (
                       <>
                         <div className="h-full flex flex-col gap-4 mt-6">
@@ -1174,8 +1305,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                         </div>
                       </>
                     )}
-                  
-                    
+
                     <div className="mt-6 flex justify-center">
                       <button
                         type="button"

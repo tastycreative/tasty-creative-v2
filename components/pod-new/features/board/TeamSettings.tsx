@@ -98,6 +98,17 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
   const [teamCreators, setTeamCreators] = useState<{id: string, name: string, image?: string}[]>([]);
   const [availableCreators, setAvailableCreators] = useState<{id: string, name: string, image?: string}[]>([]);
 
+  // Merge images from availableCreators into teamCreators when possible
+  const reconcileTeamCreatorsWithAvailable = (creatorsList: {id: string; name: string; image?: string}[] = availableCreators) => {
+    if (!creatorsList || creatorsList.length === 0) return;
+    setTeamCreators((prev) =>
+      prev.map((tc) => {
+        const match = creatorsList.find((c) => (c.id && c.id === tc.id) || (c.name && c.name === tc.name));
+        return match ? { ...tc, image: match.image } : tc;
+      })
+    );
+  };
+
   // Helper function to process image URLs (similar to EnhancedModelCard)
   const processImageUrl = (url?: string): string | null => {
     if (!url) return null;
@@ -225,7 +236,10 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
             creators: data.creators || [],
             teamMembers: data.teamMembers || []
           });
+          // Set team creators; images will be merged if availableCreators already fetched
           setTeamCreators(data.creators || []);
+          // Attempt to reconcile images immediately if we already have availableCreators
+          reconcileTeamCreatorsWithAvailable();
           setEditingTeamNameValue(data.name);
           setEditingTeamPrefixValue(data.projectPrefix || "");
           setColumnNotificationsEnabled(data.columnNotificationsEnabled ?? true);
@@ -248,6 +262,8 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
       if (response.ok) {
         const creators = await response.json();
         setAvailableCreators(creators);
+  // Merge any images into the currently loaded teamCreators
+  reconcileTeamCreatorsWithAvailable(creators);
       }
     } catch (error) {
       console.error("Error fetching available creators:", error);
