@@ -829,7 +829,7 @@ const PodAdminDashboard = () => {
         },
         body: JSON.stringify({
           teamId: teamId,
-          creatorNames: newCreators,
+          creators: newCreators,
         }),
       });
 
