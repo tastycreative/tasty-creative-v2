@@ -212,16 +212,10 @@ export default function FileUpload({
   }, [processFiles]);
 
   const handleFileInput = useCallback((e: ChangeEvent<HTMLInputElement>) => {
-    console.log('handleFileInput triggered');
     const files = e.target.files;
-    console.log('Files from input:', files);
-    console.log('Files length:', files?.length);
-    
+
     if (files && files.length > 0) {
-      console.log('Calling processFiles with files:', Array.from(files).map(f => f.name));
       processFiles(files);
-    } else {
-      console.log('No files selected or files is null');
     }
     // Reset input
     e.target.value = '';
@@ -586,7 +580,6 @@ export const uploadAllLocalFiles = async (
   // Use server upload by default to avoid CORS issues
   // Only use direct S3 upload if explicitly enabled AND S3 CORS is configured
   if (useDirectS3Upload === true) {
-    console.log('🚀 Using direct S3 upload (requires CORS configuration)');
     return await uploadAllLocalFilesDirect(
       localFiles,
       attachments,
@@ -596,7 +589,6 @@ export const uploadAllLocalFiles = async (
   }
 
   // Default: Use server upload (no CORS issues)
-  console.log('📤 Using server upload via /api/upload/s3');
   
   // Remove duplicates based on file name, size, and last modified date
   const uniqueFiles: LocalFilePreview[] = [];
@@ -617,8 +609,6 @@ export const uploadAllLocalFiles = async (
 
   for (const localFile of uniqueFiles) {
     try {
-      console.log(`Uploading file via Vercel: ${localFile.name} (${localFile.size} bytes)`);
-      
       const formData = new FormData();
       formData.append('file', localFile.file);
 
@@ -635,7 +625,6 @@ export const uploadAllLocalFiles = async (
       const responseData = await response.json();
       const { attachment } = responseData;
       newAttachments.push(attachment);
-      console.log(`Successfully uploaded via Vercel: ${localFile.name} -> S3 key: ${attachment.s3Key}`);
       
     } catch (error) {
       console.error(`Failed to upload ${localFile.name}:`, error);

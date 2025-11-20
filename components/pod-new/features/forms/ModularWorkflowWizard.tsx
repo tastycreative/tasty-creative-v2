@@ -719,7 +719,6 @@ export default function ModularWorkflowWizard() {
           );
           // Use the returned attachments directly to avoid state timing issues
           uploadedAttachments = [...attachments, ...newAttachments];
-          console.log('✅ Uploaded attachments:', uploadedAttachments);
         } catch (uploadError: any) {
           console.error("File upload failed:", uploadError);
 
@@ -742,8 +741,6 @@ export default function ModularWorkflowWizard() {
           }
         }
       }
-
-      console.log('📦 Preparing payload with attachments:', uploadedAttachments);
 
       // Prepare workflow payload
       const workflowPayload = {
