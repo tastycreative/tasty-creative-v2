@@ -5,6 +5,13 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
+  // Redirect any access to /apps or any /apps/* route to /dashboard
+  // (This ensures the old apps routes are routed to the main dashboard.)
+  if (path === "/apps" || path === "/apps/" || path.startsWith("/apps/")) {
+    const destination = new URL('/dashboard', request.url);
+    return NextResponse.redirect(destination);
+  }
+
   // Block phantom API endpoints that are no longer in use
   const phantomEndpoints = [
     "/api/notifications/stream",
