@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { v4 as uuidv4 } from "uuid";
 import { useState, FormEvent, ChangeEvent, useEffect, useRef } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 
 interface LiveFlyerItem {
   id: string;
@@ -34,6 +35,8 @@ import ServerOffline from "@/components/ServerOffline";
 import { liveFlyerValidation } from "@/schema/zodValidationSchema";
 
 export default function LiveFlyer({ modelName }: { modelName?: string }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
   const [response, setResponse] = useState<WebhookResponse | null>(null);
@@ -93,6 +96,45 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
   const [loadOutputs, setLoadOutputs] = useState(false);
   // dynamic import will only run on client when requested
   const [LiveFlyerGallery, setLiveFlyerGallery] = useState<any>(null);
+
+  // Gallery model selection state (separate from form model)
+  const [gallerySelectedModel, setGallerySelectedModel] = useState<string | 'all'>('all');
+
+  // State for URL-based template selection
+  const [urlTemplate, setUrlTemplate] = useState<string | null>(null);
+  const hasProcessedParams = useRef(false);
+
+  // Handle URL parameters for template selection
+  useEffect(() => {
+    if (!searchParams || hasProcessedParams.current) return;
+
+    const template = searchParams.get('template');
+    const model = searchParams.get('model');
+    const tab = searchParams.get('tab');
+
+    // Only process if we have params
+    if (!template && !model && !tab) return;
+
+    // Mark as processed
+    hasProcessedParams.current = true;
+
+    if (tab === 'create') {
+      setActiveTab('create');
+    }
+
+    if (model) {
+      setFormData((prev) => ({ ...prev, model }));
+    }
+
+    if (template) {
+      setUrlTemplate(template);
+      // Clear urlTemplate after FlyerTemplates has had a chance to process it
+      setTimeout(() => setUrlTemplate(null), 3000);
+    }
+
+    // Clear URL params after processing to prevent re-triggering
+    router.replace('/live', { scroll: false });
+  }, [searchParams, router]);
 
   useEffect(() => {
     let mounted = true;
@@ -596,8 +638,10 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
           <div className="rounded-2xl border border-gray-200/60 dark:border-gray-700/60 p-6 bg-white/70 dark:bg-gray-900">
             {LiveFlyerGallery ? (
               <LiveFlyerGallery
-                clientModelName={formData.model}
+                clientModelName={null}
                 clientModelId={undefined}
+                controlledSelectedModel={gallerySelectedModel}
+                onModelChange={setGallerySelectedModel}
               />
             ) : (
               <div className="space-y-6">
@@ -754,6 +798,7 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
                   type="LIVE"
                   setSelectedTemplateImage={setSelectedTemplateImage}
                   setSelectedTemplate={setSelectedTemplate}
+                  preselectedTemplate={urlTemplate}
                 />
               </div>
 

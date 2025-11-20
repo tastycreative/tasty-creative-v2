@@ -5,6 +5,7 @@ import UserProfile from '@/components/ui/UserProfile';
 import { useEffect, useState, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 
 interface LiveFlyerItem {
   id: string;
@@ -12,6 +13,7 @@ interface LiveFlyerItem {
   clientModelId?: string;
   clientModel?: { id: string; clientName?: string | null } | null;
   finalOutput: string;
+  template?: string | null;
   fileName?: string | null;
   finalOutputThumbnail?: string | null;
   psdFile?: string | null;
@@ -24,14 +26,26 @@ interface LiveFlyerItem {
 interface Props {
   clientModelId?: string | null;
   clientModelName?: string | null;
+  controlledSelectedModel?: string | 'all';
+  onModelChange?: (model: string | 'all') => void;
 }
 
-export default function LiveFlyerGallery({ clientModelId, clientModelName }: Props) {
+export default function LiveFlyerGallery({
+  clientModelId,
+  clientModelName,
+  controlledSelectedModel,
+  onModelChange
+}: Props) {
+  const router = useRouter();
   const [page, setPage] = useState(1);
   const [perPage] = useState(24);
   const [search, setSearch] = useState("");
   const [selectedItem, setSelectedItem] = useState<LiveFlyerItem | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string | 'all'>(clientModelName ?? 'all');
+
+  // Use controlled state if provided, otherwise use internal state
+  const [internalSelectedModel, setInternalSelectedModel] = useState<string | 'all'>(clientModelName ?? 'all');
+  const selectedModel = controlledSelectedModel !== undefined ? controlledSelectedModel : internalSelectedModel;
+  const setSelectedModel = onModelChange || setInternalSelectedModel;
   const [previewSrc, setPreviewSrc] = useState<string | null>(null);
   const [previewTriedProxy, setPreviewTriedProxy] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
@@ -96,9 +110,16 @@ export default function LiveFlyerGallery({ clientModelId, clientModelName }: Pro
     params.append("page", String(page));
     params.append("perPage", String(perPage));
     if (search) params.append("search", search);
-    if (clientModelId) params.append("clientModelId", clientModelId);
-    else if (clientModelName) params.append("clientModelName", clientModelName);
-    else if (selectedModel && selectedModel !== 'all') params.append("clientModelName", selectedModel as string);
+
+    // Prioritize user's selection over props
+    if (selectedModel && selectedModel !== 'all') {
+      params.append("clientModelName", selectedModel as string);
+    } else if (clientModelId) {
+      params.append("clientModelId", clientModelId);
+    } else if (clientModelName && selectedModel === clientModelName) {
+      // Only use clientModelName prop if selectedModel hasn't been changed by user
+      params.append("clientModelName", clientModelName);
+    }
 
     const res = await fetch(`/api/liveflyer/items?${params.toString()}`);
     if (!res.ok) {
@@ -193,6 +214,20 @@ export default function LiveFlyerGallery({ clientModelId, clientModelName }: Pro
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [selectedItem]);
+
+  // Handle template selection and navigation
+  const handleSelectTemplate = (item: LiveFlyerItem) => {
+    if (!item.template) return;
+
+    const modelName = item.clientModel?.clientName || clientModelName || '';
+    const params = new URLSearchParams({
+      template: item.template,
+      model: modelName,
+      tab: 'create'
+    });
+
+    router.push(`/live?${params.toString()}`);
+  };
 
   return (
     <div className="space-y-6">
@@ -401,6 +436,18 @@ export default function LiveFlyerGallery({ clientModelId, clientModelName }: Pro
                     {displayNameMap.get(item.id) || (item.fileName && item.fileName.length ? item.fileName : resolveModelNameForItem(item))}
                   </h3>
 
+                  {/* Template Badge */}
+                  {item.template && (
+                    <div className="mb-2">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/20 dark:to-purple-900/20 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-800">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                        {item.template}
+                      </span>
+                    </div>
+                  )}
+
                   {/* Metadata */}
                   <div className="flex items-center justify-between text-xs text-gray-500 dark:text-gray-500">
                     <span>{formatDateShort(item.createdAt || item.date)}</span>
@@ -538,14 +585,39 @@ export default function LiveFlyerGallery({ clientModelId, clientModelName }: Pro
                   <h2 className="text-lg sm:text-xl font-bold truncate">
                     {displayNameMap.get(selectedItem.id) || selectedItem.fileName || resolveModelNameForItem(selectedItem)}
                   </h2>
-                  <p className="text-xs sm:text-sm text-gray-400 mt-1 truncate">
-                    {formatDateShort(selectedItem.createdAt || selectedItem.date)}
-                    {selectedItem.createdBy && <span className="ml-2">by {selectedItem.createdBy.name}</span>}
-                  </p>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    {selectedItem.template && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium bg-gradient-to-r from-pink-500/20 to-purple-500/20 text-pink-300 border border-pink-500/30">
+                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                        {selectedItem.template}
+                      </span>
+                    )}
+                    <p className="text-xs sm:text-sm text-gray-400 truncate">
+                      {formatDateShort(selectedItem.createdAt || selectedItem.date)}
+                      {selectedItem.createdBy && <span className="ml-2">by {selectedItem.createdBy.name}</span>}
+                    </p>
+                  </div>
                 </div>
               </div>
 
               <div className="flex items-center gap-2">
+                {selectedItem.template && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSelectTemplate(selectedItem);
+                    }}
+                    className="px-3 sm:px-4 py-2 rounded-lg border border-pink-500/50 bg-gradient-to-r from-pink-600/20 to-purple-600/20 hover:from-pink-600/30 hover:to-purple-600/30 text-pink-300 hover:text-pink-200 transition-all flex items-center gap-2 shadow-lg shadow-pink-500/20"
+                  >
+                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                    </svg>
+                    <span className="hidden sm:inline text-sm font-medium">Use Template</span>
+                  </button>
+                )}
+
                 {selectedItem.finalOutput && (
                   <a
                     href={selectedItem.finalOutput}

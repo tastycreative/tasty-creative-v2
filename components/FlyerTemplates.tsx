@@ -13,17 +13,21 @@ export default function FlyerTemplates({
   type,
   setSelectedTemplate,
   setSelectedTemplateImage,
+  preselectedTemplate,
 }: {
   flyer: string;
   type: string;
   setSelectedTemplate: (template: string) => void;
   setSelectedTemplateImage: (templateImage: string) => void;
+  preselectedTemplate?: string | null;
 }) {
   const [files, setFiles] = useState<DriveFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFiles, setShowFiles] = useState(false);
   const [isDownloading, startDownloadTransition] = useTransition();
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  const [isAutoSelecting, setIsAutoSelecting] = useState(false);
 
   async function fetchFiles() {
     setLoading(true);
@@ -66,6 +70,70 @@ export default function FlyerTemplates({
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [type]);
+
+  // Handle preselected template from URL
+  useEffect(() => {
+    console.log('🎨 FlyerTemplates - preselectedTemplate:', preselectedTemplate);
+    console.log('📁 Files loaded:', files.length);
+    console.log('✅ Has auto-selected:', hasAutoSelected);
+
+    // Fetch files if preselected template is provided and files haven't been loaded
+    if (preselectedTemplate && files.length === 0 && !loading) {
+      console.log('🔄 Fetching template files for auto-selection...');
+      fetchFiles();
+    }
+
+    if (preselectedTemplate && !hasAutoSelected && files.length > 0) {
+      console.log('🔍 Searching for template:', preselectedTemplate);
+      console.log('📋 All file names:', files.map((f: any) => f.name));
+
+      // Try exact match first
+      let matchingFile = files.find((file: any) => file.name === preselectedTemplate);
+
+      // If no exact match, try with .png extension
+      if (!matchingFile) {
+        matchingFile = files.find((file: any) => file.name === `${preselectedTemplate}.png`);
+      }
+
+      // If still no match, try case-insensitive match
+      if (!matchingFile) {
+        matchingFile = files.find((file: any) =>
+          file.name.toLowerCase() === preselectedTemplate.toLowerCase() ||
+          file.name.toLowerCase() === `${preselectedTemplate}.png`.toLowerCase()
+        );
+      }
+
+      console.log('🎯 Matching file:', matchingFile);
+
+      if (matchingFile) {
+        setHasAutoSelected(true);
+        setIsAutoSelecting(true);
+        console.log('⬇️ Downloading template:', matchingFile.name);
+
+        // Auto-download and select the template
+        startDownloadTransition(async () => {
+          try {
+            const response = await fetch(`/api/google-drive/download?id=${matchingFile.id}`);
+            if (!response.ok) throw new Error("Failed to fetch file");
+
+            const blob = await response.blob();
+            const imageUrl = URL.createObjectURL(blob);
+
+            setSelectedTemplateImage(imageUrl);
+            setSelectedTemplate(matchingFile.name);
+            setIsAutoSelecting(false);
+            console.log('✅ Template auto-selected successfully!');
+          } catch (error) {
+            console.error('❌ Failed to auto-select template:', error);
+            setIsAutoSelecting(false);
+          }
+        });
+      } else {
+        console.log('⚠️ No matching template found for:', preselectedTemplate);
+      }
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [preselectedTemplate, files, hasAutoSelected, loading]);
 
   const handleViewTemplates = () => {
     setShowFiles(true);
@@ -134,25 +202,75 @@ export default function FlyerTemplates({
       <button
         type="button"
         onClick={handleViewTemplates}
-        className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-2 rounded-lg font-medium w-full flex items-center justify-center gap-2 hover:from-pink-700 hover:to-rose-700 dark:hover:from-pink-700 dark:hover:to-rose-700 transition-all duration-200"
+        disabled={isAutoSelecting}
+        className="bg-gradient-to-r from-pink-600 to-rose-600 text-white px-6 py-2 rounded-lg font-medium w-full flex items-center justify-center gap-2 hover:from-pink-700 hover:to-rose-700 dark:hover:from-pink-700 dark:hover:to-rose-700 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
-          <line x1="16" y1="5" x2="22" y2="5"></line>
-          <line x1="16" y1="5" x2="12" y2="9"></line>
-        </svg>
-        Select Templates (optional)
+        {isAutoSelecting ? (
+          <>
+            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Loading Template...
+          </>
+        ) : (
+          <>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
+              <line x1="16" y1="5" x2="22" y2="5"></line>
+              <line x1="16" y1="5" x2="12" y2="9"></line>
+            </svg>
+            Select Templates (optional)
+          </>
+        )}
       </button>
+
+      {/* Auto-selecting Template Loading Modal */}
+      {isAutoSelecting && typeof window !== "undefined" && createPortal(
+        <div className="fixed inset-0 w-full min-h-screen flex flex-col items-center justify-center bg-black/70 dark:bg-black/80 overflow-hidden z-[99998]" style={{ zIndex: 99998 }}>
+          <div className="bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl border border-pink-200 dark:border-pink-500/20 p-8 shadow-2xl">
+            <div className="flex flex-col items-center">
+              <svg
+                className="animate-spin h-12 w-12 text-pink-500 mb-4"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">Loading Template</h3>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{preselectedTemplate}</p>
+              <div className="mt-4 flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
+                Downloading from Google Drive...
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
 
       {/* Loading Modal - Rendered via Portal */}
       {isDownloading && typeof window !== "undefined" && createPortal(
