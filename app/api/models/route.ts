@@ -20,7 +20,10 @@ export async function GET(req: Request): Promise<NextResponse> {
       );
     }
 
-    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+    const clientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+
+    if (!clientId || !clientSecret) {
       console.error("Missing Google OAuth credentials");
       return NextResponse.json(
         { error: "Server configuration error: Missing OAuth credentials" },
@@ -38,8 +41,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
+      clientId,
+      clientSecret,
       process.env.GOOGLE_REDIRECT_URI
     );
 
