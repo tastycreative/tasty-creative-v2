@@ -11,11 +11,29 @@ const TARGET_SHEET_TITLE = "Client Info";
 
 export async function GET(req: Request): Promise<NextResponse> {
   try {
+    // Check for required environment variables
+    if (!SPREADSHEET_ID) {
+      console.error("Missing GOOGLE_DRIVE_SHEET_MODEL_NAMES environment variable");
+      return NextResponse.json(
+        { error: "Server configuration error: Missing spreadsheet ID" },
+        { status: 500 }
+      );
+    }
+
+    if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+      console.error("Missing Google OAuth credentials");
+      return NextResponse.json(
+        { error: "Server configuration error: Missing OAuth credentials" },
+        { status: 500 }
+      );
+    }
+
     const url = new URL(req.url);
     const showAll = url.searchParams.get("all") === "true";
 
     const session = await auth();
     if (!session || !session.user || !session.accessToken) {
+      console.error("Authentication failed: No session or access token");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -36,10 +54,14 @@ export async function GET(req: Request): Promise<NextResponse> {
       auth: oauth2Client,
     });
 
+    console.log(`Fetching sheet data from: ${SPREADSHEET_ID}, range: ${TARGET_SHEET_TITLE}!A:Z`);
+
     const sheetData = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${TARGET_SHEET_TITLE}!A:Z`,
     });
+
+    console.log(`Successfully fetched ${sheetData.data.values?.length || 0} rows from sheet`);
 
     const values = sheetData.data.values ?? [];
     if (values.length === 0) {
@@ -81,19 +103,51 @@ export async function GET(req: Request): Promise<NextResponse> {
 
   } catch (error: any) {
     console.error("Error fetching models:", error);
+    console.error("Error details:", {
+      code: error.code,
+      message: error.message,
+      errors: error.errors,
+      stack: error.stack,
+    });
 
-    if (error.code === 403 && error.errors?.length) {
+    // Handle specific Google API errors
+    if (error.code === 403) {
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
-          message: `Google API Error: ${error.errors[0].message || "Permission denied"}`,
+          message: `Google API Error: ${error.errors?.[0]?.message || error.message || "Permission denied"}`,
         },
         { status: 403 }
       );
     }
 
+    if (error.code === 401 || error.message?.includes("invalid_grant")) {
+      return NextResponse.json(
+        {
+          error: "TokenExpired",
+          message: "OAuth token expired or invalid. Please sign in again.",
+        },
+        { status: 401 }
+      );
+    }
+
+    if (error.code === 404) {
+      return NextResponse.json(
+        {
+          error: "SpreadsheetNotFound",
+          message: "The requested spreadsheet could not be found.",
+        },
+        { status: 404 }
+      );
+    }
+
+    // Generic error response with more details in development
     return NextResponse.json(
-      { message: "An unexpected error occurred while fetching models." },
+      {
+        error: "ServerError",
+        message: "An unexpected error occurred while fetching models.",
+        ...(process.env.NODE_ENV === 'development' && { details: error.message })
+      },
       { status: 500 }
     );
   }
