@@ -42,7 +42,7 @@ export default function FileUpload({
   uploadOnSubmit = false,
   localFiles = [],
   onLocalFilesChange,
-  useDirectS3Upload = true // Default to true for direct S3 upload
+  useDirectS3Upload = false // Default to false - use server upload to avoid CORS issues
 }: FileUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -529,10 +529,19 @@ export const uploadAllLocalFilesDirect = async (
 
       if (signedUrlResponse.ok) {
         const { signedUrl } = await signedUrlResponse.json();
+
+        // Validate that we got a proper signed URL (should not be a PUT URL)
+        if (!signedUrl || signedUrl.includes('x-id=PutObject')) {
+          console.error(`Invalid signed URL received (appears to be a PUT URL): ${signedUrl}`);
+          throw new Error('Received invalid view URL from server');
+        }
+
         attachment.url = signedUrl;
+        console.log(`✅ Successfully uploaded to S3 with signed GET URL: ${localFile.name}`);
       } else {
-        console.warn(`Failed to get signed URL for ${attachment.s3Key}, using S3 key as fallback`);
-        attachment.url = `s3://${process.env.AWS_S3_BUCKET}/${attachment.s3Key}`;
+        const errorData = await signedUrlResponse.json().catch(() => ({}));
+        console.error(`Failed to get signed URL for ${attachment.s3Key}:`, errorData);
+        throw new Error(`Failed to generate view URL for uploaded file: ${errorData.error || 'Unknown error'}`);
       }
 
       newAttachments.push(attachment);
@@ -573,19 +582,21 @@ export const uploadAllLocalFiles = async (
   useDirectS3Upload?: boolean
 ): Promise<TaskAttachment[]> => {
   if (localFiles.length === 0) return [];
-  
-  // Use direct S3 upload if enabled (default: true)
-  if (useDirectS3Upload !== false) {
+
+  // Use server upload by default to avoid CORS issues
+  // Only use direct S3 upload if explicitly enabled AND S3 CORS is configured
+  if (useDirectS3Upload === true) {
+    console.log('🚀 Using direct S3 upload (requires CORS configuration)');
     return await uploadAllLocalFilesDirect(
-      localFiles, 
-      attachments, 
-      onAttachmentsChange, 
+      localFiles,
+      attachments,
+      onAttachmentsChange,
       onLocalFilesChange
     );
   }
-  
-  // Fallback to Vercel function upload
-  console.log('📤 Using Vercel function upload (fallback)');
+
+  // Default: Use server upload (no CORS issues)
+  console.log('📤 Using server upload via /api/upload/s3');
   
   // Remove duplicates based on file name, size, and last modified date
   const uniqueFiles: LocalFilePreview[] = [];

@@ -45,9 +45,15 @@ export async function POST(request: NextRequest) {
       Key: s3Key,
     });
     
-    const signedUrl = await getSignedUrl(s3Client, getObjectCommand, { 
-      expiresIn: validExpiresIn 
+    const signedUrl = await getSignedUrl(s3Client, getObjectCommand, {
+      expiresIn: validExpiresIn
     });
+
+    // Validate that we generated a GET URL, not a PUT URL
+    if (signedUrl.includes('x-id=PutObject')) {
+      console.error('Generated URL is a PUT URL, not a GET URL:', signedUrl);
+      throw new Error('Invalid URL type generated');
+    }
 
     return NextResponse.json({
       success: true,

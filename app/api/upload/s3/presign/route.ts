@@ -123,12 +123,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Generate pre-signed URL (valid for 15 minutes)
-    const presignedUrl = await getSignedUrl(s3Client, putObjectCommand, { 
+    // Generate pre-signed PUT URL for upload (valid for 15 minutes)
+    const presignedUrl = await getSignedUrl(s3Client, putObjectCommand, {
       expiresIn: 15 * 60 // 15 minutes
     });
 
-    // Return pre-signed URL and file metadata
+    // IMPORTANT: Return attachment without URL - the client must call /api/upload/s3/signed-url
+    // after upload completes to get the GET URL for viewing
     const attachmentData = {
       id: uuidv4(),
       name: fileName,
@@ -136,11 +137,12 @@ export async function POST(request: NextRequest) {
       size: fileSize,
       type: fileType,
       uploadedAt: new Date().toISOString(),
+      // DO NOT include url here - it will be added after upload via signed-url endpoint
     };
 
     return NextResponse.json({
       success: true,
-      presignedUrl,
+      presignedUrl, // This is for PUT only, never use for viewing
       attachment: attachmentData,
     });
 
