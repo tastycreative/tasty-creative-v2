@@ -2,13 +2,35 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/auth'
 import { GalleryItem } from '@/types/gallery'
+import {
+  GalleryMetadataKeys,
+  parseGalleryMetadata,
+  stripGalleryMetadata,
+} from '@/lib/galleryMetadata'
+
+const normalizeMetadataDate = (value?: string) => {
+  if (!value) return undefined
+  const date = new Date(value)
+  if (isNaN(date.getTime())) return undefined
+  return date.toISOString()
+}
 
 /**
  * Extract revenue from notes field like "Earned 79.96", "Earned 12.50", etc.
- * Also supports legacy format "X Purchased"
+ * Also supports metadata format and legacy format "X Purchased"
  */
 function extractRevenueFromNotes(notes: string): number {
   if (!notes) return 0
+
+  // Metadata tag: [Revenue] 123.45
+  const metadataMatch = notes.match(/\[Revenue\]\s*([^\n]+)/i)
+  if (metadataMatch) {
+    const cleaned = metadataMatch[1].replace(/[^0-9.-]/g, '')
+    const parsed = parseFloat(cleaned)
+    if (!isNaN(parsed)) {
+      return parsed
+    }
+  }
 
   // Primary pattern: "Earned X.XX" or "Earned X"
   const earnedMatch = notes.match(/earned\s+([\d.]+)/i)
@@ -202,9 +224,12 @@ export async function GET(request: NextRequest) {
     const items: GalleryItem[] = data.map((row, index) => {
       const itemId = row.id.toString()
       const price = parseNumber(row.price)
+      const rawNotes = row.notes || ''
+      const metadata = parseGalleryMetadata(rawNotes)
+      const cleanNotes = stripGalleryMetadata(rawNotes)
 
       // Extract revenue from notes (e.g., "Earned 79.96")
-      const revenueFromNotes = extractRevenueFromNotes(row.notes || '')
+      const revenueFromNotes = extractRevenueFromNotes(rawNotes)
 
       // Calculate total revenue: prioritize notes data, fallback to price × purchases
       const totalRevenue = revenueFromNotes > 0 ? revenueFromNotes : 0
@@ -232,7 +257,20 @@ export async function GET(request: NextRequest) {
         mediaUrl: row.content_preview || '',
         thumbnailUrl: row.content_preview || '',
         contentType: 'LIBRARY',
-        notes: row.notes || '',
+        notes: cleanNotes,
+        revenueUpdatedAt: normalizeMetadataDate(metadata[GalleryMetadataKeys.revenueUpdatedAt]),
+        rotationStatus: (metadata[GalleryMetadataKeys.rotationStatus] as 'Active' | 'Resting' | 'Ready' | undefined) || undefined,
+        daysSinceLastSent: (() => {
+          const value = metadata[GalleryMetadataKeys.rotationDaysSince]
+          if (value === undefined) return undefined
+          const parsed = parseInt(value, 10)
+          return isNaN(parsed) ? undefined : parsed
+        })(),
+        isReadyForRotation: metadata[GalleryMetadataKeys.rotationReady] !== undefined
+          ? metadata[GalleryMetadataKeys.rotationReady] === 'true'
+          : undefined,
+        dateMarkedSent: normalizeMetadataDate(metadata[GalleryMetadataKeys.rotationDateSent]),
+        rotationUpdatedAt: normalizeMetadataDate(metadata[GalleryMetadataKeys.rotationUpdatedAt]),
         isFavorite: favoritesSet.has(itemId),
         isRelease: releasesSet.has(itemId),
         isPTR: releasesSet.has(itemId),

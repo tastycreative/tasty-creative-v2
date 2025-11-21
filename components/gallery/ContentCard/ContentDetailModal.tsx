@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 
 interface ContentDetailModalProps {
   content: GalleryItem;
@@ -60,6 +61,37 @@ export default function ContentDetailModal({
   const roi = content.price > 0 ? (content.totalRevenue / content.price).toFixed(2) : "N/A";
   const isHighROI = content.price > 0 && content.totalRevenue / content.price > 10;
 
+  const formatRevenueTimestamp = (timestamp?: string) => {
+    if (!timestamp) return "Not updated yet";
+    try {
+      return new Date(timestamp).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit",
+      });
+    } catch {
+      return "Not updated yet";
+    }
+  };
+
+  const toLocalDateInputValue = (timestamp?: string) => {
+    if (!timestamp) return "";
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return "";
+    const offset = date.getTimezoneOffset();
+    const localDate = new Date(date.getTime() - offset * 60000);
+    return localDate.toISOString().slice(0, 16);
+  };
+
+  const fromLocalDateInputValue = (value: string) => {
+    if (!value) return undefined;
+    const date = new Date(value);
+    if (isNaN(date.getTime())) return undefined;
+    return date.toISOString();
+  };
+
   // Format date
   const formatDate = (dateStr?: string) => {
     if (!dateStr) return "Not available";
@@ -91,6 +123,11 @@ export default function ContentDetailModal({
         category: content.category,
         outcome: content.outcome,
         contentStyle: content.contentStyle,
+        totalRevenue: content.totalRevenue,
+        daysSinceLastSent: content.daysSinceLastSent ?? undefined,
+        rotationStatus: content.rotationStatus,
+        isReadyForRotation: content.isReadyForRotation,
+        dateMarkedSent: content.dateMarkedSent,
       });
       setIsEditing(true);
     }
@@ -109,10 +146,40 @@ export default function ContentDetailModal({
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to save changes");
+      const result = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(result?.error || "Failed to save changes");
+      }
 
       // Optimistic update - apply changes locally
       Object.assign(content, editedData);
+
+      if (result?.item) {
+        if (typeof result.item.notes === "string") {
+          content.notes = result.item.notes;
+        }
+        if (result.item.revenueUpdatedAt !== undefined) {
+          content.revenueUpdatedAt = result.item.revenueUpdatedAt || undefined;
+        }
+        if (result.item.rotationStatus !== undefined) {
+          content.rotationStatus = result.item.rotationStatus || undefined;
+        }
+        if (result.item.daysSinceLastSent !== undefined) {
+          content.daysSinceLastSent =
+            result.item.daysSinceLastSent !== null ? result.item.daysSinceLastSent : undefined;
+        }
+        if (result.item.isReadyForRotation !== undefined) {
+          content.isReadyForRotation =
+            result.item.isReadyForRotation !== null ? result.item.isReadyForRotation : undefined;
+        }
+        if (result.item.dateMarkedSent !== undefined) {
+          content.dateMarkedSent = result.item.dateMarkedSent || undefined;
+        }
+        if (result.item.rotationUpdatedAt !== undefined) {
+          content.rotationUpdatedAt = result.item.rotationUpdatedAt || undefined;
+        }
+      }
 
       setIsEditing(false);
       setEditedData({});
@@ -135,6 +202,21 @@ export default function ContentDetailModal({
   const toggleSection = (section: keyof typeof expandedSections) => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
+
+  const currentRevenue = Number(getCurrentValue("totalRevenue") || 0);
+  const revenueUpdatedLabel = content.revenueUpdatedAt
+    ? `Last updated ${formatRevenueTimestamp(content.revenueUpdatedAt)}`
+    : "No updates yet";
+  const rotationUpdatedLabel = content.rotationUpdatedAt
+    ? `Last updated ${formatRevenueTimestamp(content.rotationUpdatedAt)}`
+    : "No updates yet";
+  const hasRotationData =
+    isEditing ||
+    Boolean(content.rotationStatus) ||
+    (content.daysSinceLastSent !== undefined && content.daysSinceLastSent !== null) ||
+    content.isReadyForRotation !== undefined ||
+    Boolean(content.dateMarkedSent) ||
+    Boolean(content.performanceHistory && content.performanceHistory.length > 0);
 
   // Collapsible section component
   const CollapsibleSection = ({
@@ -555,11 +637,36 @@ export default function ContentDetailModal({
                       <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                       <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wide">Revenue</span>
                     </div>
-                    <p className={cn(
-                      "text-3xl font-black",
-                      content.totalRevenue > 0 ? "text-emerald-900 dark:text-emerald-200" : "text-gray-500 dark:text-gray-400"
-                    )}>
-                      {content.totalRevenue > 0 ? `$${content.totalRevenue.toFixed(2)}` : "No data"}
+                    {isEditing ? (
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={currentRevenue}
+                        onChange={(e) =>
+                          setEditedData({
+                            ...editedData,
+                            totalRevenue: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        className="text-2xl font-black bg-white dark:bg-gray-800 border-emerald-300 dark:border-emerald-600"
+                      />
+                    ) : (
+                      <p
+                        className={cn(
+                          "text-3xl font-black",
+                          currentRevenue > 0
+                            ? "text-emerald-900 dark:text-emerald-200"
+                            : "text-gray-500 dark:text-gray-400"
+                        )}
+                      >
+                        {currentRevenue > 0
+                          ? `$${currentRevenue.toFixed(2)}`
+                          : "No data"}
+                      </p>
+                    )}
+                    <p className="mt-2 text-xs text-emerald-700 dark:text-emerald-300">
+                      Auto-saved to Gallery DB • {revenueUpdatedLabel}
                     </p>
                   </div>
 
@@ -614,7 +721,7 @@ export default function ContentDetailModal({
               )}
 
               {/* PTR Rotation Details */}
-              {(content.rotationStatus || content.daysSinceLastSent !== null || content.performanceHistory) && (
+              {hasRotationData && (
                 <CollapsibleSection
                   id="rotation"
                   title="PTR Rotation Details"
@@ -624,60 +731,156 @@ export default function ContentDetailModal({
                   borderColor="border-amber-200 dark:border-amber-700"
                   defaultOpen={false}
                 >
-                  <div className="space-y-3 text-sm">
-                    {content.rotationStatus && (
-                      <div className="flex justify-between items-center">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Status:</span>
-                        <Badge variant={
-                          content.rotationStatus === "Active" ? "default" :
-                          content.rotationStatus === "Ready" ? "secondary" :
-                          "outline"
-                        } className={cn(
-                          content.rotationStatus === "Active" && "bg-green-600 text-white",
-                          content.rotationStatus === "Ready" && "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-                        )}>
-                          {content.rotationStatus}
-                        </Badge>
+                  <div className="space-y-4 text-sm">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="flex flex-col gap-1">
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">Rotation Status</span>
+                        {isEditing ? (
+                          <Select
+                            value={(getCurrentValue("rotationStatus") as string) || ""}
+                            onValueChange={(value) =>
+                              setEditedData({ ...editedData, rotationStatus: value as "Active" | "Resting" | "Ready" })
+                            }
+                          >
+                            <SelectTrigger className="bg-white dark:bg-gray-800 border-amber-300 dark:border-amber-600">
+                              <SelectValue placeholder="Select status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Active">Active</SelectItem>
+                              <SelectItem value="Resting">Resting</SelectItem>
+                              <SelectItem value="Ready">Ready</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        ) : content.rotationStatus ? (
+                          <Badge
+                            variant={
+                              content.rotationStatus === "Active"
+                                ? "default"
+                                : content.rotationStatus === "Ready"
+                                ? "secondary"
+                                : "outline"
+                            }
+                            className={cn(
+                              content.rotationStatus === "Active" && "bg-green-600 text-white",
+                              content.rotationStatus === "Ready" &&
+                                "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                            )}
+                          >
+                            {content.rotationStatus}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-500 dark:text-gray-400">Not set</span>
+                        )}
                       </div>
-                    )}
-                    {content.daysSinceLastSent !== null && (
-                      <div className="flex justify-between">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Days Since Last Sent:</span>
-                        <span className="text-amber-900 dark:text-amber-200 font-semibold">{content.daysSinceLastSent}</span>
+
+                      <div className="flex flex-col gap-1">
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">Days Since Last Sent</span>
+                        {isEditing ? (
+                          <Input
+                            type="number"
+                            min="0"
+                            value={
+                              getCurrentValue("daysSinceLastSent") !== undefined &&
+                              getCurrentValue("daysSinceLastSent") !== null
+                                ? (getCurrentValue("daysSinceLastSent") as number)
+                                : ""
+                            }
+                            onChange={(e) => {
+                              const value = e.target.value
+                              const parsed = value === "" ? undefined : parseInt(value, 10)
+                              setEditedData({
+                                ...editedData,
+                                daysSinceLastSent: parsed === undefined || isNaN(parsed) ? undefined : parsed,
+                              })
+                            }}
+                            className="bg-white dark:bg-gray-800 border-amber-300 dark:border-amber-600"
+                          />
+                        ) : (
+                          <span className="text-amber-900 dark:text-amber-200 font-semibold">
+                            {content.daysSinceLastSent ?? "N/A"}
+                          </span>
+                        )}
                       </div>
-                    )}
-                    {content.isReadyForRotation !== undefined && (
-                      <div className="flex justify-between">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Ready for Rotation:</span>
-                        <span className="text-amber-900 dark:text-amber-200 font-semibold">{content.isReadyForRotation ? "Yes ✓" : "No"}</span>
+
+                      <div className="flex flex-col gap-1">
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">Ready for Rotation</span>
+                        {isEditing ? (
+                          <div className="flex items-center gap-2">
+                            <Checkbox
+                              checked={Boolean(getCurrentValue("isReadyForRotation"))}
+                              onCheckedChange={(checked) =>
+                                setEditedData({
+                                  ...editedData,
+                                  isReadyForRotation: checked === true,
+                                })
+                              }
+                            />
+                            <span className="text-sm text-gray-700 dark:text-gray-200">Mark as ready</span>
+                          </div>
+                        ) : (
+                          <span className="text-amber-900 dark:text-amber-200 font-semibold">
+                            {content.isReadyForRotation ? "Yes ✓" : "No"}
+                          </span>
+                        )}
                       </div>
-                    )}
-                    {content.dateMarkedSent && (
-                      <div className="flex justify-between">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Date Marked Sent:</span>
-                        <span className="text-amber-900 dark:text-amber-200 font-semibold">{formatDate(content.dateMarkedSent)}</span>
+
+                      <div className="flex flex-col gap-1">
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">Date Marked Sent</span>
+                        {isEditing ? (
+                          <Input
+                            type="datetime-local"
+                            value={toLocalDateInputValue(getCurrentValue("dateMarkedSent") as string | undefined)}
+                            onChange={(e) =>
+                              setEditedData({
+                                ...editedData,
+                                dateMarkedSent: fromLocalDateInputValue(e.target.value),
+                              })
+                            }
+                            className="bg-white dark:bg-gray-800 border-amber-300 dark:border-amber-600"
+                          />
+                        ) : (
+                          <span className="text-amber-900 dark:text-amber-200 font-semibold">
+                            {content.dateMarkedSent ? formatDate(content.dateMarkedSent) : "N/A"}
+                          </span>
+                        )}
                       </div>
-                    )}
+                    </div>
+
+                    <p className="text-xs text-amber-700 dark:text-amber-300">
+                      Auto-saved to Gallery DB • {rotationUpdatedLabel}
+                    </p>
+
                     {content.markedBy && (
                       <div className="flex justify-between">
                         <span className="text-amber-600 dark:text-amber-400 font-medium">Marked By:</span>
                         <span className="text-amber-900 dark:text-amber-200 font-semibold">{content.markedBy}</span>
                       </div>
                     )}
+
                     {content.performanceHistory && content.performanceHistory.length > 0 && (
                       <>
                         <Separator className="my-3" />
                         <div>
-                          <span className="text-amber-600 dark:text-amber-400 font-medium block mb-3">Performance History:</span>
+                          <span className="text-amber-600 dark:text-amber-400 font-medium block mb-3">
+                            Performance History:
+                          </span>
                           <div className="space-y-2">
                             {content.performanceHistory.map((entry, idx) => (
-                              <div key={idx} className="flex justify-between items-center text-xs bg-white/60 dark:bg-gray-800/60 rounded-lg px-3 py-2 border border-amber-200/50 dark:border-amber-700/50">
+                              <div
+                                key={idx}
+                                className="flex justify-between items-center text-xs bg-white/60 dark:bg-gray-800/60 rounded-lg px-3 py-2 border border-amber-200/50 dark:border-amber-700/50"
+                              >
                                 <span className="text-gray-600 dark:text-gray-400">{formatDate(entry.sentDate)}</span>
-                                <Badge variant={
-                                  entry.result === "good" ? "default" :
-                                  entry.result === "bad" ? "destructive" :
-                                  "outline"
-                                } className="text-xs">
+                                <Badge
+                                  variant={
+                                    entry.result === "good"
+                                      ? "default"
+                                      : entry.result === "bad"
+                                      ? "destructive"
+                                      : "outline"
+                                  }
+                                  className="text-xs"
+                                >
                                   {entry.result || "pending"}
                                 </Badge>
                               </div>

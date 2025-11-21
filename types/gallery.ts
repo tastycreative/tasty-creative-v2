@@ -22,6 +22,7 @@ export interface GalleryItem {
   isRelease?: boolean;
   isPTR?: boolean;
   creatorName?: string;
+  revenueUpdatedAt?: string;
   tableName?: string; // Table name from Supabase (e.g., 'gs_dakota_free')
   // New fields from actual sheet structure
   scheduleTab?: string;
@@ -42,6 +43,7 @@ export interface GalleryItem {
   ptrSent?: boolean;
   dateMarkedSent?: string;
   markedBy?: string;
+  rotationUpdatedAt?: string;
   
   // Alias fields for compatibility
   caption?: string; // alias for captionText
