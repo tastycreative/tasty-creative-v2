@@ -20,7 +20,7 @@ interface LiveFlyerItem {
 
 import { TIMEZONES } from "@/lib/lib";
 import { toast } from "sonner";
-import SharedModelsDropdown from "./SharedModelsDropdown";
+import ModelsDropdownList from "@/components/ModelsDropdownList";
 import {
   Select,
   SelectContent,
@@ -772,15 +772,40 @@ export default function LiveFlyer({ modelName }: { modelName?: string }) {
               className="relative grid grid-cols-2 gap-4"
             >
               <div className="col-span-2">
-                <SharedModelsDropdown
-                  formData={formData}
-                  setFormData={setFormData}
-                  isLoading={isLoading}
-                  isFetchingImage={isFetchingImage}
-                  webhookData={webhookData}
-                  error={fieldErrors.model}
-                  setFieldErrors={setFieldErrors}
-                />
+                <div className="flex flex-col">
+                  <label
+                    htmlFor="model"
+                    className="text-sm text-gray-700 dark:text-gray-200 font-medium mb-1"
+                  >
+                    Model
+                  </label>
+                  <ModelsDropdownList
+                    value={formData.model}
+                    onValueChange={(value) => {
+                      setFormData((prev) => ({ ...prev, model: value }));
+
+                      // Validate the field
+                      const fieldSchema = (liveFlyerValidation.shape as any)["model"];
+                      if (fieldSchema) {
+                        const result = fieldSchema.safeParse(value);
+                        setFieldErrors((prev) => ({
+                          ...prev,
+                          model: result.success ? "" : result.error.errors[0].message,
+                        }));
+                      }
+                    }}
+                    placeholder="Choose your model..."
+                    className={cn(
+                      "bg-white/70 dark:bg-gray-700 cursor-pointer border-pink-200 dark:border-pink-500/30 p-3 text-gray-700 dark:text-gray-100 rounded-2xl w-full focus:border-pink-400 dark:focus:border-pink-400 transition-all duration-200",
+                      {
+                        "border border-red-500 !text-red-500": fieldErrors.model,
+                      }
+                    )}
+                  />
+                  {fieldErrors.model && (
+                    <p className="text-red-500 text-xs mt-1">{fieldErrors.model}</p>
+                  )}
+                </div>
               </div>
               <div className="col-span-2">
                 <ImageCropper
