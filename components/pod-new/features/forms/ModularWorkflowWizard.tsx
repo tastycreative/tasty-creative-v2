@@ -28,6 +28,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Tooltip,
   TooltipContent,
@@ -418,18 +419,26 @@ export default function ModularWorkflowWizard() {
   // Content style compatibility check (all styles now work with both OTP and PTR)
   // Removed auto-reset logic - PPV/Bundle now available for both submission types
 
-  // Load models
+  // Load models from client-models API
   useEffect(() => {
     const fetchModels = async () => {
       setLoadingModels(true);
       try {
-        const response = await fetch("/api/models");
+        const response = await fetch("/api/client-models");
         const data = await response.json();
-        if (Array.isArray(data.models)) {
-          const uniqueModels = data.models.filter(
-            (model: any, index: number, arr: any[]) =>
-              arr.findIndex((m: any) => m.name === model.name) === index
-          );
+        if (data.success && Array.isArray(data.clientModels)) {
+          // Map client models to the format expected by the form
+          const uniqueModels = data.clientModels
+            .filter((model: any) => model.status?.toLowerCase() !== 'dropped') // Filter out dropped models
+            .map((model: any) => ({
+              name: model.clientName || model.name, // Use clientName which is the actual field from API
+              profile: model.url || '',
+              status: model.status || 'active'
+            }))
+            .filter(
+              (model: any, index: number, arr: any[]) =>
+                arr.findIndex((m: any) => m.name === model.name) === index
+            );
           setModels(uniqueModels);
         }
       } catch (error) {
@@ -1069,25 +1078,19 @@ export default function ModularWorkflowWizard() {
                       </Tooltip>
                     </TooltipProvider>
                   </Label>
-                  <Select
+                  <SearchableSelect
+                    value={watch("model")}
                     onValueChange={(value) => setValue("model", value)}
+                    options={models.map((model) => ({
+                      value: model.name,
+                      label: model.name,
+                    }))}
+                    placeholder={loadingModels ? "Loading models..." : "Select a model"}
+                    searchPlaceholder="Search models..."
+                    emptyMessage="No models found."
                     disabled={loadingModels}
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue
-                        placeholder={
-                          loadingModels ? "Loading..." : "Select model"
-                        }
-                      />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {models.map((model, idx) => (
-                        <SelectItem key={idx} value={model.name}>
-                          {model.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                    className="mt-2"
+                  />
                 </div>
 
                 <div>
