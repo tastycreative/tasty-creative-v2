@@ -6,6 +6,9 @@ import { prisma } from "@/lib/prisma";
 import { utcNow } from "@/lib/dateUtils";
 import bcrypt from "bcryptjs";
 
+// Token refresh mutex to prevent concurrent refresh attempts
+const refreshPromises = new Map<string, Promise<any>>();
+
 // TODO: Define a more specific type for the token object
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshAccessToken(token: any) {
@@ -248,30 +251,54 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         if (now > expiryTime - buffer) {
           console.log("🕐 Access token expired or expiring soon, attempting refresh...");
-          const refreshedToken = await refreshAccessToken(token);
 
-          if (refreshedToken.error) {
-            console.error("❌ Failed to refresh access token:", refreshedToken.error);
-
-            // If refresh token is expired, user needs to re-authenticate
-            if (refreshedToken.error === "RefreshTokenExpired" || refreshedToken.error === "NoRefreshToken") {
-              console.error("🔐 User needs to sign in again to get new tokens");
-              // Clear sensitive data but keep user info
-              return {
-                ...token,
-                accessToken: undefined,
-                refreshToken: undefined,
-                expiresAt: undefined,
-                error: refreshedToken.error,
-              };
+          // Use mutex to prevent concurrent refresh attempts
+          const userId = token.id as string;
+          if (refreshPromises.has(userId)) {
+            console.log("⏳ Token refresh already in progress, waiting...");
+            try {
+              const refreshedToken = await refreshPromises.get(userId);
+              console.log("✅ Using refreshed token from concurrent request");
+              return refreshedToken;
+            } catch (error) {
+              console.error("❌ Concurrent refresh failed, attempting new refresh");
+              // If concurrent refresh failed, fall through to try again
             }
-
-            // For other errors, keep the token with error flag
-            token.error = refreshedToken.error;
-            return token;
           }
-          console.log("✅ Access token refreshed successfully");
-          return refreshedToken;
+
+          // Create new refresh promise and store it
+          const refreshPromise = refreshAccessToken(token);
+          refreshPromises.set(userId, refreshPromise);
+
+          try {
+            const refreshedToken = await refreshPromise;
+
+            if (refreshedToken.error) {
+              console.error("❌ Failed to refresh access token:", refreshedToken.error);
+
+              // If refresh token is expired, user needs to re-authenticate
+              if (refreshedToken.error === "RefreshTokenExpired" || refreshedToken.error === "NoRefreshToken") {
+                console.error("🔐 User needs to sign in again to get new tokens");
+                // Clear sensitive data but keep user info
+                return {
+                  ...token,
+                  accessToken: undefined,
+                  refreshToken: undefined,
+                  expiresAt: undefined,
+                  error: refreshedToken.error,
+                };
+              }
+
+              // For other errors, keep the token with error flag
+              token.error = refreshedToken.error;
+              return token;
+            }
+            console.log("✅ Access token refreshed successfully");
+            return refreshedToken;
+          } finally {
+            // Clean up the promise after a short delay to allow concurrent requests to complete
+            setTimeout(() => refreshPromises.delete(userId), 1000);
+          }
         }
       }
       return token;
