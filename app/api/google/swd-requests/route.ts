@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
@@ -7,7 +6,7 @@ export async function GET() {
   try {
     // Get session using Auth.js
     const session = await auth();
-    
+
     if (!session || !session.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -23,7 +22,7 @@ export async function GET() {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -42,7 +41,7 @@ export async function GET() {
     });
 
     const rows = response.data.values;
-    
+
     if (!rows || rows.length === 0) {
       return NextResponse.json({ requests: [] });
     }
@@ -53,29 +52,29 @@ export async function GET() {
 
     const requests = dataRows.map((row) => {
       const request: any = {};
-      
+
       // Map each column to the corresponding field
       headers.forEach((header: string, index: number) => {
         const value = index < row.length ? row[index] || "" : "";
-        
+
         // Map headers to expected field names
         switch (header.toLowerCase()) {
-          case 'timestamp':
+          case "timestamp":
             request.timestamp = value;
             break;
-          case 'user':
+          case "user":
             request.user = value;
             break;
-          case 'requestedby':
+          case "requestedby":
             request.requestedBy = value;
             break;
-          case 'model':
+          case "model":
             request.model = value;
             break;
-          case 'sextingset':
+          case "sextingset":
             request.sextingSet = value;
             break;
-          case 'specialrequest':
+          case "specialrequest":
             request.specialRequest = value;
             break;
           default:
@@ -83,7 +82,7 @@ export async function GET() {
             request[header] = value;
         }
       });
-      
+
       return request;
     });
 
@@ -95,7 +94,6 @@ export async function GET() {
     });
 
     return NextResponse.json({ requests });
-
   } catch (error: any) {
     console.error("Error fetching requests data:", error);
 

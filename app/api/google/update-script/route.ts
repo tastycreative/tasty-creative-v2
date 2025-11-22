@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -56,9 +56,12 @@ export async function POST(request: NextRequest) {
     // Calculate the end index (excluding the final newline character)
     const endIndex = currentDoc.data.body.content.reduce((total, element) => {
       if (element.paragraph && element.paragraph.elements) {
-        return total + element.paragraph.elements.reduce((elemTotal, elem) => {
-          return elemTotal + (elem.textRun?.content?.length || 0);
-        }, 0);
+        return (
+          total +
+          element.paragraph.elements.reduce((elemTotal, elem) => {
+            return elemTotal + (elem.textRun?.content?.length || 0);
+          }, 0)
+        );
       }
       return total;
     }, 0);
@@ -69,10 +72,10 @@ export async function POST(request: NextRequest) {
         deleteContentRange: {
           range: {
             startIndex: 1,
-            endIndex: Math.max(1, endIndex - 1)
-          }
-        }
-      }
+            endIndex: Math.max(1, endIndex - 1),
+          },
+        },
+      },
     ];
 
     if (htmlContent && preserveFormatting) {
@@ -99,23 +102,28 @@ export async function POST(request: NextRequest) {
             textStyle: {
               fontSize: {
                 magnitude: fontSize,
-                unit: 'PT'
-              }
+                unit: "PT",
+              },
             },
-            fields: 'fontSize'
+            fields: "fontSize",
           },
         });
       }
 
       // Apply bold formatting if found
-      if (htmlContent.includes('font-weight: bold') || htmlContent.includes('<b>') || htmlContent.includes('<strong>')) {
+      if (
+        htmlContent.includes("font-weight: bold") ||
+        htmlContent.includes("<b>") ||
+        htmlContent.includes("<strong>")
+      ) {
         // Find bold sections and apply formatting
         const boldMatches = content.match(/\*\*.*?\*\*/g);
         if (boldMatches) {
           let currentIndex = 1;
           for (const match of boldMatches) {
-            const startIndex = content.indexOf(match.replace(/\*\*/g, ''), currentIndex - 1) + 1;
-            const endIndex = startIndex + match.replace(/\*\*/g, '').length;
+            const startIndex =
+              content.indexOf(match.replace(/\*\*/g, ""), currentIndex - 1) + 1;
+            const endIndex = startIndex + match.replace(/\*\*/g, "").length;
 
             requests.push({
               updateTextStyle: {
@@ -124,9 +132,9 @@ export async function POST(request: NextRequest) {
                   endIndex: endIndex,
                 },
                 textStyle: {
-                  bold: true
+                  bold: true,
                 },
-                fields: 'bold'
+                fields: "bold",
               },
             });
             currentIndex = endIndex;
@@ -156,23 +164,22 @@ export async function POST(request: NextRequest) {
       await drive.files.update({
         fileId: docId,
         requestBody: {
-          name: title
-        }
+          name: title,
+        },
       });
     }
 
     // Get the updated document info
     const updatedFile = await drive.files.get({
       fileId: docId,
-      fields: 'webViewLink'
+      fields: "webViewLink",
     });
 
     return NextResponse.json({
       message: "Document updated successfully",
       docId: docId,
-      webViewLink: updatedFile.data.webViewLink
+      webViewLink: updatedFile.data.webViewLink,
     });
-
   } catch (error: any) {
     console.error("Error updating document:", error);
 

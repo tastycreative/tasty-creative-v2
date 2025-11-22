@@ -13,7 +13,9 @@ export async function GET(req: Request): Promise<NextResponse> {
   try {
     // Check for required environment variables
     if (!SPREADSHEET_ID) {
-      console.error("Missing GOOGLE_DRIVE_SHEET_MODEL_NAMES environment variable");
+      console.error(
+        "Missing GOOGLE_DRIVE_SHEET_MODEL_NAMES environment variable"
+      );
       return NextResponse.json(
         { error: "Server configuration error: Missing spreadsheet ID" },
         { status: 500 }
@@ -21,7 +23,8 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 
     const clientId = process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID;
-    const clientSecret = process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
+    const clientSecret =
+      process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET;
 
     if (!clientId || !clientSecret) {
       console.error("Missing Google OAuth credentials");
@@ -43,7 +46,7 @@ export async function GET(req: Request): Promise<NextResponse> {
     const oauth2Client = new google.auth.OAuth2(
       clientId,
       clientSecret,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -57,14 +60,18 @@ export async function GET(req: Request): Promise<NextResponse> {
       auth: oauth2Client,
     });
 
-    console.log(`Fetching sheet data from: ${SPREADSHEET_ID}, range: ${TARGET_SHEET_TITLE}!A:Z`);
+    console.log(
+      `Fetching sheet data from: ${SPREADSHEET_ID}, range: ${TARGET_SHEET_TITLE}!A:Z`
+    );
 
     const sheetData = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: `${TARGET_SHEET_TITLE}!A:Z`,
     });
 
-    console.log(`Successfully fetched ${sheetData.data.values?.length || 0} rows from sheet`);
+    console.log(
+      `Successfully fetched ${sheetData.data.values?.length || 0} rows from sheet`
+    );
 
     const values = sheetData.data.values ?? [];
     if (values.length === 0) {
@@ -77,7 +84,9 @@ export async function GET(req: Request): Promise<NextResponse> {
     const statusIndex = headers.indexOf(MODEL_STATUS);
 
     if (nameIndex === -1 || profileIndex === -1 || statusIndex === -1) {
-      return NextResponse.json({ message: "Required columns not found in sheet" });
+      return NextResponse.json({
+        message: "Required columns not found in sheet",
+      });
     }
 
     const models: any[] = [];
@@ -103,7 +112,6 @@ export async function GET(req: Request): Promise<NextResponse> {
     }
 
     return NextResponse.json({ models });
-
   } catch (error: any) {
     console.error("Error fetching models:", error);
     console.error("Error details:", {
@@ -149,7 +157,9 @@ export async function GET(req: Request): Promise<NextResponse> {
       {
         error: "ServerError",
         message: "An unexpected error occurred while fetching models.",
-        ...(process.env.NODE_ENV === 'development' && { details: error.message })
+        ...(process.env.NODE_ENV === "development" && {
+          details: error.message,
+        }),
       },
       { status: 500 }
     );

@@ -1,20 +1,20 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
+import { NextRequest, NextResponse } from "next/server";
+import { google } from "googleapis";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
 
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
 
     if (!session?.accessToken) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { searchParams } = new URL(request.url);
-    const galleryId = searchParams.get('galleryId');
-    const clientModelId = searchParams.get('clientModelId');
-    const folderId = searchParams.get('folderId'); // For navigating into subfolders
+    const galleryId = searchParams.get("galleryId");
+    const clientModelId = searchParams.get("clientModelId");
+    const folderId = searchParams.get("folderId"); // For navigating into subfolders
 
     // If no galleryId or clientModelId provided, return all OFTVGallery records as folders
     if (!galleryId && !clientModelId && !folderId) {
@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
         },
         orderBy: {
           clientModel: {
-            clientName: 'asc',
+            clientName: "asc",
           },
         },
       });
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        clientModel: 'All OFTV Models',
+        clientModel: "All OFTV Models",
         folders: galleryFolders,
         publishedFolders: [],
         totalFolders: galleryFolders.length,
@@ -68,7 +68,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -77,48 +77,52 @@ export async function GET(request: NextRequest) {
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
     });
 
-    const drive = google.drive({ version: 'v3', auth: oauth2Client });
+    const drive = google.drive({ version: "v3", auth: oauth2Client });
 
     // If folderId is provided, we're navigating into a subfolder
     if (folderId) {
-      console.log('Fetching contents of subfolder:', folderId);
+      console.log("Fetching contents of subfolder:", folderId);
 
       // Verify access to the folder
       try {
         const folderCheck = await drive.files.get({
           fileId: folderId,
-          fields: 'id, name, mimeType, parents, capabilities',
+          fields: "id, name, mimeType, parents, capabilities",
           supportsAllDrives: true,
         });
-        console.log('Subfolder access check:', {
+        console.log("Subfolder access check:", {
           id: folderCheck.data.id,
           name: folderCheck.data.name,
           parents: folderCheck.data.parents,
         });
       } catch (error: any) {
-        console.error('Cannot access subfolder:', error.message);
-        const userEmail = (session as any).user?.email || 'your account';
-        return NextResponse.json({
-          error: 'Cannot access folder',
-          details: `You don't have permission to access this folder. Please ask the folder owner to share it with ${userEmail}.`,
-          code: error.code,
-          folderId,
-        }, { status: 403 });
+        console.error("Cannot access subfolder:", error.message);
+        const userEmail = (session as any).user?.email || "your account";
+        return NextResponse.json(
+          {
+            error: "Cannot access folder",
+            details: `You don't have permission to access this folder. Please ask the folder owner to share it with ${userEmail}.`,
+            code: error.code,
+            folderId,
+          },
+          { status: 403 }
+        );
       }
 
       // Fetch folders and files in this subfolder
       const [foldersResponse, filesResponse] = await Promise.all([
         drive.files.list({
           q: `'${folderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-          fields: 'files(id, name, webViewLink, modifiedTime, createdTime)',
-          orderBy: 'name',
+          fields: "files(id, name, webViewLink, modifiedTime, createdTime)",
+          orderBy: "name",
           supportsAllDrives: true,
           includeItemsFromAllDrives: true,
         }),
         drive.files.list({
           q: `'${folderId}' in parents and mimeType!='application/vnd.google-apps.folder' and trashed=false`,
-          fields: 'files(id, name, mimeType, webViewLink, webContentLink, thumbnailLink, modifiedTime, createdTime, size, imageMediaMetadata, videoMediaMetadata)',
-          orderBy: 'name',
+          fields:
+            "files(id, name, mimeType, webViewLink, webContentLink, thumbnailLink, modifiedTime, createdTime, size, imageMediaMetadata, videoMediaMetadata)",
+          orderBy: "name",
           supportsAllDrives: true,
           includeItemsFromAllDrives: true,
         }),
@@ -128,24 +132,26 @@ export async function GET(request: NextRequest) {
       const files = filesResponse.data.files || [];
 
       // Format folders with item counts
-      const foldersWithCounts = await Promise.all(folders.map(async (folder) => {
-        const itemsResponse = await drive.files.list({
-          q: `'${folder.id}' in parents and trashed=false`,
-          fields: 'files(id)',
-          supportsAllDrives: true,
-          includeItemsFromAllDrives: true,
-        });
-        
-        return {
-          id: folder.id,
-          name: folder.name,
-          webViewLink: folder.webViewLink,
-          itemCount: itemsResponse.data.files?.length || 0,
-          createdAt: folder.createdTime,
-          modifiedAt: folder.modifiedTime,
-          isFolder: true,
-        };
-      }));
+      const foldersWithCounts = await Promise.all(
+        folders.map(async (folder) => {
+          const itemsResponse = await drive.files.list({
+            q: `'${folder.id}' in parents and trashed=false`,
+            fields: "files(id)",
+            supportsAllDrives: true,
+            includeItemsFromAllDrives: true,
+          });
+
+          return {
+            id: folder.id,
+            name: folder.name,
+            webViewLink: folder.webViewLink,
+            itemCount: itemsResponse.data.files?.length || 0,
+            createdAt: folder.createdTime,
+            modifiedAt: folder.modifiedTime,
+            isFolder: true,
+          };
+        })
+      );
 
       // Format files
       const formattedFiles = files.map((file) => ({
@@ -190,16 +196,19 @@ export async function GET(request: NextRequest) {
     });
 
     if (!gallery?.parentFolderLink) {
-      return NextResponse.json({ 
-        error: 'No parent folder link configured for this gallery',
-        folders: [],
-        publishedFolders: []
-      }, { status: 200 });
+      return NextResponse.json(
+        {
+          error: "No parent folder link configured for this gallery",
+          folders: [],
+          publishedFolders: [],
+        },
+        { status: 200 }
+      );
     }
 
     const parentFolderId = gallery.parentFolderLink;
 
-    console.log('Fetching folders from Drive for gallery:', {
+    console.log("Fetching folders from Drive for gallery:", {
       galleryId: gallery.id,
       clientModel: gallery.clientModel.clientName,
       parentFolderId,
@@ -209,121 +218,131 @@ export async function GET(request: NextRequest) {
     try {
       const folderCheck = await drive.files.get({
         fileId: parentFolderId,
-        fields: 'id, name, mimeType, capabilities',
+        fields: "id, name, mimeType, capabilities",
         supportsAllDrives: true, // Support Shared Drives
       });
-      console.log('Parent folder access check:', {
+      console.log("Parent folder access check:", {
         id: folderCheck.data.id,
         name: folderCheck.data.name,
         mimeType: folderCheck.data.mimeType,
         canListChildren: folderCheck.data.capabilities?.canListChildren,
       });
     } catch (error: any) {
-      console.error('Cannot access parent folder:', error.message);
-      
+      console.error("Cannot access parent folder:", error.message);
+
       // Get user email from session for helpful error message
-      const userEmail = (session as any).user?.email || 'your account';
-      
-      return NextResponse.json({
-        error: 'Cannot access parent folder',
-        details: `You don't have permission to access this Google Drive folder. Please ask the folder owner to share it with ${userEmail} and grant at least "Viewer" permissions.`,
-        code: error.code,
-        folderId: parentFolderId,
-      }, { status: 403 });
+      const userEmail = (session as any).user?.email || "your account";
+
+      return NextResponse.json(
+        {
+          error: "Cannot access parent folder",
+          details: `You don't have permission to access this Google Drive folder. Please ask the folder owner to share it with ${userEmail} and grant at least "Viewer" permissions.`,
+          code: error.code,
+          folderId: parentFolderId,
+        },
+        { status: 403 }
+      );
     }
 
     // Fetch all folders from the parent folder
     const foldersResponse = await drive.files.list({
       q: `'${parentFolderId}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-      fields: 'files(id, name, webViewLink, modifiedTime, createdTime)',
-      orderBy: 'name',
+      fields: "files(id, name, webViewLink, modifiedTime, createdTime)",
+      orderBy: "name",
       supportsAllDrives: true, // Support Shared Drives
       includeItemsFromAllDrives: true, // Include items from Shared Drives
     });
 
     const allFolders = foldersResponse.data.files || [];
-    
+
     // Also check for any files (not just folders) to debug
     const allItemsResponse = await drive.files.list({
       q: `'${parentFolderId}' in parents and trashed=false`,
-      fields: 'files(id, name, mimeType)',
+      fields: "files(id, name, mimeType)",
       pageSize: 10,
       supportsAllDrives: true, // Support Shared Drives
       includeItemsFromAllDrives: true, // Include items from Shared Drives
     });
-    
-    console.log('Drive API response:', {
+
+    console.log("Drive API response:", {
       foundFolders: allFolders.length,
-      folderNames: allFolders.map(f => f.name),
+      folderNames: allFolders.map((f) => f.name),
       totalItems: allItemsResponse.data.files?.length || 0,
-      itemTypes: allItemsResponse.data.files?.map(f => ({ name: f.name, type: f.mimeType })),
+      itemTypes: allItemsResponse.data.files?.map((f) => ({
+        name: f.name,
+        type: f.mimeType,
+      })),
     });
 
     // Separate published and regular folders
-    const publishedFolder = allFolders.find(folder => 
-      folder.name?.toLowerCase().startsWith('published')
+    const publishedFolder = allFolders.find((folder) =>
+      folder.name?.toLowerCase().startsWith("published")
     );
 
     let publishedSubfolders: any[] = [];
     if (publishedFolder?.id) {
       const publishedResponse = await drive.files.list({
         q: `'${publishedFolder.id}' in parents and mimeType='application/vnd.google-apps.folder' and trashed=false`,
-        fields: 'files(id, name, webViewLink, modifiedTime, createdTime)',
-        orderBy: 'name',
+        fields: "files(id, name, webViewLink, modifiedTime, createdTime)",
+        orderBy: "name",
         supportsAllDrives: true, // Support Shared Drives
         includeItemsFromAllDrives: true, // Include items from Shared Drives
       });
       publishedSubfolders = publishedResponse.data.files || [];
     }
 
-    const regularFolders = allFolders.filter(folder => 
-      !folder.name?.toLowerCase().startsWith('published')
+    const regularFolders = allFolders.filter(
+      (folder) => !folder.name?.toLowerCase().startsWith("published")
     );
 
     // Format the response with item counts
-    const folders = await Promise.all(regularFolders.map(async (folder) => {
-      const itemsResponse = await drive.files.list({
-        q: `'${folder.id}' in parents and trashed=false`,
-        fields: 'files(id)',
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-      });
-      
-      return {
-        id: folder.id,
-        name: folder.name,
-        webViewLink: folder.webViewLink,
-        itemCount: itemsResponse.data.files?.length || 0,
-        createdAt: folder.createdTime,
-        modifiedAt: folder.modifiedTime,
-        isPublished: false,
-        isFolder: true,
-        clientModel: gallery.clientModel.clientName,
-        galleryId: gallery.id,
-      };
-    }));
+    const folders = await Promise.all(
+      regularFolders.map(async (folder) => {
+        const itemsResponse = await drive.files.list({
+          q: `'${folder.id}' in parents and trashed=false`,
+          fields: "files(id)",
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+        });
 
-    const publishedFoldersFormatted = await Promise.all(publishedSubfolders.map(async (folder) => {
-      const itemsResponse = await drive.files.list({
-        q: `'${folder.id}' in parents and trashed=false`,
-        fields: 'files(id)',
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-      });
-      
-      return {
-        id: folder.id,
-        name: folder.name,
-        webViewLink: folder.webViewLink,
-        itemCount: itemsResponse.data.files?.length || 0,
-        createdAt: folder.createdTime,
-        modifiedAt: folder.modifiedTime,
-        isPublished: true,
-        isFolder: true,
-        clientModel: gallery.clientModel.clientName,
-        galleryId: gallery.id,
-      };
-    }));
+        return {
+          id: folder.id,
+          name: folder.name,
+          webViewLink: folder.webViewLink,
+          itemCount: itemsResponse.data.files?.length || 0,
+          createdAt: folder.createdTime,
+          modifiedAt: folder.modifiedTime,
+          isPublished: false,
+          isFolder: true,
+          clientModel: gallery.clientModel.clientName,
+          galleryId: gallery.id,
+        };
+      })
+    );
+
+    const publishedFoldersFormatted = await Promise.all(
+      publishedSubfolders.map(async (folder) => {
+        const itemsResponse = await drive.files.list({
+          q: `'${folder.id}' in parents and trashed=false`,
+          fields: "files(id)",
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+        });
+
+        return {
+          id: folder.id,
+          name: folder.name,
+          webViewLink: folder.webViewLink,
+          itemCount: itemsResponse.data.files?.length || 0,
+          createdAt: folder.createdTime,
+          modifiedAt: folder.modifiedTime,
+          isPublished: true,
+          isFolder: true,
+          clientModel: gallery.clientModel.clientName,
+          galleryId: gallery.id,
+        };
+      })
+    );
 
     return NextResponse.json({
       success: true,
@@ -336,15 +355,15 @@ export async function GET(request: NextRequest) {
       totalPublishedFolders: publishedFoldersFormatted.length,
     });
   } catch (error: any) {
-    console.error('Error fetching OFTV gallery folders:', error);
-    console.error('Error details:', {
+    console.error("Error fetching OFTV gallery folders:", error);
+    console.error("Error details:", {
       message: error.message,
       code: error.code,
       errors: error.errors,
     });
     return NextResponse.json(
-      { 
-        error: 'Failed to fetch folders from Google Drive',
+      {
+        error: "Failed to fetch folders from Google Drive",
         details: error.message,
         code: error.code,
       },

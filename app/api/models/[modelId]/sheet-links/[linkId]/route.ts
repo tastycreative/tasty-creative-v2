@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 import { google } from "googleapis";
 
-
 // Helper to extract Google Sheet file ID from URL
 function extractSheetId(url: string): string | null {
   if (!url) return null;
@@ -18,12 +17,9 @@ export async function DELETE(
   try {
     const session = await auth();
     if (!session?.user) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-    if (session.user.role !== 'ADMIN' && session.user.role !== 'MODERATOR') {
+    if (session.user.role !== "ADMIN" && session.user.role !== "MODERATOR") {
       return NextResponse.json(
         { error: "Insufficient permissions" },
         { status: 403 }
@@ -57,12 +53,14 @@ export async function DELETE(
           const oauth2Client = new google.auth.OAuth2(
             process.env.GOOGLE_CLIENT_ID,
             process.env.GOOGLE_CLIENT_SECRET,
-            process.env.GOOGLE_REDIRECT_URI
+            process.env.NEXTAUTH_URL
           );
           oauth2Client.setCredentials({
             access_token: session.accessToken,
             refresh_token: session.refreshToken,
-            expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+            expiry_date: session.expiresAt
+              ? session.expiresAt * 1000
+              : undefined,
           });
           const drive = google.drive({ version: "v3", auth: oauth2Client });
           await drive.files.delete({ fileId });

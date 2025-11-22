@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -54,7 +54,9 @@ export async function POST(req: NextRequest) {
       range: "Requests!A1:F1",
       valueInputOption: "USER_ENTERED",
       requestBody: {
-        values: [[timestamp, user, requestedBy, model, sextingSet, specialRequest]],
+        values: [
+          [timestamp, user, requestedBy, model, sextingSet, specialRequest],
+        ],
       },
     });
 
@@ -68,19 +70,24 @@ export async function POST(req: NextRequest) {
         sextingSet,
         specialRequest,
         spreadsheetId,
-        action: "row_added"
+        action: "row_added",
       };
 
-      const webhookResponse = await fetch("https://n8n.tastycreative.xyz/webhook/d05c7614-66c7-497c-9e35-bd6037bf4902", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(webhookData),
-      });
+      const webhookResponse = await fetch(
+        "https://n8n.tastycreative.xyz/webhook/d05c7614-66c7-497c-9e35-bd6037bf4902",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(webhookData),
+        }
+      );
 
       if (!webhookResponse.ok) {
-        console.warn(`Webhook call failed with status: ${webhookResponse.status}`);
+        console.warn(
+          `Webhook call failed with status: ${webhookResponse.status}`
+        );
         // Note: We don't fail the main request if webhook fails
       } else {
         console.log("Webhook called successfully");
@@ -91,7 +98,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({ message: "Request added successfully." });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error adding data to Requests sheet:", error);
 

@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import { auth } from '@/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { google } from "googleapis";
+import { auth } from "@/auth";
 
 // Function to extract spreadsheet ID from URL
 function extractSpreadsheetId(url: string): string | null {
@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
     }
 
     const { sheetUrl } = await request.json();
-    
+
     if (!sheetUrl) {
       return NextResponse.json(
-        { error: 'Sheet URL is required' },
+        { error: "Sheet URL is required" },
         { status: 400 }
       );
     }
@@ -35,7 +35,7 @@ export async function POST(request: NextRequest) {
     const spreadsheetId = extractSpreadsheetId(sheetUrl);
     if (!spreadsheetId) {
       return NextResponse.json(
-        { error: 'Invalid Google Sheets URL' },
+        { error: "Invalid Google Sheets URL" },
         { status: 400 }
       );
     }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -53,20 +53,20 @@ export async function POST(request: NextRequest) {
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
     });
 
-    const sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+    const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
     try {
       // Fetch sheet metadata using user's credentials
       const response = await sheets.spreadsheets.get({
         spreadsheetId,
-        fields: 'properties.title'
+        fields: "properties.title",
       });
 
       const sheetName = response.data.properties?.title;
 
       if (!sheetName) {
         return NextResponse.json(
-          { error: 'Could not retrieve sheet name' },
+          { error: "Could not retrieve sheet name" },
           { status: 500 }
         );
       }
@@ -74,39 +74,40 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({
         success: true,
         sheetName,
-        spreadsheetId
+        spreadsheetId,
       });
-
     } catch (googleError: any) {
-      console.error('Google Sheets API error:', googleError);
-      
+      console.error("Google Sheets API error:", googleError);
+
       if (googleError.code === 403) {
         return NextResponse.json(
-          { error: 'Access denied to this spreadsheet. Please check permissions or ensure the sheet is shared with you.' },
+          {
+            error:
+              "Access denied to this spreadsheet. Please check permissions or ensure the sheet is shared with you.",
+          },
           { status: 403 }
         );
       } else if (googleError.code === 404) {
         return NextResponse.json(
-          { error: 'Spreadsheet not found or is private.' },
+          { error: "Spreadsheet not found or is private." },
           { status: 404 }
         );
       } else if (googleError.code === 401) {
         return NextResponse.json(
-          { error: 'GoogleAuthExpired' }, // This matches the error handling in SheetsIntegration
+          { error: "GoogleAuthExpired" }, // This matches the error handling in SheetsIntegration
           { status: 401 }
         );
       } else {
         return NextResponse.json(
-          { error: 'Failed to fetch sheet information' },
+          { error: "Failed to fetch sheet information" },
           { status: 500 }
         );
       }
     }
-
   } catch (error) {
-    console.error('Error fetching sheet name:', error);
+    console.error("Error fetching sheet name:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

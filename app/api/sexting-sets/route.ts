@@ -4,11 +4,11 @@ import { auth } from "@/auth";
 
 interface SextingSetItem {
   id: string;
-  type: 'video';
+  type: "video";
   title: string;
   duration?: string;
   timeAgo: string;
-  status: 'HAS_GIF' | 'NEEDS_GIF';
+  status: "HAS_GIF" | "NEEDS_GIF";
   campaignReady: boolean;
   thumbnail: string;
   category?: string;
@@ -29,10 +29,13 @@ interface SextingSetItem {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const modelName = searchParams.get('modelName');
-    
+    const modelName = searchParams.get("modelName");
+
     if (!modelName) {
-      return NextResponse.json({ error: 'Model name is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Model name is required" },
+        { status: 400 }
+      );
     }
 
     // Authenticate user session
@@ -53,7 +56,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -65,17 +68,17 @@ export async function GET(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
     // Google Sheets API configuration
-    const SPREADSHEET_ID = '1_BRrKVZbLwnHJCNYsacu5Lx25yJ7eoPpAEsbv1OBwtA';
+    const SPREADSHEET_ID = "1_BRrKVZbLwnHJCNYsacu5Lx25yJ7eoPpAEsbv1OBwtA";
     const SHEET_NAME = `${modelName.charAt(0).toUpperCase() + modelName.slice(1).toLowerCase()} - SEXTING SETS`;
     const RANGE = `${SHEET_NAME}!B4:K1000`; // B3:K3 for headers, B4:K for data
-    
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: RANGE,
     });
 
     const rows = response.data.values;
-    
+
     if (!rows || rows.length === 0) {
       return NextResponse.json({ contentItems: [] });
     }
@@ -93,45 +96,58 @@ export async function GET(request: NextRequest) {
           creationDate, // Column H - Creation Date
           creator, // Column I - Creator @'s
           contentCount, // Column J - Content Count
-          scriptEditor // Column K - Script Editor
+          scriptEditor, // Column K - Script Editor
         ] = row;
 
         // Skip rows without a sexting set title (empty rows)
-        if (!sextingSetTitle || sextingSetTitle.trim() === '') {
+        if (!sextingSetTitle || sextingSetTitle.trim() === "") {
           return null;
         }
 
         // Extract Google Drive file ID or folder ID from the link
-        const fileIdMatch = sextingSetLink?.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
-        const folderIdMatch = sextingSetLink?.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-        
-        const driveId = fileIdMatch ? fileIdMatch[1] : (folderIdMatch ? folderIdMatch[1] : null);
+        const fileIdMatch = sextingSetLink?.match(
+          /\/file\/d\/([a-zA-Z0-9-_]+)/
+        );
+        const folderIdMatch = sextingSetLink?.match(
+          /\/folders\/([a-zA-Z0-9-_]+)/
+        );
+
+        const driveId = fileIdMatch
+          ? fileIdMatch[1]
+          : folderIdMatch
+            ? folderIdMatch[1]
+            : null;
         const isFolder = !!folderIdMatch;
-        
+
         console.log(`Processing sexting set link: ${sextingSetLink}`, {
           fileIdMatch: fileIdMatch?.[1],
           folderIdMatch: folderIdMatch?.[1],
           driveId,
           isFolder,
-          title: sextingSetTitle
+          title: sextingSetTitle,
         });
-        
+
         // Generate thumbnail URL using our image proxy (only for files, not folders)
-        const thumbnail = driveId && !isFolder
-          ? `/api/image-proxy?id=${driveId}`
-          : `https://via.placeholder.com/400x225/374151/9ca3af?text=${isFolder ? 'Folder' : encodeURIComponent(sextingSetTitle.substring(0, 20))}`;
+        const thumbnail =
+          driveId && !isFolder
+            ? `/api/image-proxy?id=${driveId}`
+            : `https://via.placeholder.com/400x225/374151/9ca3af?text=${isFolder ? "Folder" : encodeURIComponent(sextingSetTitle.substring(0, 20))}`;
 
         // Parse creation date
-        const timeAgo = creationDate ? getTimeAgo(new Date(creationDate)) : 'Unknown';
-        
+        const timeAgo = creationDate
+          ? getTimeAgo(new Date(creationDate))
+          : "Unknown";
+
         return {
           id: `sexting_${index + 1}`,
-          type: 'video' as const,
+          type: "video" as const,
           title: sextingSetTitle.trim(),
           duration: `${contentCount || 0} items`,
           timeAgo,
-          status: (status === 'USED' ? 'HAS_GIF' : 'NEEDS_GIF') as 'HAS_GIF' | 'NEEDS_GIF',
-          campaignReady: status === 'USED',
+          status: (status === "USED" ? "HAS_GIF" : "NEEDS_GIF") as
+            | "HAS_GIF"
+            | "NEEDS_GIF",
+          campaignReady: status === "USED",
           thumbnail,
           category: sextingSetCategory,
           featuredEvents,
@@ -145,16 +161,16 @@ export async function GET(request: NextRequest) {
           driveId,
           isFolder,
           contentCount: parseInt(contentCount) || 0,
-          scriptEditor
+          scriptEditor,
         };
       })
       .filter((item) => item !== null) as SextingSetItem[];
 
     return NextResponse.json({ contentItems });
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error('Error fetching sexting sets:', error);
+    console.error("Error fetching sexting sets:", error);
 
     // Check if the error is from Google API and has a 403 status
     if (error.code === 403 && error.errors && error.errors.length > 0) {
@@ -173,7 +189,7 @@ export async function GET(request: NextRequest) {
 
     // For other types of errors, return a generic 500
     return NextResponse.json(
-      { error: 'Failed to fetch sexting sets' },
+      { error: "Failed to fetch sexting sets" },
       { status: 500 }
     );
   }
@@ -187,12 +203,14 @@ function getTimeAgo(date: Date): string {
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
 
   if (diffInDays > 0) {
-    return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+    return diffInDays === 1 ? "1 day ago" : `${diffInDays} days ago`;
   } else if (diffInHours > 0) {
-    return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+    return diffInHours === 1 ? "1 hour ago" : `${diffInHours} hours ago`;
   } else if (diffInMinutes > 0) {
-    return diffInMinutes === 1 ? '1 minute ago' : `${diffInMinutes} minutes ago`;
+    return diffInMinutes === 1
+      ? "1 minute ago"
+      : `${diffInMinutes} minutes ago`;
   } else {
-    return 'Just now';
+    return "Just now";
   }
 }

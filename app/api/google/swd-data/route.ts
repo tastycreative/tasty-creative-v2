@@ -52,7 +52,7 @@ export async function GET(): Promise<
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
     oauth2Client.setCredentials({
       access_token: session.accessToken,
@@ -200,7 +200,7 @@ export async function POST(req: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -240,7 +240,7 @@ export async function POST(req: NextRequest) {
     });
 
     return NextResponse.json({ message: "Row added successfully." });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("Error adding data to Send+Buy Input sheet:", error);
 

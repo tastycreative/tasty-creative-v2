@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import { auth } from '@/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { google } from "googleapis";
+import { auth } from "@/auth";
 
 export async function DELETE(request: NextRequest) {
   try {
@@ -23,13 +23,14 @@ export async function DELETE(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     if (!session.accessToken) {
       return NextResponse.json(
         {
-          error: "No access token available. Please re-authenticate with Google.",
+          error:
+            "No access token available. Please re-authenticate with Google.",
         },
         { status: 401 }
       );
@@ -49,7 +50,8 @@ export async function DELETE(request: NextRequest) {
     ) {
       return NextResponse.json(
         {
-          error: "Access token expired and no refresh token available. Please re-authenticate with Google.",
+          error:
+            "Access token expired and no refresh token available. Please re-authenticate with Google.",
         },
         { status: 401 }
       );
@@ -58,7 +60,7 @@ export async function DELETE(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
     const spreadsheetId = "1_a08KImbkIA3z0_DTGWoqJdnRiw1y-kygj-Wr2cB_gk";
 
-    console.log('🗑️ Starting to clear all sales data...');
+    console.log("🗑️ Starting to clear all sales data...");
 
     try {
       // First, get all sheets in the spreadsheet
@@ -68,10 +70,10 @@ export async function DELETE(request: NextRequest) {
 
       const allSheets = spreadsheetResponse.data.sheets || [];
       const sheetsToProcess = allSheets
-        .map(sheet => sheet.properties?.title)
-        .filter(name => name && name !== 'Sheet1'); // Keep Sheet1 if it exists, but clear voice model sheets
+        .map((sheet) => sheet.properties?.title)
+        .filter((name) => name && name !== "Sheet1"); // Keep Sheet1 if it exists, but clear voice model sheets
 
-      console.log('📋 Found sheets to clear:', sheetsToProcess);
+      console.log("📋 Found sheets to clear:", sheetsToProcess);
 
       let clearedSheets = 0;
       let totalRowsCleared = 0;
@@ -112,7 +114,9 @@ export async function DELETE(request: NextRequest) {
         }
       }
 
-      console.log(`🎉 Successfully cleared ${totalRowsCleared} rows from ${clearedSheets} sheets`);
+      console.log(
+        `🎉 Successfully cleared ${totalRowsCleared} rows from ${clearedSheets} sheets`
+      );
 
       // Return success response
       return NextResponse.json({
@@ -122,38 +126,38 @@ export async function DELETE(request: NextRequest) {
           sheetsCleared: clearedSheets,
           totalRowsCleared,
           clearedSheetNames: sheetsToProcess,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
         },
       });
-
     } catch (sheetError: any) {
       console.error(`❌ Error accessing spreadsheet:`, sheetError);
-      
+
       // Handle specific Google Sheets API errors
       if (sheetError.code === 403) {
         return NextResponse.json(
           {
             error: "GooglePermissionDenied",
-            message: "Google API permission denied. Please check your Google Sheets access permissions.",
+            message:
+              "Google API permission denied. Please check your Google Sheets access permissions.",
           },
           { status: 403 }
         );
       }
-      
+
       // Handle quota exceeded errors
       if (sheetError.code === 429) {
         return NextResponse.json(
           {
             error: "QuotaExceeded",
-            message: "Google Sheets API quota exceeded. Please try again in a few minutes.",
+            message:
+              "Google Sheets API quota exceeded. Please try again in a few minutes.",
           },
           { status: 429 }
         );
       }
-      
+
       throw sheetError;
     }
-
   } catch (error: any) {
     console.error("❌ Error clearing all sales data:", error);
 
@@ -173,7 +177,8 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json(
         {
           error: "GoogleAuthExpired",
-          message: "Google authentication has expired. Please refresh the page and sign in again.",
+          message:
+            "Google authentication has expired. Please refresh the page and sign in again.",
         },
         { status: 401 }
       );

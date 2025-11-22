@@ -1,6 +1,6 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { google } from 'googleapis';
-import { auth } from '@/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { google } from "googleapis";
+import { auth } from "@/auth";
 
 function extractSpreadsheetId(url: string): string | null {
   try {
@@ -15,36 +15,40 @@ export async function POST(request: NextRequest) {
   try {
     // Try different authentication methods
     let sheets;
-    
+
     // First, try with API key for public spreadsheets
     if (process.env.AUTH_API_KEY) {
       console.log("Trying API key authentication for scheduler update");
       try {
-        sheets = google.sheets({ 
-          version: 'v4', 
-          auth: process.env.AUTH_API_KEY 
+        sheets = google.sheets({
+          version: "v4",
+          auth: process.env.AUTH_API_KEY,
         });
       } catch (apiKeyError) {
         console.log("API key setup failed:", apiKeyError.message);
         sheets = null;
       }
     }
-    
+
     // If API key failed or not available, try session-based authentication
     if (!sheets) {
       const session = await auth();
-      
+
       if (!session || !session.user || !session.accessToken) {
-        return NextResponse.json({ 
-          error: "Authentication not available - need user login or valid API key" 
-        }, { status: 401 });
+        return NextResponse.json(
+          {
+            error:
+              "Authentication not available - need user login or valid API key",
+          },
+          { status: 401 }
+        );
       }
 
       console.log("Using session-based authentication for scheduler update");
       const oauth2Client = new google.auth.OAuth2(
         process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
         process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
-        process.env.GOOGLE_REDIRECT_URI
+        process.env.NEXTAUTH_URL
       );
 
       oauth2Client.setCredentials({
@@ -52,15 +56,15 @@ export async function POST(request: NextRequest) {
         refresh_token: session.refreshToken,
         expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
       });
-      
-      sheets = google.sheets({ version: 'v4', auth: oauth2Client });
+
+      sheets = google.sheets({ version: "v4", auth: oauth2Client });
     }
 
     const { sheetUrl, scheduleValue } = await request.json();
 
     if (!sheetUrl || !scheduleValue) {
       return NextResponse.json(
-        { error: 'Sheet URL and schedule value are required' },
+        { error: "Sheet URL and schedule value are required" },
         { status: 400 }
       );
     }
@@ -68,7 +72,7 @@ export async function POST(request: NextRequest) {
     const spreadsheetId = extractSpreadsheetId(sheetUrl);
     if (!spreadsheetId) {
       return NextResponse.json(
-        { error: 'Invalid Google Sheets URL' },
+        { error: "Invalid Google Sheets URL" },
         { status: 400 }
       );
     }
@@ -76,15 +80,15 @@ export async function POST(request: NextRequest) {
     try {
       // Format the schedule value
       const formattedScheduleValue = `Schedule #${scheduleValue}`;
-      
+
       // Update the schedule value in cell H6 (column H, row 6)
       await sheets.spreadsheets.values.update({
         spreadsheetId,
-        range: 'H6', // This corresponds to the schedule cell in the first row of our C6:I61 range
-        valueInputOption: 'RAW',
+        range: "H6", // This corresponds to the schedule cell in the first row of our C6:I61 range
+        valueInputOption: "RAW",
         requestBody: {
-          values: [[formattedScheduleValue]]
-        }
+          values: [[formattedScheduleValue]],
+        },
       });
 
       console.log(`Updated schedule to: ${formattedScheduleValue}`);
@@ -92,22 +96,22 @@ export async function POST(request: NextRequest) {
       // Now fetch the updated data to return
       const response = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'C6:I61',
+        range: "C6:I61",
       });
 
       // Also fetch the full schedule setup data from M8:R range
       const fullScheduleResponse = await sheets.spreadsheets.values.get({
         spreadsheetId,
-        range: 'M8:R',
+        range: "M8:R",
       });
 
       const values = response.data.values || [];
       const fullScheduleValues = fullScheduleResponse.data.values || [];
-      
+
       // Parse the updated data using the same logic as the main API
       const schedulerData = parseSchedulerData(values);
       const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
-      
+
       // Extract updated schedule name
       const scheduleRow = values[0] || [];
       const updatedScheduleName = scheduleRow[5] || formattedScheduleValue; // Column H (index 5)
@@ -115,91 +119,110 @@ export async function POST(request: NextRequest) {
       console.log(`Successfully updated scheduler data`);
       return NextResponse.json({
         success: true,
-        message: 'Schedule updated successfully',
+        message: "Schedule updated successfully",
         schedulerData: schedulerData.scheduleData,
         scheduleCheckerData: schedulerData.scheduleCheckerData,
         fullScheduleSetup: fullScheduleSetup,
-        currentSchedule: updatedScheduleName
+        currentSchedule: updatedScheduleName,
       });
-
     } catch (sheetsError) {
-      console.error('Error updating scheduler data in Google Sheets:', sheetsError);
-      
+      console.error(
+        "Error updating scheduler data in Google Sheets:",
+        sheetsError
+      );
+
       // If API key failed and we haven't tried OAuth yet, try OAuth
       if (process.env.AUTH_API_KEY && !sheets.auth.credentials) {
-        console.log("API key authentication failed for scheduler update, trying OAuth...");
-        
+        console.log(
+          "API key authentication failed for scheduler update, trying OAuth..."
+        );
+
         try {
           const session = await auth();
-          
+
           if (session && session.user && session.accessToken) {
             const oauth2Client = new google.auth.OAuth2(
               process.env.AUTH_GOOGLE_ID || process.env.GOOGLE_CLIENT_ID,
-              process.env.AUTH_GOOGLE_SECRET || process.env.GOOGLE_CLIENT_SECRET,
-              process.env.GOOGLE_REDIRECT_URI
+              process.env.AUTH_GOOGLE_SECRET ||
+                process.env.GOOGLE_CLIENT_SECRET,
+              process.env.NEXTAUTH_URL
             );
 
             oauth2Client.setCredentials({
               access_token: session.accessToken,
               refresh_token: session.refreshToken,
-              expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined,
+              expiry_date: session.expiresAt
+                ? session.expiresAt * 1000
+                : undefined,
             });
-            
-            const oauthSheets = google.sheets({ version: 'v4', auth: oauth2Client });
-            
+
+            const oauthSheets = google.sheets({
+              version: "v4",
+              auth: oauth2Client,
+            });
+
             // Update the schedule value
             await oauthSheets.spreadsheets.values.update({
               spreadsheetId,
-              range: 'H6',
-              valueInputOption: 'RAW',
+              range: "H6",
+              valueInputOption: "RAW",
               requestBody: {
-                values: [[formattedScheduleValue]]
-              }
+                values: [[formattedScheduleValue]],
+              },
             });
 
             // Fetch updated data
             const oauthResponse = await oauthSheets.spreadsheets.values.get({
               spreadsheetId,
-              range: 'C6:I61',
+              range: "C6:I61",
             });
 
-            const oauthFullScheduleResponse = await oauthSheets.spreadsheets.values.get({
-              spreadsheetId,
-              range: 'M8:R',
-            });
+            const oauthFullScheduleResponse =
+              await oauthSheets.spreadsheets.values.get({
+                spreadsheetId,
+                range: "M8:R",
+              });
 
             const values = oauthResponse.data.values || [];
-            const fullScheduleValues = oauthFullScheduleResponse.data.values || [];
+            const fullScheduleValues =
+              oauthFullScheduleResponse.data.values || [];
             const schedulerData = parseSchedulerData(values);
-            const fullScheduleSetup = parseFullScheduleSetup(fullScheduleValues);
+            const fullScheduleSetup =
+              parseFullScheduleSetup(fullScheduleValues);
             const scheduleRow = values[0] || [];
-            const updatedScheduleName = scheduleRow[5] || formattedScheduleValue;
+            const updatedScheduleName =
+              scheduleRow[5] || formattedScheduleValue;
 
             console.log(`OAuth fallback successful for scheduler update`);
             return NextResponse.json({
               success: true,
-              message: 'Schedule updated successfully',
+              message: "Schedule updated successfully",
               schedulerData: schedulerData.scheduleData,
               scheduleCheckerData: schedulerData.scheduleCheckerData,
               fullScheduleSetup: fullScheduleSetup,
-              currentSchedule: updatedScheduleName
+              currentSchedule: updatedScheduleName,
             });
           }
         } catch (oauthError) {
-          console.error('OAuth fallback also failed for scheduler update:', oauthError);
+          console.error(
+            "OAuth fallback also failed for scheduler update:",
+            oauthError
+          );
         }
       }
-      
+
       return NextResponse.json(
-        { success: false, error: 'Failed to access Google Sheets. Please check permissions.' },
+        {
+          success: false,
+          error: "Failed to access Google Sheets. Please check permissions.",
+        },
         { status: 403 }
       );
     }
-
   } catch (error) {
-    console.error('Error updating schedule:', error);
+    console.error("Error updating schedule:", error);
     return NextResponse.json(
-      { error: 'Failed to update schedule' },
+      { error: "Failed to update schedule" },
       { status: 500 }
     );
   }
@@ -207,29 +230,33 @@ export async function POST(request: NextRequest) {
 
 // Copy the parseSchedulerData function from the main route
 function parseSchedulerData(values: string[][]): {
-  scheduleData: Array<{ type: string; status: string; }>;
+  scheduleData: Array<{ type: string; status: string }>;
   scheduleCheckerData: {
-    massMessages: Array<{ text: string; checker: string; }>;
-    wallPosts: Array<{ text: string; checker: string; }>;
+    massMessages: Array<{ text: string; checker: string }>;
+    wallPosts: Array<{ text: string; checker: string }>;
   };
 } {
-  const scheduleData: Array<{ type: string; status: string; }> = [];
+  const scheduleData: Array<{ type: string; status: string }> = [];
   const scheduleCheckerData = {
-    massMessages: [] as Array<{ text: string; checker: string; }>,
-    wallPosts: [] as Array<{ text: string; checker: string; }>
+    massMessages: [] as Array<{ text: string; checker: string }>,
+    wallPosts: [] as Array<{ text: string; checker: string }>,
   };
 
   if (!values || values.length === 0) {
     return { scheduleData, scheduleCheckerData };
   }
 
-  console.log('Parsing scheduler data from values:', values.length, 'rows');
+  console.log("Parsing scheduler data from values:", values.length, "rows");
 
   // Find "Broad Schedule Overview" section
   let overviewRowIndex = -1;
   for (let i = 0; i < Math.min(values.length, 10); i++) {
     const row = values[i];
-    if (row.some(cell => cell && cell.toLowerCase().includes('broad schedule overview'))) {
+    if (
+      row.some(
+        (cell) => cell && cell.toLowerCase().includes("broad schedule overview")
+      )
+    ) {
       overviewRowIndex = i;
       console.log('Found "Broad Schedule Overview" at row index:', i);
       break;
@@ -243,49 +270,62 @@ function parseSchedulerData(values: string[][]): {
 
   // Look for Type:/Status: headers 2 rows after overview (C14:I15 in original sheet)
   const headerRowIndex = overviewRowIndex + 2;
-  
+
   if (headerRowIndex >= values.length) {
-    console.log('No header row found');
+    console.log("No header row found");
     return { scheduleData, scheduleCheckerData };
   }
 
-  console.log('Header row at index:', headerRowIndex, 'Content:', values[headerRowIndex]);
+  console.log(
+    "Header row at index:",
+    headerRowIndex,
+    "Content:",
+    values[headerRowIndex]
+  );
 
   // Parse schedule data starting from the row after headers
   const dataStartIndex = headerRowIndex + 2; // Skip header row and empty row
-  
+
   for (let i = dataStartIndex; i < values.length; i++) {
     const row = values[i];
-    
-    if (!row || row.length === 0 || row.every(cell => !cell)) {
+
+    if (!row || row.length === 0 || row.every((cell) => !cell)) {
       continue; // Skip empty rows
     }
 
     // Stop if we hit "Schedule Checker" section
-    if (row.some(cell => cell && cell.toLowerCase().includes('schedule checker'))) {
-      console.log('Found "Schedule Checker" at row', i, '- stopping schedule data parsing');
+    if (
+      row.some(
+        (cell) => cell && cell.toLowerCase().includes("schedule checker")
+      )
+    ) {
+      console.log(
+        'Found "Schedule Checker" at row',
+        i,
+        "- stopping schedule data parsing"
+      );
       break;
     }
 
     // Extract data from columns C, D, E, F (status) and F, G (type, status)
-    const typeCol1 = row[0] ? row[0].trim() : ''; // Column C
-    const statusCol1 = row[4] ? row[4].trim() : ''; // Column G
-    const typeCol2 = row[5] ? row[5].trim() : ''; // Column F  
-    const statusCol2 = row[6] ? row[6].trim() : ''; // Column G
+    const typeCol1 = row[0] ? row[0].trim() : ""; // Column C
+    const statusCol1 = row[4] ? row[4].trim() : ""; // Column G
+    const typeCol2 = row[5] ? row[5].trim() : ""; // Column F
+    const statusCol2 = row[6] ? row[6].trim() : ""; // Column G
 
     // Add first type/status pair if both exist
     if (typeCol1 && statusCol1) {
       scheduleData.push({
-        type: typeCol1.replace(':', ''), // Remove trailing colon
-        status: statusCol1
+        type: typeCol1.replace(":", ""), // Remove trailing colon
+        status: statusCol1,
       });
     }
 
     // Add second type/status pair if both exist
     if (typeCol2 && statusCol2) {
       scheduleData.push({
-        type: typeCol2.replace(':', ''), // Remove trailing colon
-        status: statusCol2
+        type: typeCol2.replace(":", ""), // Remove trailing colon
+        status: statusCol2,
       });
     }
   }
@@ -294,7 +334,11 @@ function parseSchedulerData(values: string[][]): {
   let checkerRowIndex = -1;
   for (let i = 0; i < values.length; i++) {
     const row = values[i];
-    if (row.some(cell => cell && cell.toLowerCase().includes('schedule checker'))) {
+    if (
+      row.some(
+        (cell) => cell && cell.toLowerCase().includes("schedule checker")
+      )
+    ) {
       checkerRowIndex = i;
       console.log('Found "Schedule Checker" section at row index:', i);
       break;
@@ -304,23 +348,28 @@ function parseSchedulerData(values: string[][]): {
   if (checkerRowIndex !== -1) {
     // Look for Mass Messages and Wall Posts headers
     const headersRowIndex = checkerRowIndex + 2; // Usually 2 rows after "Schedule Checker"
-    
+
     if (headersRowIndex < values.length) {
-      console.log('Headers row at index:', headersRowIndex, 'Content:', values[headersRowIndex]);
-      
+      console.log(
+        "Headers row at index:",
+        headersRowIndex,
+        "Content:",
+        values[headersRowIndex]
+      );
+
       // Parse data starting from row after headers
       const checkerDataStartIndex = headersRowIndex + 3; // Skip headers and empty rows
-      
+
       for (let i = checkerDataStartIndex; i < values.length; i++) {
         const row = values[i];
-        
-        if (!row || row.length === 0 || row.every(cell => !cell)) {
+
+        if (!row || row.length === 0 || row.every((cell) => !cell)) {
           continue; // Skip empty rows
         }
 
         // Extract Mass Messages data (columns C-F with G as checker)
-        let massMessageText = '';
-        
+        let massMessageText = "";
+
         // Check columns C, D, E, F for text content (they may have indentation)
         for (let col = 0; col <= 3; col++) {
           if (row[col] && row[col].trim()) {
@@ -328,34 +377,37 @@ function parseSchedulerData(values: string[][]): {
             break;
           }
         }
-        
-        const massMessageChecker = row[4] ? row[4].trim() : '';
-        
-        if (massMessageText && !massMessageText.toLowerCase().includes('total') === false) {
+
+        const massMessageChecker = row[4] ? row[4].trim() : "";
+
+        if (
+          massMessageText &&
+          !massMessageText.toLowerCase().includes("total") === false
+        ) {
           scheduleCheckerData.massMessages.push({
             text: massMessageText.trim(),
-            checker: massMessageChecker
+            checker: massMessageChecker,
           });
         }
 
         // Extract Wall Posts data (columns F-H with I as checker)
-        const wallPostText = row[5] ? row[5].trim() : '';
-        const wallPostChecker = row[6] ? row[6].trim() : '';
-        
-        if (wallPostText && !wallPostText.toLowerCase().includes('checker')) {
+        const wallPostText = row[5] ? row[5].trim() : "";
+        const wallPostChecker = row[6] ? row[6].trim() : "";
+
+        if (wallPostText && !wallPostText.toLowerCase().includes("checker")) {
           scheduleCheckerData.wallPosts.push({
             text: wallPostText.trim(),
-            checker: wallPostChecker
+            checker: wallPostChecker,
           });
         }
       }
     }
   }
 
-  console.log('Final parsed data:');
-  console.log('Schedule data items:', scheduleData.length);
-  console.log('Mass messages:', scheduleCheckerData.massMessages.length);
-  console.log('Wall posts:', scheduleCheckerData.wallPosts.length);
+  console.log("Final parsed data:");
+  console.log("Schedule data items:", scheduleData.length);
+  console.log("Mass messages:", scheduleCheckerData.massMessages.length);
+  console.log("Wall posts:", scheduleCheckerData.wallPosts.length);
 
   return { scheduleData, scheduleCheckerData };
 }
@@ -377,11 +429,11 @@ function parseFullScheduleSetup(values: string[][]): Array<{
     storyPostTime: string;
   }> = [];
 
-  console.log('Parsing full schedule setup data from M8:R range...');
-  console.log('Full schedule values:', values);
+  console.log("Parsing full schedule setup data from M8:R range...");
+  console.log("Full schedule values:", values);
 
   if (!values || values.length === 0) {
-    console.log('No full schedule setup data found');
+    console.log("No full schedule setup data found");
     return fullScheduleSetup;
   }
 
@@ -389,9 +441,9 @@ function parseFullScheduleSetup(values: string[][]): Array<{
   // Expected columns: M (mmTime), N (massMessageType), O (postTime), P (wallPostType), Q (storyTime), R (storyPostTime)
   for (let rowIndex = 0; rowIndex < values.length; rowIndex++) {
     const row = values[rowIndex];
-    
+
     // Skip empty rows
-    if (!row || row.every(cell => !cell || cell.trim() === '')) {
+    if (!row || row.every((cell) => !cell || cell.trim() === "")) {
       continue;
     }
 
@@ -404,19 +456,25 @@ function parseFullScheduleSetup(values: string[][]): Array<{
     const storyPostTime = row[5] || '""';
 
     // Add to the array if at least one field has meaningful data
-    if (mmTime !== '""' || massMessageType !== '""' || postTime !== '""' || 
-        wallPostType !== '""' || storyTime !== '""' || storyPostTime !== '""') {
+    if (
+      mmTime !== '""' ||
+      massMessageType !== '""' ||
+      postTime !== '""' ||
+      wallPostType !== '""' ||
+      storyTime !== '""' ||
+      storyPostTime !== '""'
+    ) {
       fullScheduleSetup.push({
         mmTime: mmTime.trim(),
         massMessageType: massMessageType.trim(),
         postTime: postTime.trim(),
         wallPostType: wallPostType.trim(),
         storyTime: storyTime.trim(),
-        storyPostTime: storyPostTime.trim()
+        storyPostTime: storyPostTime.trim(),
       });
     }
   }
 
-  console.log('Parsed full schedule setup:', fullScheduleSetup);
+  console.log("Parsed full schedule setup:", fullScheduleSetup);
   return fullScheduleSetup;
 }

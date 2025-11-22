@@ -54,7 +54,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -90,13 +90,13 @@ export async function GET(request: NextRequest) {
           videoTitle, // Column B - Video Title
           videoCategory, // Column C
           featuredEvents, // Column D
-          // status - unused for now (Column E)
           ,
+          // status - unused for now (Column E)
           caption, // Column F
+          ,
+          ,
           // linkDrop - unused (Column G)
           // priceSet - unused (Column H)
-          ,
-          ,
           additionalNotes, // Column I
           videoLink, // Column J
           creationDate, // Column K

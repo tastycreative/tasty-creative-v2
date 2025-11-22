@@ -24,7 +24,7 @@ export async function GET(): Promise<NextResponse> {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -33,10 +33,15 @@ export async function GET(): Promise<NextResponse> {
       expiry_date: session.expiresAt ? session.expiresAt * 1000 : undefined, // Convert seconds to milliseconds
     });
 
-    const sheets: sheets_v4.Sheets = google.sheets({ version: "v4", auth: oauth2Client });
+    const sheets: sheets_v4.Sheets = google.sheets({
+      version: "v4",
+      auth: oauth2Client,
+    });
 
     // Get spreadsheet info to find first sheet
-    const spreadsheet = await sheets.spreadsheets.get({ spreadsheetId: SPREADSHEET_ID });
+    const spreadsheet = await sheets.spreadsheets.get({
+      spreadsheetId: SPREADSHEET_ID,
+    });
     const firstSheetTitle = spreadsheet.data.sheets?.[0]?.properties?.title;
 
     if (!firstSheetTitle) {
@@ -59,11 +64,15 @@ export async function GET(): Promise<NextResponse> {
     const modelIndex = headers.indexOf("Model");
 
     if (modelIndex === -1) {
-      return NextResponse.json({ error: "Model column not found" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Model column not found" },
+        { status: 400 }
+      );
     }
 
     // Filter and format rows for pod-new onboarding dashboard
-    const rows = values.slice(1)
+    const rows = values
+      .slice(1)
       .filter((row) => row[modelIndex]?.trim()) // filter rows with non-empty "Model"
       .map((row) => {
         const rowObj: Record<string, string> = {};
@@ -79,17 +88,20 @@ export async function GET(): Promise<NextResponse> {
       totalModels: rows.length,
       lastUpdated: new Date().toISOString(),
       sheetId: SPREADSHEET_ID,
-      tasks: headers.filter(h => h !== "Model" && h !== "Status")
+      tasks: headers.filter((h) => h !== "Model" && h !== "Status"),
     };
 
     return NextResponse.json(responseData, { status: 200 });
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
     console.error("❌ Error fetching POD onboarding data:", error);
 
     // Handle Google API permission errors specifically
     if (error.code === 403 && error.errors && error.errors.length > 0) {
-      console.error("Google API Permission Error (403):", error.errors[0].message);
+      console.error(
+        "Google API Permission Error (403):",
+        error.errors[0].message
+      );
       return NextResponse.json(
         {
           error: "GooglePermissionDenied",
@@ -99,6 +111,9 @@ export async function GET(): Promise<NextResponse> {
       );
     }
 
-    return NextResponse.json({ error: "Failed to fetch POD onboarding data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch POD onboarding data" },
+      { status: 500 }
+    );
   }
 }

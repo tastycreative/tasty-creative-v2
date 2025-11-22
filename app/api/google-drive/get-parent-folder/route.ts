@@ -5,10 +5,13 @@ import { auth } from "@/auth";
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const fileId = searchParams.get('fileId');
-    
+    const fileId = searchParams.get("fileId");
+
     if (!fileId) {
-      return NextResponse.json({ error: 'File ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "File ID is required" },
+        { status: 400 }
+      );
     }
 
     // Authenticate user session
@@ -29,7 +32,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -43,26 +46,28 @@ export async function GET(request: NextRequest) {
     // Get file metadata including parents
     const response = await drive.files.get({
       fileId: fileId,
-      fields: 'parents',
-      supportsAllDrives: true
+      fields: "parents",
+      supportsAllDrives: true,
     });
 
     const parents = response.data.parents;
-    
+
     if (!parents || parents.length === 0) {
-      return NextResponse.json({ error: 'No parent folder found' }, { status: 404 });
+      return NextResponse.json(
+        { error: "No parent folder found" },
+        { status: 404 }
+      );
     }
 
     // Return the first parent folder ID
     const parentFolderId = parents[0];
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       parentFolderId,
-      fileId
+      fileId,
     });
-    
   } catch (error: any) {
-    console.error('Error getting parent folder:', error);
+    console.error("Error getting parent folder:", error);
 
     // Check if the error is from Google API and has a 403 status
     if (error.code === 403 && error.errors && error.errors.length > 0) {
@@ -81,7 +86,7 @@ export async function GET(request: NextRequest) {
 
     // For other types of errors, return a generic 500
     return NextResponse.json(
-      { error: 'Failed to get parent folder' },
+      { error: "Failed to get parent folder" },
       { status: 500 }
     );
   }

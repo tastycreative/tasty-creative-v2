@@ -43,9 +43,10 @@ export async function POST(req: NextRequest) {
     // Check for token refresh errors
     if ((session as any).error === "RefreshAccessTokenError") {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: "Your Google Drive access has expired. Please sign out and sign in again to reconnect." 
+        {
+          success: false,
+          error:
+            "Your Google Drive access has expired. Please sign out and sign in again to reconnect.",
         },
         { status: 401 }
       );
@@ -53,9 +54,10 @@ export async function POST(req: NextRequest) {
 
     if (!session?.accessToken || !session?.refreshToken) {
       return NextResponse.json(
-        { 
-          success: false, 
-          error: "No Google Drive access. Please sign out and sign in again to grant Google Drive permissions." 
+        {
+          success: false,
+          error:
+            "No Google Drive access. Please sign out and sign in again to grant Google Drive permissions.",
         },
         { status: 401 }
       );
@@ -158,7 +160,7 @@ export async function POST(req: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({

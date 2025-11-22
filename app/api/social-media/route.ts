@@ -4,11 +4,11 @@ import { auth } from "@/auth";
 
 interface SocialMediaItem {
   id: string;
-  type: 'video' | 'photo';
+  type: "video" | "photo";
   title: string;
   duration?: string;
   timeAgo: string;
-  status: 'HAS_GIF' | 'NEEDS_GIF';
+  status: "HAS_GIF" | "NEEDS_GIF";
   campaignReady: boolean;
   thumbnail: string;
   contentType?: string;
@@ -26,21 +26,27 @@ interface SocialMediaItem {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const modelName = searchParams.get('modelName');
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '100');
-    const getTotalOnly = searchParams.get('getTotalOnly') === 'true';
-    
+    const modelName = searchParams.get("modelName");
+    const page = parseInt(searchParams.get("page") || "1");
+    const limit = parseInt(searchParams.get("limit") || "100");
+    const getTotalOnly = searchParams.get("getTotalOnly") === "true";
+
     if (!modelName) {
-      return NextResponse.json({ error: 'Model name is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Model name is required" },
+        { status: 400 }
+      );
     }
 
     // Validate pagination parameters
     if (page < 1) {
-      return NextResponse.json({ error: 'Page must be >= 1' }, { status: 400 });
+      return NextResponse.json({ error: "Page must be >= 1" }, { status: 400 });
     }
     if (limit < 1 || limit > 500) {
-      return NextResponse.json({ error: 'Limit must be between 1 and 500' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Limit must be between 1 and 500" },
+        { status: 400 }
+      );
     }
 
     // Authenticate user session
@@ -61,7 +67,7 @@ export async function GET(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -73,31 +79,35 @@ export async function GET(request: NextRequest) {
     const sheets = google.sheets({ version: "v4", auth: oauth2Client });
 
     // Google Sheets API configuration
-    const SPREADSHEET_ID = '1_BRrKVZbLwnHJCNYsacu5Lx25yJ7eoPpAEsbv1OBwtA';
+    const SPREADSHEET_ID = "1_BRrKVZbLwnHJCNYsacu5Lx25yJ7eoPpAEsbv1OBwtA";
     const SHEET_NAME = `${modelName.charAt(0).toUpperCase() + modelName.slice(1).toLowerCase()} - SOCIAL MEDIA`;
-    
+
     // First, get the total count of rows to determine pagination
     const totalCountRange = `${SHEET_NAME}!B4:B`; // Get all B column values to count rows
     const countResponse = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: totalCountRange,
-      valueRenderOption: 'FORMATTED_VALUE', // Just for counting, don't need formulas
+      valueRenderOption: "FORMATTED_VALUE", // Just for counting, don't need formulas
     });
 
     const allBColumnValues = countResponse.data.values || [];
     // Filter out empty rows
-    const totalRows = allBColumnValues.filter(row => row[0] && row[0].trim() !== '').length;
+    const totalRows = allBColumnValues.filter(
+      (row) => row[0] && row[0].trim() !== ""
+    ).length;
     const totalPages = Math.ceil(totalRows / limit);
 
-    console.log(`📊 Social Media API: Total rows: ${totalRows}, Page: ${page}/${totalPages}, Limit: ${limit}`);
+    console.log(
+      `📊 Social Media API: Total rows: ${totalRows}, Page: ${page}/${totalPages}, Limit: ${limit}`
+    );
 
     // If only requesting total count, return early
     if (getTotalOnly) {
-      return NextResponse.json({ 
-        totalItems: totalRows, 
+      return NextResponse.json({
+        totalItems: totalRows,
         totalPages: totalPages,
         currentPage: page,
-        itemsPerPage: limit
+        itemsPerPage: limit,
       });
     }
 
@@ -105,17 +115,17 @@ export async function GET(request: NextRequest) {
     const startRow = 4 + (page - 1) * limit; // Start from row 4, add offset for pagination
     const endRow = startRow + limit - 1;
     const RANGE = `${SHEET_NAME}!B${startRow}:L${endRow}`;
-    
+
     console.log(`📄 Fetching range: ${RANGE}`);
-    
+
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SPREADSHEET_ID,
       range: RANGE,
-      valueRenderOption: 'FORMULA', // Get formulas instead of display values
+      valueRenderOption: "FORMULA", // Get formulas instead of display values
     });
 
     const rows = response.data.values;
-    
+
     if (!rows || rows.length === 0) {
       return NextResponse.json({ contentItems: [] });
     }
@@ -131,13 +141,14 @@ export async function GET(request: NextRequest) {
           caption, // Column F - Caption
           postLink, // Column G - Post Link
           uploadDate, // Column H - Upload Date
-          , // Column I - (empty)
+          // Column I - (empty)
+          ,
           creator, // Column J - Creator @'s
-          additionalNotes // Column K - Additional Notes
+          additionalNotes, // Column K - Additional Notes
         ] = row;
 
         // Skip rows without content code (empty rows)
-        if (!contentCode || contentCode.trim() === '') {
+        if (!contentCode || contentCode.trim() === "") {
           return null;
         }
 
@@ -145,19 +156,23 @@ export async function GET(request: NextRequest) {
         // Format: =HYPERLINK("https://drive.google.com/file/d/FILE_ID/view?usp=drivesdk", "DISPLAY_TEXT")
         let driveId = null;
         let title = contentCode; // fallback to content code
-        
-        if (contentCode.startsWith('=HYPERLINK(')) {
+
+        if (contentCode.startsWith("=HYPERLINK(")) {
           // Parse HYPERLINK formula
           const hyperlinkMatch = contentCode.match(/=HYPERLINK\("([^"]+)"/);
           const displayTextMatch = contentCode.match(/"([^"]+)"\s*\)$/);
-          
+
           if (hyperlinkMatch) {
             const url = hyperlinkMatch[1];
             const fileIdMatch = url.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
             const folderIdMatch = url.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-            
-            driveId = fileIdMatch ? fileIdMatch[1] : (folderIdMatch ? folderIdMatch[1] : null);
-            
+
+            driveId = fileIdMatch
+              ? fileIdMatch[1]
+              : folderIdMatch
+                ? folderIdMatch[1]
+                : null;
+
             if (displayTextMatch) {
               title = displayTextMatch[1];
             }
@@ -165,39 +180,50 @@ export async function GET(request: NextRequest) {
         } else {
           // Handle direct URLs or plain text
           const fileIdMatch = contentCode.match(/\/file\/d\/([a-zA-Z0-9-_]+)/);
-          const folderIdMatch = contentCode.match(/\/folders\/([a-zA-Z0-9-_]+)/);
-          
-          driveId = fileIdMatch ? fileIdMatch[1] : (folderIdMatch ? folderIdMatch[1] : null);
+          const folderIdMatch = contentCode.match(
+            /\/folders\/([a-zA-Z0-9-_]+)/
+          );
+
+          driveId = fileIdMatch
+            ? fileIdMatch[1]
+            : folderIdMatch
+              ? folderIdMatch[1]
+              : null;
         }
-        
+
         const isFolder = false; // Social media items are typically files
-        
+
         console.log(`Processing social media content: ${contentCode}`, {
           driveId,
           title,
           contentType,
           platform,
-          isHyperlink: contentCode.startsWith('=HYPERLINK(')
+          isHyperlink: contentCode.startsWith("=HYPERLINK("),
         });
-        
+
         // Generate thumbnail URL using our image proxy
         const thumbnail = driveId
           ? `/api/image-proxy?id=${driveId}`
           : `https://via.placeholder.com/400x225/374151/9ca3af?text=${encodeURIComponent(title.substring(0, 20))}`;
 
         // Parse upload date
-        const timeAgo = uploadDate ? getTimeAgo(new Date(uploadDate)) : 'Unknown';
-        
+        const timeAgo = uploadDate
+          ? getTimeAgo(new Date(uploadDate))
+          : "Unknown";
+
         // Determine if it's video or photo based on content type
-        const itemType = contentType && contentType.toLowerCase().includes('video') ? 'video' : 'photo';
-        
+        const itemType =
+          contentType && contentType.toLowerCase().includes("video")
+            ? "video"
+            : "photo";
+
         return {
           id: `social_${index + 1}`,
           type: itemType,
           title: title.trim(),
-          duration: itemType === 'video' ? 'Unknown' : undefined,
+          duration: itemType === "video" ? "Unknown" : undefined,
           timeAgo,
-          status: 'HAS_GIF' as const, // Default status for social media content
+          status: "HAS_GIF" as const, // Default status for social media content
           campaignReady: false, // Default to false
           thumbnail,
           contentType,
@@ -209,12 +235,12 @@ export async function GET(request: NextRequest) {
           creator,
           additionalNotes,
           driveId,
-          isFolder
+          isFolder,
         };
       })
       .filter((item) => item !== null) as SocialMediaItem[];
 
-    return NextResponse.json({ 
+    return NextResponse.json({
       contentItems,
       pagination: {
         currentPage: page,
@@ -222,13 +248,13 @@ export async function GET(request: NextRequest) {
         totalItems: totalRows,
         itemsPerPage: limit,
         hasNextPage: page < totalPages,
-        hasPreviousPage: page > 1
-      }
+        hasPreviousPage: page > 1,
+      },
     });
-    
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
   } catch (error: any) {
-    console.error('Error fetching social media content:', error);
+    console.error("Error fetching social media content:", error);
 
     // Check if the error is from Google API and has a 403 status
     if (error.code === 403 && error.errors && error.errors.length > 0) {
@@ -247,7 +273,7 @@ export async function GET(request: NextRequest) {
 
     // For other types of errors, return a generic 500
     return NextResponse.json(
-      { error: 'Failed to fetch social media content' },
+      { error: "Failed to fetch social media content" },
       { status: 500 }
     );
   }
@@ -261,12 +287,14 @@ function getTimeAgo(date: Date): string {
   const diffInMinutes = Math.floor(diffInMs / (1000 * 60));
 
   if (diffInDays > 0) {
-    return diffInDays === 1 ? '1 day ago' : `${diffInDays} days ago`;
+    return diffInDays === 1 ? "1 day ago" : `${diffInDays} days ago`;
   } else if (diffInHours > 0) {
-    return diffInHours === 1 ? '1 hour ago' : `${diffInHours} hours ago`;
+    return diffInHours === 1 ? "1 hour ago" : `${diffInHours} hours ago`;
   } else if (diffInMinutes > 0) {
-    return diffInMinutes === 1 ? '1 minute ago' : `${diffInMinutes} minutes ago`;
+    return diffInMinutes === 1
+      ? "1 minute ago"
+      : `${diffInMinutes} minutes ago`;
   } else {
-    return 'Just now';
+    return "Just now";
   }
 }

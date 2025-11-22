@@ -7,7 +7,7 @@ export async function GET() {
   try {
     // Get session using Auth.js
     const session = await auth();
-    
+
     if (!session || !session.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -23,7 +23,7 @@ export async function GET() {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -41,20 +41,22 @@ export async function GET() {
     });
 
     return NextResponse.json({ files: res.data.files || [] });
-
   } catch (error: any) {
     console.error("Google Drive API error:", error);
-    
+
     // Handle Google API specific errors
     if (error.code === 403 && error.errors && error.errors.length > 0) {
       console.error(
         "Google API Permission Error (403):",
         error.errors[0].message
       );
-      return NextResponse.json({
-        error: "GooglePermissionDenied",
-        message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission for Google Drive."}`,
-      }, { status: 403 });
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission for Google Drive."}`,
+        },
+        { status: 403 }
+      );
     }
 
     return NextResponse.json(

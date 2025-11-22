@@ -1,4 +1,3 @@
-
 import { NextResponse } from "next/server";
 import { google } from "googleapis";
 import { auth } from "@/auth";
@@ -7,7 +6,7 @@ export async function GET() {
   try {
     // Get session using Auth.js
     const session = await auth();
-    
+
     if (!session || !session.user) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -23,7 +22,7 @@ export async function GET() {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -36,27 +35,26 @@ export async function GET() {
 
     // Search for Google Docs in the same folder where scripts are saved
     const SCRIPTS_FOLDER_ID = "1mwWO8WRT60DDdJTSLvkejhFuJUrNFBwC";
-    
+
     const response = await drive.files.list({
       q: `mimeType='application/vnd.google-apps.document' and '${SCRIPTS_FOLDER_ID}' in parents and trashed=false`,
-      fields: 'files(id, name, createdTime, modifiedTime, webViewLink, size)',
-      orderBy: 'modifiedTime desc',
+      fields: "files(id, name, createdTime, modifiedTime, webViewLink, size)",
+      orderBy: "modifiedTime desc",
       pageSize: 50, // Limit to 50 most recent documents
     });
 
     const documents = response.data.files || [];
 
-    return NextResponse.json({ 
-      documents: documents.map(doc => ({
+    return NextResponse.json({
+      documents: documents.map((doc) => ({
         id: doc.id,
         name: doc.name,
         createdTime: doc.createdTime,
         modifiedTime: doc.modifiedTime,
         webViewLink: doc.webViewLink,
-        size: doc.size
-      }))
+        size: doc.size,
+      })),
     });
-
   } catch (error: any) {
     console.error("Error fetching documents:", error);
 

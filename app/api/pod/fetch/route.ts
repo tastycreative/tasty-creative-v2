@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
     const oauth2Client = new google.auth.OAuth2(
       process.env.GOOGLE_CLIENT_ID,
       process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.NEXTAUTH_URL
     );
 
     oauth2Client.setCredentials({
@@ -358,7 +358,7 @@ export async function POST(request: NextRequest) {
         .split(",")
         .map((memberStr: string, index: number) => {
           const trimmed = memberStr.trim();
-          
+
           // Check if the member string contains " - " to separate email and role
           if (trimmed.includes(" - ")) {
             const [email, role] = trimmed.split(" - ");
@@ -374,7 +374,12 @@ export async function POST(request: NextRequest) {
               id: (index + 1).toString(),
               name: trimmed,
               email: trimmed.includes("@") ? trimmed : "",
-              role: index === 0 ? "Team Lead" : index === 1 ? "Designer" : "Developer",
+              role:
+                index === 0
+                  ? "Team Lead"
+                  : index === 1
+                    ? "Designer"
+                    : "Developer",
             };
           }
         })
@@ -386,13 +391,13 @@ export async function POST(request: NextRequest) {
       // Parse creators (F{rowNumber}) - comma-separated
       const creatorsRange = values[3];
       const creatorsString = creatorsRange?.values?.[0]?.[0] || "";
-      
+
       // Fetch all creator names from column A to get row numbers
       let creatorRowMap: Record<string, number> = {};
       try {
         const allCreatorsResponse = await sheets.spreadsheets.values.get({
           spreadsheetId: spreadsheetId,
-          range: 'A:A', // Get all names from column A
+          range: "A:A", // Get all names from column A
         });
 
         const allCreatorNames = allCreatorsResponse.data.values?.flat() || [];
@@ -402,19 +407,20 @@ export async function POST(request: NextRequest) {
           }
         });
       } catch (error) {
-        console.error('Error fetching creator names for row numbers:', error);
+        console.error("Error fetching creator names for row numbers:", error);
       }
-      
+
       const creators = creatorsString
         .split(",")
         .map((name: string, index: number) => {
           const trimmedName = name.trim();
-          const rowNumber = creatorRowMap[trimmedName.toLowerCase()] || (index + 1);
-          
+          const rowNumber =
+            creatorRowMap[trimmedName.toLowerCase()] || index + 1;
+
           return {
             id: rowNumber.toString(),
             name: trimmedName,
-            rowNumber: rowNumber
+            rowNumber: rowNumber,
           };
         })
         .filter(
