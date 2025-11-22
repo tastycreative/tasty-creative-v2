@@ -9,6 +9,7 @@ interface User {
   image: string | null;
   createdAt: Date;
   emailVerified: Date | null;
+  lastAccessedAt: Date | null;
 }
 
 interface PaginationInfo {

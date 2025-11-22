@@ -424,6 +424,11 @@ export function AdminUsersClient({
                               <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                                 Joined {formatForDisplay(user.createdAt, 'date')}
                               </p>
+                              {user.lastAccessedAt && (
+                                <p className="text-xs text-gray-400 dark:text-gray-600">
+                                  Last active: {formatForDisplay(user.lastAccessedAt, 'date')}
+                                </p>
+                              )}
                             </div>
                             <div className="flex flex-col items-end space-y-2 ml-2">
                               <Badge
@@ -592,6 +597,11 @@ export function AdminUsersClient({
                             <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
                               {formatForDisplay(user.createdAt, 'EEEE')}
                             </div>
+                            {user.lastAccessedAt && (
+                              <div className="text-xs text-gray-400 dark:text-gray-600 truncate mt-1">
+                                Active: {formatForDisplay(user.lastAccessedAt, 'date')}
+                              </div>
+                            )}
                           </div>
                         </td>
                         <td className="px-4 py-4 whitespace-nowrap">

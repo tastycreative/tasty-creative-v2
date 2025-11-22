@@ -9,20 +9,30 @@ import bcrypt from "bcryptjs";
 // Token refresh mutex to prevent concurrent refresh attempts
 const refreshPromises = new Map<string, Promise<any>>();
 
+// Cache to throttle last_accessed updates (userId -> timestamp)
+const lastAccessUpdateCache = new Map<string, number>();
+
 // TODO: Define a more specific type for the token object
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshAccessToken(token: any) {
   try {
-    // Check if refresh token exists
-    if (!token.refreshToken) {
-      console.error("❌ No refresh token available for token refresh");
+    // Get the latest refresh token from the database
+    const account = await prisma.account.findFirst({
+      where: {
+        userId: token.id,
+        provider: "google",
+      },
+    });
+
+    if (!account?.refresh_token) {
+      console.error("❌ No refresh token found in database for user:", token.id);
       return {
         ...token,
         error: "NoRefreshToken",
       };
     }
 
-    console.log("🔄 Attempting to refresh access token...");
+    console.log("🔄 Attempting to refresh access token using database refresh token...");
 
     const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
@@ -32,7 +42,7 @@ async function refreshAccessToken(token: any) {
       body: new URLSearchParams({
         client_id: process.env.AUTH_GOOGLE_ID!,
         client_secret: process.env.AUTH_GOOGLE_SECRET!,
-        refresh_token: token.refreshToken,
+        refresh_token: account.refresh_token,
         grant_type: "refresh_token",
       }),
     });
@@ -64,12 +74,31 @@ async function refreshAccessToken(token: any) {
 
     console.log("✅ Access token refreshed successfully");
 
+    // Update the database with the new tokens
+    const newRefreshToken = refreshedTokens.refresh_token ?? account.refresh_token;
+    const expiresAt = Math.floor(Date.now() / 1000 + refreshedTokens.expires_in);
+    const now = new Date();
+
+    await prisma.account.update({
+      where: {
+        id: account.id,
+      },
+      data: {
+        access_token: refreshedTokens.access_token,
+        refresh_token: newRefreshToken,
+        expires_at: expiresAt,
+        last_refreshed: now,
+        last_accessed: now,
+      },
+    });
+
+    console.log("💾 Updated tokens in database (refreshed at:", now.toISOString(), ")");
+
     return {
       ...token,
       accessToken: refreshedTokens.access_token,
-      expiresAt: Math.floor(Date.now() / 1000 + refreshedTokens.expires_in),
-      // Keep the existing refresh token if a new one isn't provided
-      refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+      expiresAt: expiresAt,
+      refreshToken: newRefreshToken,
       error: undefined, // Clear any previous errors
     };
   } catch (error) {
@@ -234,6 +263,25 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           // Set error flag so UI can prompt user to re-authorize
           token.error = "NoRefreshToken";
+        } else {
+          // Manually save refresh token to database to ensure it's persisted
+          console.log("💾 Saving refresh token to database for user:", token.id);
+          try {
+            await prisma.account.updateMany({
+              where: {
+                userId: token.id as string,
+                provider: "google",
+              },
+              data: {
+                refresh_token: account.refresh_token,
+                access_token: account.access_token,
+                expires_at: account.expires_at,
+              },
+            });
+            console.log("✅ Refresh token saved to database");
+          } catch (error) {
+            console.error("❌ Failed to save refresh token to database:", error);
+          }
         }
 
         token.accessToken = account.access_token;
@@ -319,6 +367,28 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         (session as any).error = token.error;
       }
+
+      // Update last_accessed timestamp on every session check (throttled to avoid too many DB writes)
+      const userId = token.id as string;
+      const shouldUpdate = !lastAccessUpdateCache.has(userId) ||
+        (Date.now() - lastAccessUpdateCache.get(userId)!) > 60000; // Update max once per minute
+
+      if (shouldUpdate) {
+        lastAccessUpdateCache.set(userId, Date.now());
+        // Update last_accessed in background without blocking the response
+        prisma.account.updateMany({
+          where: {
+            userId: userId,
+            provider: "google",
+          },
+          data: {
+            last_accessed: new Date(),
+          },
+        }).catch((error: any) => {
+          console.error("❌ Failed to update last_accessed:", error);
+        });
+      }
+
       return session;
     },
     async signIn({ user, account }) {

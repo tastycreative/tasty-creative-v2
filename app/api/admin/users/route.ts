@@ -52,6 +52,16 @@ export async function GET(request: Request) {
           image: true,
           createdAt: true,
           emailVerified: true,
+          lastAccessedAt: true,
+          accounts: {
+            select: {
+              last_accessed: true,
+            },
+            where: {
+              provider: "google",
+            },
+            take: 1,
+          },
         },
         orderBy: {
           createdAt: "desc",
@@ -60,14 +70,21 @@ export async function GET(request: Request) {
         take: pageSize,
       });
 
+      // Transform users to include last_accessed from account
+      const usersWithLastAccess = users.map(user => ({
+        ...user,
+        lastAccessedAt: user.accounts[0]?.last_accessed || user.lastAccessedAt || null,
+        accounts: undefined, // Remove accounts from response
+      }));
+
       // Calculate pagination info
       const totalPages = pageSize ? Math.ceil(totalUsers / pageSize) : 1;
       const hasNextPage = pageSize ? page < totalPages : false;
       const hasPrevPage = page > 1;
 
-      return NextResponse.json({ 
+      return NextResponse.json({
         success: true,
-        users,
+        users: usersWithLastAccess,
         pagination: {
           page,
           limit: limit || "10",
