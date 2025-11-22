@@ -6,7 +6,6 @@ import { useAdminUsers, useAdminUsersActions } from "@/hooks/useAdminUsers";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { ActivityHistoryTable } from "@/components/admin/ActivityHistoryTable";
 import { formatForDisplay } from "@/lib/dateUtils";
-import { Role } from "@prisma/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,7 @@ export function AdminUsersClient({
   
   // Bulk selection state
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
-  const [bulkRole, setBulkRole] = useState<Role>("USER");
+  const [bulkRole, setBulkRole] = useState<string>("USER");
   const [isBulkUpdating, setIsBulkUpdating] = useState(false);
 
   // Debounced search - only reset page when search actually changes
@@ -296,7 +295,7 @@ export function AdminUsersClient({
                       <span className="text-sm text-gray-600 dark:text-gray-400 font-medium">Change role to:</span>
                       <select
                         value={bulkRole}
-                        onChange={(e) => setBulkRole(e.target.value as Role)}
+                        onChange={(e) => setBulkRole(e.target.value)}
                         disabled={isBulkUpdating}
                         className="px-3 py-1.5 text-sm border border-pink-200 dark:border-pink-500/30 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500 disabled:opacity-50"
                       >
@@ -426,7 +425,7 @@ export function AdminUsersClient({
                               </p>
                               {user.lastAccessedAt && (
                                 <p className="text-xs text-gray-400 dark:text-gray-600">
-                                  Last active: {formatForDisplay(user.lastAccessedAt, 'date')}
+                                  Last active: {formatForDisplay(user.lastAccessedAt, 'short')}
                                 </p>
                               )}
                             </div>
@@ -599,7 +598,7 @@ export function AdminUsersClient({
                             </div>
                             {user.lastAccessedAt && (
                               <div className="text-xs text-gray-400 dark:text-gray-600 truncate mt-1">
-                                Active: {formatForDisplay(user.lastAccessedAt, 'date')}
+                                Active: {formatForDisplay(user.lastAccessedAt, 'short')}
                               </div>
                             )}
                           </div>
@@ -608,7 +607,7 @@ export function AdminUsersClient({
                           <div className="flex items-center space-x-1 min-w-0">
                             <UserRoleForm
                               userId={user.id}
-                              currentRole={user.role as Role}
+                              currentRole={user.role}
                               userName={user.name || user.email || "User"}
                               isCurrentUser={user.id === sessionUserId}
                             />

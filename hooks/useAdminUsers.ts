@@ -5,7 +5,7 @@ interface User {
   id: string;
   email: string | null;
   name: string | null;
-  role: string;
+  role: Role;
   image: string | null;
   createdAt: Date;
   emailVerified: Date | null;

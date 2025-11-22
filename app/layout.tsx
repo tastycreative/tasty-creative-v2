@@ -4,6 +4,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 // import QuicklinksNavigation from "@/components/QuickLinksNavigation";
 import { SessionMonitor } from "@/components/SessionMonitor";
+import { SessionErrorHandler } from "@/components/auth/SessionErrorHandler";
 import ChatBot from "@/components/ChatBot";
 
 const geistSans = Geist({
@@ -48,6 +49,7 @@ export default function RootLayout({
       >
         <Providers>
           <SessionMonitor />
+          <SessionErrorHandler />
           {children}
           {/* <QuicklinksNavigation /> */}
           <ChatBot />
