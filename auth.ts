@@ -10,6 +10,17 @@ import bcrypt from "bcryptjs";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshAccessToken(token: any) {
   try {
+    // Check if refresh token exists
+    if (!token.refreshToken) {
+      console.error("❌ No refresh token available for token refresh");
+      return {
+        ...token,
+        error: "NoRefreshToken",
+      };
+    }
+
+    console.log("🔄 Attempting to refresh access token...");
+
     const response = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: {
@@ -26,12 +37,29 @@ async function refreshAccessToken(token: any) {
     const refreshedTokens = await response.json();
 
     if (!response.ok) {
-      console.error("Error refreshing access token:", refreshedTokens);
+      console.error("❌ Token refresh failed:", {
+        status: response.status,
+        statusText: response.statusText,
+        error: refreshedTokens.error,
+        error_description: refreshedTokens.error_description,
+      });
+
+      // Check for specific error types
+      if (refreshedTokens.error === "invalid_grant") {
+        console.error("🔐 Refresh token is invalid or expired. User needs to re-authenticate.");
+        return {
+          ...token,
+          error: "RefreshTokenExpired",
+        };
+      }
+
       return {
         ...token,
         error: "RefreshAccessTokenError",
       };
     }
+
+    console.log("✅ Access token refreshed successfully");
 
     return {
       ...token,
@@ -39,9 +67,10 @@ async function refreshAccessToken(token: any) {
       expiresAt: Math.floor(Date.now() / 1000 + refreshedTokens.expires_in),
       // Keep the existing refresh token if a new one isn't provided
       refreshToken: refreshedTokens.refresh_token ?? token.refreshToken,
+      error: undefined, // Clear any previous errors
     };
   } catch (error) {
-    console.error("Error refreshing access token:", error);
+    console.error("❌ Exception during token refresh:", error);
     return {
       ...token,
       error: "RefreshAccessTokenError",
@@ -63,10 +92,20 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorization: {
         params: {
           access_type: "offline",
-          prompt: "consent",
+          prompt: "consent", // Force consent screen to always get refresh token
           scope:
             "openid profile email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
         },
+      },
+      // Add profile callback to ensure we request the refresh token
+      profile(profile) {
+        return {
+          id: profile.sub,
+          name: profile.name,
+          email: profile.email,
+          image: profile.picture,
+          emailVerified: profile.email_verified ? new Date(profile.email_verified) : null,
+        };
       },
     }),
     Credentials({
@@ -176,39 +215,62 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       }
       // Add Google OAuth tokens to the JWT
       if (account && account.provider === "google") {
-        console.log("JWT Callback - Google account data:");
+        console.log("🔑 JWT Callback - Google account data:");
         console.log("- Has access_token:", !!account.access_token);
         console.log("- Has refresh_token:", !!account.refresh_token);
         console.log("- expires_at:", account.expires_at);
-        
+
+        // Critical: Check if refresh token is provided
+        if (!account.refresh_token) {
+          console.error("⚠️ WARNING: Google did not return a refresh token!");
+          console.error("This usually happens when:");
+          console.error("1. User has previously authorized this app");
+          console.error("2. The authorization params are not forcing consent");
+          console.error("Solution: User needs to revoke app access in Google settings and sign in again");
+          console.error("Or: Use prompt='consent' to force the consent screen");
+
+          // Set error flag so UI can prompt user to re-authorize
+          token.error = "NoRefreshToken";
+        }
+
         token.accessToken = account.access_token;
         token.refreshToken = account.refresh_token;
         token.expiresAt = account.expires_at;
-        
-        if (!account.refresh_token) {
-          console.warn("WARNING: Google did not return a refresh token! This will cause permission issues.");
-        }
       }
 
       // If the access token has expired, try to refresh it
       // This now works for any request, not just when account is present
       if (token.refreshToken && token.expiresAt) {
         // Check if token is expired or about to expire (e.g., within the next 5 minutes)
-        const buffer = 5 * 60 * 1000; // 5 minutes buffer
-        const now = Date.now();
-        const expiryTime = Number(token.expiresAt) * 1000;
-        
+        const buffer = 5 * 60; // 5 minutes buffer in seconds
+        const now = Math.floor(Date.now() / 1000); // Current time in seconds
+        const expiryTime = Number(token.expiresAt);
+
         if (now > expiryTime - buffer) {
-          console.log("Access token expired or expiring soon, attempting refresh...");
+          console.log("🕐 Access token expired or expiring soon, attempting refresh...");
           const refreshedToken = await refreshAccessToken(token);
 
           if (refreshedToken.error) {
-            console.error("Failed to refresh access token:", refreshedToken.error);
-            // Don't clear the token immediately - let the user know they need to re-auth
+            console.error("❌ Failed to refresh access token:", refreshedToken.error);
+
+            // If refresh token is expired, user needs to re-authenticate
+            if (refreshedToken.error === "RefreshTokenExpired" || refreshedToken.error === "NoRefreshToken") {
+              console.error("🔐 User needs to sign in again to get new tokens");
+              // Clear sensitive data but keep user info
+              return {
+                ...token,
+                accessToken: undefined,
+                refreshToken: undefined,
+                expiresAt: undefined,
+                error: refreshedToken.error,
+              };
+            }
+
+            // For other errors, keep the token with error flag
             token.error = refreshedToken.error;
-            return token; // Return token with error so UI can handle re-authentication
+            return token;
           }
-          console.log("Access token refreshed successfully.");
+          console.log("✅ Access token refreshed successfully");
           return refreshedToken;
         }
       }

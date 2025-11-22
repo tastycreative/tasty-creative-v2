@@ -46,10 +46,19 @@ export async function GET(request: NextRequest) {
 
     // Set up Google OAuth2 client
     const oauth2Client = new google.auth.OAuth2(
-      process.env.GOOGLE_CLIENT_ID,
-      process.env.GOOGLE_CLIENT_SECRET,
-      process.env.GOOGLE_REDIRECT_URI
+      process.env.AUTH_GOOGLE_ID,
+      process.env.AUTH_GOOGLE_SECRET,
+      process.env.NEXTAUTH_URL
     );
+
+    // Check if we have valid tokens
+    if (!session.accessToken || !session.refreshToken) {
+      console.error("❌ Missing Google OAuth tokens in session");
+      return NextResponse.json(
+        { error: "MissingTokens", message: "Please sign out and sign in again to refresh your Google permissions" },
+        { status: 401 }
+      );
+    }
 
     oauth2Client.setCredentials({
       access_token: session.accessToken,
