@@ -32,6 +32,32 @@ import {
   X,
 } from "lucide-react";
 
+// Helper function to format relative time
+function formatRelativeTime(date: Date | string): string {
+  const now = new Date();
+  const then = new Date(date);
+  const diffInSeconds = Math.floor((now.getTime() - then.getTime()) / 1000);
+
+  if (diffInSeconds < 60) return 'just now';
+  if (diffInSeconds < 3600) {
+    const minutes = Math.floor(diffInSeconds / 60);
+    return `${minutes}m ago`;
+  }
+  if (diffInSeconds < 86400) {
+    const hours = Math.floor(diffInSeconds / 3600);
+    return `${hours}h ago`;
+  }
+  const days = Math.floor(diffInSeconds / 86400);
+  if (days === 1) return 'yesterday';
+  if (days < 7) return `${days}d ago`;
+  if (days < 30) {
+    const weeks = Math.floor(days / 7);
+    return `${weeks}w ago`;
+  }
+  const months = Math.floor(days / 30);
+  return `${months}mo ago`;
+}
+
 interface AdminUsersClientProps {
   totalUsers: number;
   sessionUserId: string;
@@ -469,9 +495,30 @@ export function AdminUsersClient({
                                 Joined {formatForDisplay(user.createdAt, 'date')}
                               </p>
                               {user.lastAccessedAt && (
-                                <p className="text-xs text-gray-400 dark:text-gray-600">
-                                  Last active: {formatForDisplay(user.lastAccessedAt, 'short')}
-                                </p>
+                                <div
+                                  className="text-xs"
+                                  title={`Last active: ${new Date(user.lastAccessedAt).toLocaleString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit',
+                                    second: '2-digit',
+                                    timeZoneName: 'short'
+                                  })}`}
+                                >
+                                  <p className="text-emerald-600 dark:text-emerald-400 font-medium">
+                                    {formatRelativeTime(user.lastAccessedAt)}
+                                  </p>
+                                  <p className="text-gray-400 dark:text-gray-600 text-[10px]">
+                                    {new Date(user.lastAccessedAt).toLocaleString('en-US', {
+                                      month: 'short',
+                                      day: 'numeric',
+                                      hour: 'numeric',
+                                      minute: '2-digit'
+                                    })}
+                                  </p>
+                                </div>
                               )}
                             </div>
                             <div className="flex flex-col items-end space-y-2 ml-2">
@@ -642,8 +689,29 @@ export function AdminUsersClient({
                               {formatForDisplay(user.createdAt, 'EEEE')}
                             </div>
                             {user.lastAccessedAt && (
-                              <div className="text-xs text-gray-400 dark:text-gray-600 truncate mt-1">
-                                Active: {formatForDisplay(user.lastAccessedAt, 'short')}
+                              <div
+                                className="text-xs mt-1"
+                                title={`Last active: ${new Date(user.lastAccessedAt).toLocaleString('en-US', {
+                                  weekday: 'short',
+                                  month: 'short',
+                                  day: 'numeric',
+                                  hour: 'numeric',
+                                  minute: '2-digit',
+                                  second: '2-digit',
+                                  timeZoneName: 'short'
+                                })}`}
+                              >
+                                <div className="text-emerald-600 dark:text-emerald-400 font-medium truncate">
+                                  {formatRelativeTime(user.lastAccessedAt)}
+                                </div>
+                                <div className="text-gray-400 dark:text-gray-600 text-[10px] truncate">
+                                  {new Date(user.lastAccessedAt).toLocaleString('en-US', {
+                                    month: 'short',
+                                    day: 'numeric',
+                                    hour: 'numeric',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
                               </div>
                             )}
                           </div>
