@@ -12,6 +12,9 @@ const refreshPromises = new Map<string, Promise<any>>();
 // Cache to throttle last_accessed updates (userId -> timestamp)
 const lastAccessUpdateCache = new Map<string, number>();
 
+// Cache for daily stats updates (throttled to once per hour)
+let lastDailyStatsUpdate = 0;
+
 // TODO: Define a more specific type for the token object
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshAccessToken(token: any) {
@@ -387,6 +390,38 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         }).catch((error: any) => {
           console.error("❌ Failed to update last_accessed:", error);
         });
+
+        // Update daily activity stats (throttled to once per hour)
+        const now = Date.now();
+        const oneHour = 60 * 60 * 1000;
+        if (now - lastDailyStatsUpdate > oneHour) {
+          lastDailyStatsUpdate = now;
+
+          // Update today's activity count in background
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          const tomorrow = new Date(today);
+          tomorrow.setDate(tomorrow.getDate() + 1);
+
+          // Count active users today and update stats
+          prisma.$queryRaw`
+            SELECT COUNT(DISTINCT u.id)::bigint as count
+            FROM "User" u
+            LEFT JOIN "Account" a ON a."userId" = u.id AND a.provider = 'google'
+            WHERE COALESCE(a.last_accessed, u."lastAccessedAt") >= ${today}
+              AND COALESCE(a.last_accessed, u."lastAccessedAt") < ${tomorrow}
+          `.then(async (result: any) => {
+            const activeCount = Number(result[0]?.count || 0);
+            await prisma.dailyActivityStat.upsert({
+              where: { date: today },
+              update: { activeUsers: activeCount },
+              create: { date: today, activeUsers: activeCount },
+            });
+            console.log(`✅ Updated daily stats: ${activeCount} active users`);
+          }).catch((error: any) => {
+            console.error("❌ Failed to update daily stats:", error);
+          });
+        }
       }
 
       return session;

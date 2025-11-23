@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAdminUsers, useAdminUsersActions } from "@/hooks/useAdminUsers";
 import { UserRoleForm } from "@/components/admin/UserRoleForm";
 import { ActivityHistoryTable } from "@/components/admin/ActivityHistoryTable";
+import { ActivitySection } from "@/components/admin/ActivitySection";
 import { formatForDisplay } from "@/lib/dateUtils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -51,6 +52,8 @@ export function AdminUsersClient({
   const [page, setPage] = useState(parseInt(searchParams?.get("page") || "1"));
   const [pageSize, setPageSize] = useState(searchParams?.get("limit") || "10");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
+  const [activityStartDate, setActivityStartDate] = useState<string | undefined>();
+  const [activityEndDate, setActivityEndDate] = useState<string | undefined>();
   
   // Bulk selection state
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
@@ -82,18 +85,21 @@ export function AdminUsersClient({
     limit: pageSize,
     search: debouncedSearchTerm,
     role: selectedRole,
-  }), [page, pageSize, debouncedSearchTerm, selectedRole]);
+    activityStartDate,
+    activityEndDate,
+  }), [page, pageSize, debouncedSearchTerm, selectedRole, activityStartDate, activityEndDate]);
 
   // Use TanStack Query for data fetching
-  const { 
-    users, 
-    pagination, 
-    isLoading, 
-    isError, 
-    error, 
-    isFetching, 
+  const {
+    users,
+    pagination,
+    activity,
+    isLoading,
+    isError,
+    error,
+    isFetching,
     isRefetching,
-    refetch 
+    refetch
   } = useAdminUsers(queryParams);
 
   // Update URL params
@@ -192,8 +198,34 @@ export function AdminUsersClient({
     setSelectedUserIds(new Set());
   }, [page, debouncedSearchTerm, selectedRole]);
 
+  const handleMonthChange = useCallback((startDate: string, endDate: string) => {
+    setActivityStartDate(startDate);
+    setActivityEndDate(endDate);
+  }, []);
+
   return (
     <div className="space-y-6">
+      {/* Activity Statistics */}
+      {activity ? (
+        <ActivitySection
+          activity={activity}
+          onMonthChange={handleMonthChange}
+          isLoading={isLoading || isFetching}
+        />
+      ) : isLoading ? (
+        <ActivitySection
+          activity={{
+            daily: [],
+            activeToday: 0,
+            activeThisWeek: 0,
+            activeThisMonth: 0,
+            activeTodayUsers: [],
+          }}
+          onMonthChange={handleMonthChange}
+          isLoading={true}
+        />
+      ) : null}
+
       {/* Tab Navigation */}
       <Card className="border border-pink-200 dark:border-pink-500/30 shadow-sm hover:shadow-md transition-all duration-300 bg-white dark:bg-gray-800">
         <CardContent className="p-6">
