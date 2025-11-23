@@ -52,9 +52,9 @@ export function AdminUsersClient({
   const [page, setPage] = useState(parseInt(searchParams?.get("page") || "1"));
   const [pageSize, setPageSize] = useState(searchParams?.get("limit") || "10");
   const [debouncedSearchTerm, setDebouncedSearchTerm] = useState(searchTerm);
-  const [activityStartDate, setActivityStartDate] = useState<string | undefined>();
-  const [activityEndDate, setActivityEndDate] = useState<string | undefined>();
-  
+  const [activityPeriod, setActivityPeriod] = useState("monthly");
+  const [isPeriodChanging, setIsPeriodChanging] = useState(false);
+
   // Bulk selection state
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [bulkRole, setBulkRole] = useState<string>("USER");
@@ -85,9 +85,8 @@ export function AdminUsersClient({
     limit: pageSize,
     search: debouncedSearchTerm,
     role: selectedRole,
-    activityStartDate,
-    activityEndDate,
-  }), [page, pageSize, debouncedSearchTerm, selectedRole, activityStartDate, activityEndDate]);
+    activityPeriod,
+  }), [page, pageSize, debouncedSearchTerm, selectedRole, activityPeriod]);
 
   // Use TanStack Query for data fetching
   const {
@@ -99,6 +98,7 @@ export function AdminUsersClient({
     error,
     isFetching,
     isRefetching,
+    isSuccess,
     refetch
   } = useAdminUsers(queryParams);
 
@@ -198,10 +198,19 @@ export function AdminUsersClient({
     setSelectedUserIds(new Set());
   }, [page, debouncedSearchTerm, selectedRole]);
 
-  const handleMonthChange = useCallback((startDate: string, endDate: string) => {
-    setActivityStartDate(startDate);
-    setActivityEndDate(endDate);
-  }, []);
+  const handlePeriodChange = useCallback(async (period: string) => {
+    setIsPeriodChanging(true);
+    // Invalidate all admin-users queries to prevent showing stale cached data
+    await queryClient.invalidateQueries({ queryKey: ['admin-users'] });
+    setActivityPeriod(period);
+  }, [queryClient]);
+
+  // Reset period changing state when data is successfully loaded
+  useEffect(() => {
+    if (isSuccess && isPeriodChanging) {
+      setIsPeriodChanging(false);
+    }
+  }, [isSuccess, isPeriodChanging]);
 
   return (
     <div className="space-y-6">
@@ -209,8 +218,10 @@ export function AdminUsersClient({
       {activity ? (
         <ActivitySection
           activity={activity}
-          onMonthChange={handleMonthChange}
-          isLoading={isLoading || isFetching}
+          period={activityPeriod}
+          onPeriodChange={handlePeriodChange}
+          isLoading={isLoading}
+          isChartLoading={isPeriodChanging || isFetching}
         />
       ) : isLoading ? (
         <ActivitySection
@@ -221,8 +232,10 @@ export function AdminUsersClient({
             activeThisMonth: 0,
             activeTodayUsers: [],
           }}
-          onMonthChange={handleMonthChange}
+          period={activityPeriod}
+          onPeriodChange={handlePeriodChange}
           isLoading={true}
+          isChartLoading={true}
         />
       ) : null}
 
@@ -372,7 +385,7 @@ export function AdminUsersClient({
                 <CardTitle className="text-gray-900 dark:text-gray-100 font-bold flex items-center">
                   <Eye className="h-5 w-5 mr-2 text-pink-500" />
                   All Users {pagination ? `(${pagination.showing} of ${pagination.totalUsers})` : ''}
-                  {(isLoading || isFetching) && <RefreshCw className="h-4 w-4 ml-2 animate-spin" />}
+                  {(isLoading || (isFetching && !isPeriodChanging)) && <RefreshCw className="h-4 w-4 ml-2 animate-spin" />}
                 </CardTitle>
                 <div className="flex items-center space-x-2 text-sm text-gray-500 dark:text-gray-400">
                   <Clock className="h-4 w-4" />

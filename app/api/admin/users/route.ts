@@ -16,8 +16,7 @@ export async function GET(request: Request) {
     const limit = searchParams.get("limit");
     const search = searchParams.get("search") || "";
     const roleFilter = searchParams.get("role") || "";
-    const activityStartDate = searchParams.get("activityStartDate");
-    const activityEndDate = searchParams.get("activityEndDate");
+    const activityPeriod = searchParams.get("activityPeriod") || "monthly";
 
     // Validate pagination parameters
     const pageSize = limit === "all" ? undefined : parseInt(limit || "10");
@@ -82,14 +81,46 @@ export async function GET(request: Request) {
       // Calculate activity statistics
       const now = new Date();
       const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      // Calculate date range based on period
+      let startDate = new Date(today);
+      const endDate = new Date(today);
+
+      switch (activityPeriod) {
+        case "weekly":
+          startDate.setDate(startDate.getDate() - 7);
+          break;
+        case "monthly":
+          startDate.setDate(startDate.getDate() - 30);
+          break;
+        case "3months":
+          startDate.setMonth(startDate.getMonth() - 3);
+          break;
+        case "6months":
+          startDate.setMonth(startDate.getMonth() - 6);
+          break;
+        case "9months":
+          startDate.setMonth(startDate.getMonth() - 9);
+          break;
+        case "12months":
+          startDate.setFullYear(startDate.getFullYear() - 1);
+          break;
+        case "alltime":
+          // Get the earliest user creation date
+          const earliestUser = await prisma.user.findFirst({
+            orderBy: { createdAt: "asc" },
+            select: { createdAt: true },
+          });
+          startDate = earliestUser ? new Date(earliestUser.createdAt) : startDate;
+          break;
+        default:
+          startDate.setDate(startDate.getDate() - 30);
+      }
+
       const weekAgo = new Date(today);
       weekAgo.setDate(weekAgo.getDate() - 7);
       const monthAgo = new Date(today);
       monthAgo.setDate(monthAgo.getDate() - 30);
-
-      // Use custom date range or default to last 30 days
-      const startDate = activityStartDate ? new Date(activityStartDate) : monthAgo;
-      const endDate = activityEndDate ? new Date(activityEndDate) : today;
 
       // Get daily activity counts from DailyActivityStat table
       const dailyActivityStats = await prisma.dailyActivityStat.findMany({
@@ -141,41 +172,51 @@ export async function GET(request: Request) {
 
       const activeToday = activeTodayUsers.length;
 
-      // Calculate week and month stats from DailyActivityStat table
-      const [weekStats, monthStats] = await Promise.all([
-        // Last 7 days
-        prisma.dailyActivityStat.findMany({
-          where: {
-            date: {
-              gte: weekAgo,
-            },
-          },
-          select: {
-            activeUsers: true,
-          },
-        }),
-        // Last 30 days
-        prisma.dailyActivityStat.findMany({
-          where: {
-            date: {
-              gte: monthAgo,
-            },
-          },
-          select: {
-            activeUsers: true,
-          },
-        }),
+      // Calculate real-time unique user counts for week and month
+      const [activeWeekUsers, activeMonthUsers] = await Promise.all([
+        // Unique users active in last 7 days
+        prisma.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(DISTINCT u.id)::bigint as count
+          FROM "User" u
+          LEFT JOIN "Account" a ON a."userId" = u.id AND a.provider = 'google'
+          WHERE COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") >= ${weekAgo}
+        `,
+        // Unique users active in last 30 days
+        prisma.$queryRaw<Array<{ count: bigint }>>`
+          SELECT COUNT(DISTINCT u.id)::bigint as count
+          FROM "User" u
+          LEFT JOIN "Account" a ON a."userId" = u.id AND a.provider = 'google'
+          WHERE COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") >= ${monthAgo}
+        `,
       ]);
 
-      // Sum up unique active users (use max to avoid double counting)
-      const activeThisWeek = Math.max(...weekStats.map(s => s.activeUsers), 0);
-      const activeThisMonth = Math.max(...monthStats.map(s => s.activeUsers), 0);
+      const activeThisWeek = Number(activeWeekUsers[0]?.count || 0);
+      const activeThisMonth = Number(activeMonthUsers[0]?.count || 0);
 
       // Format daily activity data
-      const formattedDailyActivity = dailyActivity.map(item => ({
-        date: item.date.toISOString().split('T')[0],
-        count: Number(item.count),
-      }));
+      const formattedDailyActivity = dailyActivity.map(item => {
+        const itemDate = item.date.toISOString().split('T')[0];
+        const todayDate = today.toISOString().split('T')[0];
+
+        // Use real-time count for today, stored stats for historical dates
+        const count = itemDate === todayDate ? activeToday : Number(item.count);
+
+        return {
+          date: itemDate,
+          count,
+        };
+      });
+
+      // If today's date is not in the daily activity data, add it with real-time count
+      const todayDate = today.toISOString().split('T')[0];
+      const hasTodayData = formattedDailyActivity.some(item => item.date === todayDate);
+
+      if (!hasTodayData && activeToday > 0) {
+        formattedDailyActivity.unshift({
+          date: todayDate,
+          count: activeToday,
+        });
+      }
 
       // Calculate pagination info
       const totalPages = pageSize ? Math.ceil(totalUsers / pageSize) : 1;

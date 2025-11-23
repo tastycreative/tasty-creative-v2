@@ -14,9 +14,21 @@ import { Users } from "lucide-react";
 
 interface UserActivityChartProps {
   data: DailyActivity[];
+  period: string;
+  onPeriodChange: (period: string) => void;
 }
 
-export function UserActivityChart({ data }: UserActivityChartProps) {
+const PERIOD_OPTIONS = [
+  { value: "weekly", label: "Weekly" },
+  { value: "monthly", label: "Monthly" },
+  { value: "3months", label: "3 Months" },
+  { value: "6months", label: "6 Months" },
+  { value: "9months", label: "9 Months" },
+  { value: "12months", label: "12 Months" },
+  { value: "alltime", label: "All Time" },
+];
+
+export function UserActivityChart({ data, period, onPeriodChange }: UserActivityChartProps) {
   // Sort data by date ascending for chart
   const sortedData = [...data].sort((a, b) =>
     new Date(a.date).getTime() - new Date(b.date).getTime()
@@ -43,19 +55,34 @@ export function UserActivityChart({ data }: UserActivityChartProps) {
 
       {/* Content */}
       <div className="relative z-10 flex flex-col h-full">
-        {/* Header */}
-        <div className="flex items-center gap-3 mb-4 flex-shrink-0">
-          <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20">
-            <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+        {/* Header with Period Filter */}
+        <div className="flex items-center justify-between mb-4 flex-shrink-0">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-gradient-to-br from-blue-500/10 to-purple-500/10 border border-blue-500/20">
+              <Users className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
+                Activity Overview
+              </h3>
+              <p className="text-sm text-gray-600 dark:text-gray-400">
+                User activity trend
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-bold bg-gradient-to-r from-gray-900 via-blue-600 to-purple-600 dark:from-white dark:via-blue-400 dark:to-purple-400 bg-clip-text text-transparent">
-              Activity Overview
-            </h3>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              User activity trend
-            </p>
-          </div>
+
+          {/* Period Dropdown */}
+          <select
+            value={period}
+            onChange={(e) => onPeriodChange(e.target.value)}
+            className="px-3 py-1.5 text-sm border border-gray-200/50 dark:border-gray-700/50 rounded-lg bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 transition-all"
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         {/* Chart */}

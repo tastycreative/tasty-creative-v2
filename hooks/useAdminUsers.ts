@@ -55,8 +55,7 @@ interface AdminUsersParams {
   limit?: string;
   search?: string;
   role?: string;
-  activityStartDate?: string;
-  activityEndDate?: string;
+  activityPeriod?: string;
 }
 
 const fetchAdminUsers = async (params: AdminUsersParams): Promise<AdminUsersResponse> => {
@@ -66,8 +65,7 @@ const fetchAdminUsers = async (params: AdminUsersParams): Promise<AdminUsersResp
   if (params.limit) searchParams.set('limit', params.limit);
   if (params.search) searchParams.set('search', params.search);
   if (params.role && params.role !== 'all') searchParams.set('role', params.role);
-  if (params.activityStartDate) searchParams.set('activityStartDate', params.activityStartDate);
-  if (params.activityEndDate) searchParams.set('activityEndDate', params.activityEndDate);
+  if (params.activityPeriod) searchParams.set('activityPeriod', params.activityPeriod);
 
   const response = await fetch(`/api/admin/users?${searchParams.toString()}`);
   
