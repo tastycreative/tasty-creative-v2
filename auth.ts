@@ -15,6 +15,10 @@ const lastAccessUpdateCache = new Map<string, number>();
 // Cache for daily stats updates (throttled to once per hour)
 let lastDailyStatsUpdate = 0;
 
+// Circuit breaker for database updates - if DB fails, skip updates temporarily
+let dbUpdateCircuitOpen = false;
+let dbUpdateCircuitOpenUntil = 0;
+
 // TODO: Define a more specific type for the token object
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function refreshAccessToken(token: any) {
@@ -373,11 +377,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
       // Update last_accessed timestamp on every session check (throttled to avoid too many DB writes)
       const userId = token.id as string;
+      const now = Date.now();
+
+      // Check circuit breaker - skip DB updates if circuit is open
+      if (dbUpdateCircuitOpen && now < dbUpdateCircuitOpenUntil) {
+        return session; // Skip updates when circuit is open
+      }
+
+      // Reset circuit breaker if enough time has passed
+      if (dbUpdateCircuitOpen && now >= dbUpdateCircuitOpenUntil) {
+        dbUpdateCircuitOpen = false;
+        if (process.env.NODE_ENV === "development") {
+          console.log("🔄 Database circuit breaker reset");
+        }
+      }
+
       const shouldUpdate = !lastAccessUpdateCache.has(userId) ||
-        (Date.now() - lastAccessUpdateCache.get(userId)!) > 60000; // Update max once per minute
+        (now - lastAccessUpdateCache.get(userId)!) > 120000; // Update max once per 2 minutes (reduced frequency)
 
       if (shouldUpdate) {
-        lastAccessUpdateCache.set(userId, Date.now());
+        lastAccessUpdateCache.set(userId, now);
+
         // Update last_accessed in background without blocking the response
         prisma.account.updateMany({
           where: {
@@ -388,13 +408,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             last_accessed: new Date(),
           },
         }).catch((error: any) => {
-          console.error("❌ Failed to update last_accessed:", error);
+          // Open circuit breaker on failure - skip updates for 5 minutes
+          if (!dbUpdateCircuitOpen) {
+            dbUpdateCircuitOpen = true;
+            dbUpdateCircuitOpenUntil = Date.now() + (5 * 60 * 1000); // 5 minutes
+            if (process.env.NODE_ENV === "development") {
+              console.error("❌ Database update failed, circuit breaker opened for 5 minutes:", error.code);
+            }
+          }
         });
 
-        // Update daily activity stats (throttled to once per hour)
-        const now = Date.now();
-        const oneHour = 60 * 60 * 1000;
-        if (now - lastDailyStatsUpdate > oneHour) {
+        // Update daily activity stats (throttled to once per 2 hours for reduced load)
+        const twoHours = 2 * 60 * 60 * 1000;
+        if (now - lastDailyStatsUpdate > twoHours) {
           lastDailyStatsUpdate = now;
 
           // Update today's activity count in background
@@ -417,9 +443,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               update: { activeUsers: activeCount },
               create: { date: today, activeUsers: activeCount },
             });
-            console.log(`✅ Updated daily stats: ${activeCount} active users`);
+            if (process.env.NODE_ENV === "development") {
+              console.log(`✅ Updated daily stats: ${activeCount} active users`);
+            }
           }).catch((error: any) => {
-            console.error("❌ Failed to update daily stats:", error);
+            // Silently fail in production, only log in development
+            if (process.env.NODE_ENV === "development") {
+              console.error("❌ Failed to update daily stats:", error.code);
+            }
           });
         }
       }
