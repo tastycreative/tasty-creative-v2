@@ -12,7 +12,7 @@ import {
   TrendingUp,
   Package,
   Calendar,
-  BarChart3
+  BarChart3,
 } from "lucide-react";
 
 // Components
@@ -24,6 +24,7 @@ import ContentStylePills from "@/components/pod-new/features/dashboard/ContentSt
 import ContributorLeaderboard from "@/components/pod-new/features/dashboard/ContributorLeaderboard";
 import RecentSubmissionsTimeline from "@/components/pod-new/features/dashboard/RecentSubmissionsTimeline";
 import DashboardSkeleton from "@/components/pod-new/features/dashboard/DashboardSkeleton";
+import TodayEventsCard from "@/components/pod-new/features/dashboard/TodayEventsCard";
 
 // Animation Variants
 const containerVariants = {
@@ -33,8 +34,8 @@ const containerVariants = {
     transition: {
       staggerChildren: 0.1,
       delayChildren: 0.2,
-    }
-  }
+    },
+  },
 };
 
 const itemVariants = {
@@ -45,9 +46,9 @@ const itemVariants = {
     transition: {
       type: "spring",
       stiffness: 100,
-      damping: 12
-    }
-  }
+      damping: 12,
+    },
+  },
 };
 
 export default function DashboardPage() {
@@ -79,7 +80,9 @@ export default function DashboardPage() {
               Failed to Load Dashboard
             </h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              {error instanceof Error ? error.message : "An unexpected error occurred"}
+              {error instanceof Error
+                ? error.message
+                : "An unexpected error occurred"}
             </p>
             <button
               onClick={() => refetch()}
@@ -129,16 +132,17 @@ export default function DashboardPage() {
               <p className="text-gray-600 dark:text-gray-300 mt-1 text-lg font-medium">
                 Welcome back! Here's what's happening with your POD workflow.
               </p>
-              <div className="flex items-center gap-4 mt-2 text-sm text-gray-500 dark:text-gray-400">
-                <span className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  Live Data
-                </span>
-                <span>•</span>
-                <span>{new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</span>
-              </div>
             </div>
           </div>
+        </motion.div>
+
+        {/* Today's Events Card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+        >
+          <TodayEventsCard />
         </motion.div>
 
         {/* Unassigned Tasks Alert */}
@@ -160,7 +164,8 @@ export default function DashboardPage() {
               </div>
               <div className="flex-1">
                 <h3 className="font-bold text-gray-900 dark:text-white text-lg">
-                  {data.taskPipeline.unassignedCount} Unassigned Task{data.taskPipeline.unassignedCount !== 1 ? 's' : ''}
+                  {data.taskPipeline.unassignedCount} Unassigned Task
+                  {data.taskPipeline.unassignedCount !== 1 ? "s" : ""}
                 </h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
                   These tasks need to be assigned to team members
@@ -198,7 +203,11 @@ export default function DashboardPage() {
             <QuickStatsCard
               title="Overdue Tasks"
               value={data.quickStats.overdueTasks}
-              subtitle={data.quickStats.overdueTasks > 0 ? "Requires attention" : "All on track"}
+              subtitle={
+                data.quickStats.overdueTasks > 0
+                  ? "Requires attention"
+                  : "All on track"
+              }
               icon={AlertTriangle}
               gradient="from-red-50 to-red-100"
               href="/board?filter=overdue"
@@ -234,10 +243,10 @@ export default function DashboardPage() {
           variants={containerVariants}
           initial="hidden"
           animate="show"
-          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+            // className="grid grid-cols-1 lg:grid-cols-2 gap-6"
         >
           {/* Left Column - Task Pipeline */}
-          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <motion.div variants={itemVariants}>
               <TaskPipelineChart data={data.taskPipeline.byStatus} />
             </motion.div>
@@ -247,7 +256,7 @@ export default function DashboardPage() {
           </div>
 
           {/* Right Column - Content Production */}
-          <div className="space-y-6">
+          {/* <div className="space-y-6">
             <motion.div variants={itemVariants}>
               <ContentTypeChart
                 otpCount={data.contentProduction.otpCount}
@@ -255,9 +264,11 @@ export default function DashboardPage() {
               />
             </motion.div>
             <motion.div variants={itemVariants}>
-              <ContentStylePills data={data.contentProduction.styleDistribution} />
+              <ContentStylePills
+                data={data.contentProduction.styleDistribution}
+              />
             </motion.div>
-          </div>
+          </div> */}
         </motion.div>
 
         {/* Bottom Row - Contributors & Recent Submissions */}
@@ -270,16 +281,19 @@ export default function DashboardPage() {
           {/* Top Contributors */}
           {data.teamPerformance.topContributors.length > 0 && (
             <motion.div variants={itemVariants}>
-              <ContributorLeaderboard data={data.teamPerformance.topContributors} />
+              <ContributorLeaderboard
+                data={data.teamPerformance.topContributors}
+              />
             </motion.div>
           )}
 
           {/* Recent Submissions Timeline */}
           <motion.div variants={itemVariants}>
-            <RecentSubmissionsTimeline data={data.contentProduction.recentSubmissions} />
+            <RecentSubmissionsTimeline
+              data={data.contentProduction.recentSubmissions}
+            />
           </motion.div>
         </motion.div>
-
       </div>
     </div>
   );
