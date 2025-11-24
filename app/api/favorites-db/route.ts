@@ -4,6 +4,7 @@ import {
   removeFromFavorites,
   getUserFavorites 
 } from '@/lib/supabase-dynamic'
+import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,10 +30,28 @@ export async function POST(request: NextRequest) {
         const addResult = await addToFavorites(currentUserId, itemId, tableName, title)
         
         if (!addResult.success) {
-          return NextResponse.json({ 
-            error: 'Failed to add to favorites',
-            details: addResult.error 
-          }, { status: 500 })
+          console.warn('Supabase favorites add failed, falling back to Prisma:', addResult.error)
+          try {
+            await prisma.galleryFavorite.upsert({
+              where: {
+                user_id_item_id: {
+                  user_id: currentUserId,
+                  item_id: itemId
+                }
+              },
+              update: {},
+              create: {
+                user_id: currentUserId,
+                item_id: itemId
+              }
+            })
+          } catch (prismaError) {
+            console.error('Prisma fallback add favorite failed:', prismaError)
+            return NextResponse.json({ 
+              error: 'Failed to add to favorites',
+              details: prismaError instanceof Error ? prismaError.message : prismaError 
+            }, { status: 500 })
+          }
         }
 
         return NextResponse.json({ 
@@ -50,10 +69,23 @@ export async function POST(request: NextRequest) {
         const removeResult = await removeFromFavorites(currentUserId, itemId, tableName)
         
         if (!removeResult.success) {
-          return NextResponse.json({ 
-            error: 'Failed to remove from favorites',
-            details: removeResult.error 
-          }, { status: 500 })
+          console.warn('Supabase favorites remove failed, falling back to Prisma:', removeResult.error)
+          try {
+            await prisma.galleryFavorite.delete({
+              where: {
+                user_id_item_id: {
+                  user_id: currentUserId,
+                  item_id: itemId
+                }
+              }
+            })
+          } catch (prismaError) {
+            console.error('Prisma fallback remove favorite failed:', prismaError)
+            return NextResponse.json({ 
+              error: 'Failed to remove from favorites',
+              details: prismaError instanceof Error ? prismaError.message : prismaError 
+            }, { status: 500 })
+          }
         }
 
         return NextResponse.json({ 
@@ -86,10 +118,16 @@ export async function GET(request: NextRequest) {
     const result = await getUserFavorites(userId)
     
     if (result.error) {
-      return NextResponse.json({ 
-        error: 'Failed to fetch favorites',
-        details: result.error 
-      }, { status: 500 })
+      console.warn('Supabase get favorites failed, falling back to Prisma:', result.error)
+      const prismaFavorites = await prisma.galleryFavorite.findMany({
+        where: { user_id: userId }
+      })
+
+      return NextResponse.json({
+        success: true,
+        favorites: prismaFavorites,
+        count: prismaFavorites.length
+      })
     }
 
     return NextResponse.json({

@@ -7,6 +7,7 @@ import {
   parseGalleryMetadata,
   stripGalleryMetadata,
 } from '@/lib/galleryMetadata'
+import { getUserFavorites, getReleases as getSupabaseReleases } from '@/lib/supabase-dynamic'
 
 const normalizeMetadataDate = (value?: string) => {
   if (!value) return undefined
@@ -205,12 +206,31 @@ export async function GET(request: NextRequest) {
 
     // Fetch favorites and releases data in parallel
     const userId = session?.user?.id || 'guest'
-    const [favorites, releases] = await Promise.all([
-      prisma.galleryFavorite.findMany({
-        where: { user_id: userId }
-      }),
-      prisma.galleryRelease.findMany()
+    const [favoritesResult, releasesResult] = await Promise.all([
+      getUserFavorites(userId),
+      getSupabaseReleases()
     ])
+
+    if (favoritesResult.error) {
+      console.error('Failed to load favorites from Supabase:', favoritesResult.error)
+    }
+    if (releasesResult.error) {
+      console.error('Failed to load releases from Supabase:', releasesResult.error)
+    }
+
+    let favorites = favoritesResult.data || []
+    if ((!favorites?.length) && favoritesResult.error) {
+      const prismaFavorites = await prisma.galleryFavorite.findMany({
+        where: { user_id: userId }
+      })
+      favorites = prismaFavorites.map(fav => ({ item_id: fav.item_id }))
+    }
+
+    let releases = releasesResult.data || []
+    if ((!releases?.length) && releasesResult.error) {
+      const prismaReleases = await prisma.galleryRelease.findMany()
+      releases = prismaReleases.map(rel => ({ item_id: rel.item_id }))
+    }
 
     // Create lookup sets for performance
     const favoritesSet = new Set(

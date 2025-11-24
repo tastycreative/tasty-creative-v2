@@ -3,7 +3,7 @@
 import React, { Suspense, useEffect } from "react";
 import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { usePodStore, useAvailableTeams } from "@/lib/stores/podStore";
 import BoardErrorBoundary from "@/components/pod-new/features/board/BoardErrorBoundary";
 
@@ -23,38 +23,54 @@ const Board = dynamic(() => import("@/components/pod-new/features/board/Board"),
 export default function BoardPage() {
   const { data: session } = useSession();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname() ?? "";
   const { selectedTeamId, setSelectedTeamId } = usePodStore();
   const { teams: availableTeams } = useAvailableTeams();
 
-  // Listen for URL parameter changes and update the selected team
-  useEffect(() => {
-    const teamParam = searchParams?.get('team');
-    if (teamParam && teamParam !== selectedTeamId && availableTeams.length > 0) {
-      // Check if the team ID exists in available teams
-      const teamExists = availableTeams.find(team => team.id === teamParam);
-      if (teamExists) {
-        setSelectedTeamId(teamParam);
-      }
-    }
-  }, [searchParams, selectedTeamId, availableTeams, setSelectedTeamId]);
+  const searchParamsString = searchParams?.toString() || "";
 
-  // Convert team options to match Board component expectations
-  const teamOptions = availableTeams.map((team, index) => ({
-    row: index + 1, // Convert to row numbers for Board component
-    name: team.name,
-    label: team.name
-  }));
+  // Ensure store tracks the team from the URL or selects a fallback
+  useEffect(() => {
+    if (!availableTeams.length) return;
+
+    const params = new URLSearchParams(searchParamsString);
+    const urlTeam = params.get("team");
+    const urlTeamValid = !!urlTeam && availableTeams.some((team) => team.id === urlTeam);
+
+    if (urlTeamValid) {
+      if (urlTeam !== selectedTeamId) {
+        setSelectedTeamId(urlTeam!);
+      }
+      return;
+    }
+
+    const storeTeamValid =
+      !!selectedTeamId && availableTeams.some((team) => team.id === selectedTeamId);
+    const fallbackTeam = storeTeamValid ? selectedTeamId : availableTeams[0]?.id;
+
+    if (fallbackTeam && fallbackTeam !== selectedTeamId) {
+      setSelectedTeamId(fallbackTeam);
+    }
+  }, [availableTeams, searchParamsString, selectedTeamId, setSelectedTeamId]);
+
+  // Make sure the URL always reflects the selected team
+  useEffect(() => {
+    if (!selectedTeamId) return;
+
+    const params = new URLSearchParams(searchParamsString);
+    if (params.get("team") === selectedTeamId) {
+      return;
+    }
+
+    params.set("team", selectedTeamId);
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, {
+      scroll: false,
+    });
+  }, [pathname, router, searchParamsString, selectedTeamId]);
 
   const currentTeam = availableTeams.find((team) => team.id === selectedTeamId);
-  const selectedRow = currentTeam ? teamOptions.findIndex(t => t.name === currentTeam.name) + 1 : 1;
-
-  const handleTeamChange = (row: number) => {
-    const team = teamOptions[row - 1];
-    const actualTeam = availableTeams.find(t => t.name === team?.name);
-    if (actualTeam) {
-      setSelectedTeamId(actualTeam.id);
-    }
-  };
 
   if (!selectedTeamId || !currentTeam) {
     return (
@@ -84,9 +100,6 @@ export default function BoardPage() {
               teamId={selectedTeamId}
               teamName={currentTeam.name}
               session={session}
-              availableTeams={teamOptions}
-              onTeamChange={handleTeamChange}
-              selectedRow={selectedRow}
             />
           </Suspense>
         </div>

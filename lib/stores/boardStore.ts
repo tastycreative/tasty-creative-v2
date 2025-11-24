@@ -1035,7 +1035,9 @@ export const useBoardStore = create<BoardStore>()(
         setIsEditingTask: (editing) => set({ isEditingTask: editing }),
         setEditingTaskData: (data) => set((state) => ({
           ...state,
-          editingTaskData: { ...state.editingTaskData, ...data }
+          editingTaskData: Object.keys(data).length === 0
+            ? {}
+            : { ...state.editingTaskData, ...data }
         })),
         setDraggedTask: (task) => set({ draggedTask: task }),
         

@@ -64,30 +64,6 @@ export default function BoardGrid({
 }: BoardGridProps) {
   return (
     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
-      {/* Mobile Column Navigation - Only visible on mobile */}
-      <div className="md:hidden border-b border-gray-200 dark:border-gray-600">
-        <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-          {getColumnConfig().map(([status, config]) => {
-            const statusTasks = getTasksForStatus(status as Task["status"]);
-            return (
-              <button
-                key={status}
-                className={`flex-shrink-0 flex items-center space-x-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
-                  status === "NOT_STARTED" // Default selected for demo
-                    ? `${config.headerColor} border-gray-400 dark:border-gray-500 text-gray-900 dark:text-gray-100`
-                    : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                }`}
-              >
-                <span>{config.label}</span>
-                <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">
-                  {statusTasks.length}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Mobile: Horizontal Scrolling Columns */}
       <div className="md:hidden">
         <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 min-h-[600px]">

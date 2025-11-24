@@ -32,34 +32,10 @@ import OnboardingTaskModal from '@/components/pod/OnboardingTaskModal';
 import NoTeamSelected from '@/components/pod/NoTeamSelected';
 import TeamSettings from './TeamSettings';
 
-// Utility function to make links clickable
-const linkifyText = (text: string) => {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.split(urlRegex).map((part, index) => {
-    if (urlRegex.test(part)) {
-      return (
-        <a
-          key={index}
-          href={part}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 underline transition-colors"
-        >
-          {part}
-        </a>
-      );
-    }
-    return part;
-  });
-};
-
 interface BoardProps {
   teamId: string;
   teamName: string;
   session: Session | null;
-  availableTeams: Array<{ row: number; name: string; label: string; }>; // Keep for backward compatibility
-  onTeamChange: (teamRow: number) => void; // Keep for backward compatibility  
-  selectedRow: number; // Keep for backward compatibility
 }
 
 const statusConfig = {
@@ -89,22 +65,21 @@ const statusConfig = {
   }
 };
 
-export default function Board({ teamId, teamName, session, availableTeams, onTeamChange, selectedRow }: BoardProps) {
+export default function Board({ teamId, teamName, session }: BoardProps) {
   // Navigation hooks
   const router = useRouter();
   const searchParams = useSearchParams();
+  const searchParamsString = searchParams?.toString() || '';
   const queryClient = useQueryClient();
 
   // Zustand store hooks
-  const { tasks: storeTasks, isLoading: storeLoading, error, currentTeamId, fetchTasks, setCurrentTeamId } = useBoardTasks();
+  const { error, currentTeamId, setCurrentTeamId } = useBoardTasks();
   const {
     searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder, showFilters,
     setSearchTerm, setPriorityFilter, setAssigneeFilter, setDueDateFilter, setWorkflowFilter, setSortBy, setSortOrder, setShowFilters
   } = useBoardFilters();
   const { createTask, updateTaskStatus, updateTask, deleteTask } = useBoardTaskActions();
-  const { 
-    columns: storeColumns, isLoadingColumns: storeLoadingColumns, showColumnSettings, fetchColumns, setShowColumnSettings 
-  } = useBoardColumns();
+  const { showColumnSettings, setShowColumnSettings } = useBoardColumns();
 
   // TanStack Query data sources
   const tasksQuery = useTasksQuery(teamId);
@@ -184,8 +159,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     session,
     onSuccess: async () => {
       // Force immediate refetch of tasks to update UI
-      await queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
-      await queryClient.refetchQueries({ queryKey: ['tasks', teamId] });
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      await queryClient.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
     },
   });
 
@@ -196,8 +171,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
     session,
     onSuccess: async () => {
       // Force immediate refetch of tasks to update UI
-      await queryClient.invalidateQueries({ queryKey: ['tasks', teamId] });
-      await queryClient.refetchQueries({ queryKey: ['tasks', teamId] });
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      await queryClient.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
     },
   });
 
@@ -263,7 +238,8 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
   // Handle URL parameter for task sharing - URL is the single source of truth
   useEffect(() => {
-    const taskParam = searchParams?.get('task');
+    const params = new URLSearchParams(searchParamsString);
+    const taskParam = params.get('task');
     
     if (taskParam && qTasks.length > 0) {
       // URL has a task parameter - find task by ID or podTeam.projectPrefix-taskNumber
@@ -324,7 +300,16 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       }
     }
     // Depend on the actual query string value to avoid reruns on stable renders
-  }, [searchParams?.toString(), qTasks, selectedTask, isEditingTask]);
+  }, [
+    editingTaskData,
+    isEditingTask,
+    qTasks,
+    searchParamsString,
+    selectedTask,
+    setEditingTaskData,
+    setIsEditingTask,
+    setSelectedTask
+  ]);
 
   // Refs for scroll synchronization (prevents memory leaks)
   const headerScrollRef = useRef<HTMLDivElement | null>(null);
@@ -408,7 +393,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
       }, 200);
 
       return () => clearTimeout(timeoutId);
-    }, [currentTeamId, fetchTasks])
+    }, [currentTeamId, queryClient])
   });
 
   // Removed URL parameter detection - team selection now handled by parent component
@@ -467,6 +452,15 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   const task = qTasks.find((t) => t.id === taskId);
     if (task) {
       await markAsFinal(task);
+      queryClient.setQueryData(boardQueryKeys.tasks(currentTeamId), (prev: any) => {
+        if (!prev?.tasks) return prev;
+        return {
+          ...prev,
+          tasks: prev.tasks.map((t: Task) =>
+            t.id === taskId ? { ...t, status: 'CUSTOM_POSTED_1761147430212' } : t
+          ),
+        };
+      });
     }
   };
 
@@ -805,7 +799,7 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
 
     try {
       await createTask(newTaskData, newTaskStatus);
-      await fetchTasks(currentTeamId, true);
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
       closeNewTaskModal();
     } catch (error) {
       console.error('Error creating task:', error);
@@ -1222,33 +1216,32 @@ export default function Board({ teamId, teamName, session, availableTeams, onTea
   };
 
   // Helper function to convert columns to statusConfig format
-  const getColumnConfig = useMemo(() => {
-    const columnConfig = () => {
-      // If columns are still loading, return empty array to prevent using wrong status values
-      if (qIsLoadingColumns) {
-        return [];
-      }
-      
-      if (qColumns.length === 0) {
-        // Only use default config if explicitly no columns are configured
-        console.log('Using default statusConfig, columns.length:', qColumns.length);
-        return Object.entries(statusConfig);
-      }
-      
-      return qColumns
-        .sort((a, b) => a.position - b.position) // Ensure correct order
-        .map(column => [
-          column.status,
-          {
-            label: column.label,
-            color: `text-gray-700 dark:text-gray-300`,
-            headerColor: 'bg-gray-50 dark:bg-gray-700',
-            buttonColor: `hover:bg-gray-700`
-          }
-        ] as [string, any]);
-    };
-    return columnConfig;
-  }, [qColumns, qIsLoadingColumns]); // Dependency array ensures this updates when columns change
+  const columnConfig = useMemo(() => {
+    // If columns are still loading, return empty array to prevent using wrong status values
+    if (qIsLoadingColumns) {
+      return [];
+    }
+    
+    if (qColumns.length === 0) {
+      // Only use default config if explicitly no columns are configured
+      console.log('Using default statusConfig, columns.length:', qColumns.length);
+      return Object.entries(statusConfig);
+    }
+    
+    return [...qColumns]
+      .sort((a, b) => a.position - b.position) // Ensure correct order
+      .map(column => [
+        column.status,
+        {
+          label: column.label,
+          color: `text-gray-700 dark:text-gray-300`,
+          headerColor: 'bg-gray-50 dark:bg-gray-700',
+          buttonColor: `hover:bg-gray-700`
+        }
+      ] as [string, any]);
+  }, [qColumns, qIsLoadingColumns]);
+
+  const getColumnConfig = useCallback(() => columnConfig, [columnConfig]);
 
   // Helper function to get grid classes and styles based on column count
   const getGridClasses = () => {
