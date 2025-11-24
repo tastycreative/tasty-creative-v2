@@ -104,6 +104,12 @@ const navigation: { title: string; items: NavItem[] }[] = [
       },
       { title: "Calendar", href: "/calendar", icon: CalendarIcon },
       {
+        title: "Content Dates",
+        href: "/content-dates",
+        icon: Calendar,
+        badge: { text: "New", variant: "primary" },
+      },
+      {
         title: "Instagram Staging",
         href: "/instagram-staging",
         icon: Instagram,
