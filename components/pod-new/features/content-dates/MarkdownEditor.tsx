@@ -16,9 +16,10 @@ interface MarkdownEditorProps {
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  disabled?: boolean;
 }
 
-export default function MarkdownEditor({ value, onChange, placeholder }: MarkdownEditorProps) {
+export default function MarkdownEditor({ value, onChange, placeholder, disabled = false }: MarkdownEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const isUpdatingRef = useRef(false);
   const [activeFormats, setActiveFormats] = useState({
@@ -260,13 +261,14 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
   };
 
   return (
-    <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700">
+    <div className={`border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
       {/* Formatting Toolbar */}
       <div className="flex items-center gap-1 px-2 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600 flex-wrap">
           <button
             type="button"
             onClick={formatBold}
-            className={`p-1.5 rounded transition-colors ${
+            disabled={disabled}
+            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               activeFormats.bold
                 ? "bg-pink-500 text-white"
                 : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -278,7 +280,8 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <button
             type="button"
             onClick={formatItalic}
-            className={`p-1.5 rounded transition-colors ${
+            disabled={disabled}
+            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               activeFormats.italic
                 ? "bg-pink-500 text-white"
                 : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -291,7 +294,8 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <button
             type="button"
             onClick={formatH1}
-            className={`p-1.5 rounded transition-colors ${
+            disabled={disabled}
+            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               activeFormats.h1
                 ? "bg-pink-500 text-white"
                 : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -303,7 +307,8 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <button
             type="button"
             onClick={formatH2}
-            className={`p-1.5 rounded transition-colors ${
+            disabled={disabled}
+            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               activeFormats.h2
                 ? "bg-pink-500 text-white"
                 : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -316,7 +321,8 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <button
             type="button"
             onClick={formatBulletList}
-            className={`p-1.5 rounded transition-colors ${
+            disabled={disabled}
+            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               activeFormats.ul
                 ? "bg-pink-500 text-white"
                 : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -328,7 +334,8 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <button
             type="button"
             onClick={formatNumberedList}
-            className={`p-1.5 rounded transition-colors ${
+            disabled={disabled}
+            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
               activeFormats.ol
                 ? "bg-pink-500 text-white"
                 : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
@@ -341,7 +348,8 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <button
             type="button"
             onClick={formatLink}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            disabled={disabled}
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Link"
           >
             <LinkIcon className="h-4 w-4" />
@@ -349,7 +357,8 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
           <button
             type="button"
             onClick={formatCode}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors"
+            disabled={disabled}
+            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             title="Inline Code"
           >
             <Code className="h-4 w-4" />
@@ -360,7 +369,7 @@ export default function MarkdownEditor({ value, onChange, placeholder }: Markdow
       <div className="relative min-h-[150px]">
         <div
           ref={editorRef}
-          contentEditable
+          contentEditable={!disabled}
           onInput={updateMarkdown}
           onBlur={updateMarkdown}
           className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[150px] focus:outline-none max-w-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 [&:empty]:before:dark:text-gray-500

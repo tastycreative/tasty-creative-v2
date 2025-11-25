@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Filter, Plus, ChevronLeft, ChevronRight } from "lucide-react";
 import ContentDatesCalendar from "@/components/pod-new/features/content-dates/ContentDatesCalendar";
 import UpcomingEventsPanel from "@/components/pod-new/features/content-dates/UpcomingEventsPanel";
@@ -23,6 +23,14 @@ export interface ContentEvent {
   tags?: string[];
   price?: number;
   color: "pink" | "purple" | "blue" | "green" | "orange";
+  // Optional extended fields for PPV / Livestream
+  contentLink?: string;
+  editedVideoLink?: string;
+  flyerLink?: string;
+  liveType?: "PUBLIC" | "SUBSCRIBERS";
+  // Additional fields
+  notes?: string;
+  attachments?: any;
 }
 
 export default function ContentDatesPage() {
@@ -36,47 +44,53 @@ export default function ContentDatesPage() {
     status: "all",
     tags: [] as string[],
   });
+  const [events, setEvents] = useState<ContentEvent[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Mock events data - Replace with API call
-  const [events, setEvents] = useState<ContentEvent[]>([
-    {
-      id: "1",
-      title: "Premium PPV Release",
-      description: "Exclusive content for premium subscribers",
-      date: new Date(2025, 10, 28),
-      time: "8:00 PM",
-      type: "PPV",
-      status: "SCHEDULED",
-      creator: "Model A",
-      tags: ["premium", "exclusive"],
-      price: 29.99,
-      color: "pink",
-    },
-    {
-      id: "2",
-      title: "Live Gaming Stream",
-      description: "Interactive gaming session with fans",
-      date: new Date(2025, 10, 30),
-      time: "6:00 PM",
-      type: "LIVESTREAM",
-      status: "SCHEDULED",
-      creator: "Model B",
-      tags: ["gaming", "interactive"],
-      color: "purple",
-    },
-    {
-      id: "3",
-      title: "Q&A Livestream",
-      description: "Monthly Q&A session",
-      date: new Date(2025, 11, 2),
-      time: "7:00 PM",
-      type: "LIVESTREAM",
-      status: "SCHEDULED",
-      creator: "Model A",
-      tags: ["q&a", "monthly"],
-      color: "blue",
-    },
-  ]);
+  // Fetch events from database
+  const fetchEvents = async () => {
+    try {
+      setIsLoading(true);
+      const queryParams = new URLSearchParams();
+      if (filters.creator !== "all") queryParams.set("creator", filters.creator);
+      if (filters.eventType !== "all") queryParams.set("eventType", filters.eventType);
+      if (filters.status !== "all") queryParams.set("status", filters.status);
+      if (filters.tags.length > 0) queryParams.set("tags", filters.tags.join(","));
+
+      const response = await fetch(`/api/content-events?${queryParams.toString()}`);
+      if (response.ok) {
+        const data = await response.json();
+        // Transform API response to match ContentEvent interface
+        const transformedEvents = data.events.map((event: any) => ({
+          id: event.id,
+          title: event.title,
+          description: event.description,
+          date: new Date(event.date),
+          time: event.time,
+          type: event.type,
+          status: event.status,
+          creator: event.creator?.clientName,
+          tags: event.tags,
+          price: event.price,
+          color: event.color.toLowerCase() as ContentEvent["color"],
+          contentLink: event.contentLink,
+          editedVideoLink: event.editedVideoLink,
+          flyerLink: event.flyerLink,
+          liveType: event.liveType,
+        }));
+        setEvents(transformedEvents);
+      }
+    } catch (error) {
+      console.error("Failed to fetch events:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Fetch events on mount and when filters change
+  useEffect(() => {
+    fetchEvents();
+  }, [filters]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -95,35 +109,50 @@ export default function ContentDatesPage() {
     setSelectedEvent(event);
   };
 
-  const handleCreateEvent = (eventData: Partial<ContentEvent>) => {
-    const newEvent: ContentEvent = {
-      id: Date.now().toString(),
-      title: eventData.title || "New Event",
-      description: eventData.description,
-      date: eventData.date || new Date(),
-      time: eventData.time,
-      type: eventData.type || "PPV",
-      status: eventData.status || "SCHEDULED",
-      creator: eventData.creator,
-      tags: eventData.tags || [],
-      price: eventData.price,
-      color: eventData.color || "pink",
-    };
-    setEvents([...events, newEvent]);
-    setIsCreateModalOpen(false);
-    setSelectedDate(null);
+  const handleCreateEvent = async (eventData: Partial<ContentEvent>) => {
+    try {
+      const response = await fetch("/api/content-events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          title: eventData.title,
+          description: eventData.description,
+          date: eventData.date,
+          time: eventData.time,
+          type: eventData.type,
+          status: eventData.status || "SCHEDULED",
+          creator: eventData.creator,
+          tags: eventData.tags || [],
+          price: eventData.price,
+          color: eventData.color?.toUpperCase() || "PINK",
+          contentLink: eventData.contentLink,
+          editedVideoLink: eventData.editedVideoLink,
+          flyerLink: eventData.flyerLink,
+          liveType: eventData.liveType,
+          notes: eventData.notes,
+          attachments: eventData.attachments,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh events list
+        await fetchEvents();
+        setIsCreateModalOpen(false);
+        setSelectedDate(null);
+      } else {
+        console.error("Failed to create event");
+      }
+    } catch (error) {
+      console.error("Error creating event:", error);
+    }
   };
 
-  // Filter events based on active filters
-  const filteredEvents = events.filter((event) => {
-    if (filters.creator !== "all" && event.creator !== filters.creator) return false;
-    if (filters.eventType !== "all" && event.type !== filters.eventType) return false;
-    if (filters.status !== "all" && event.status !== filters.status) return false;
-    if (filters.tags.length > 0 && !filters.tags.some(tag => event.tags?.includes(tag))) return false;
-    return true;
-  });
+  // Events are already filtered by the API
+  const filteredEvents = events;
 
-  const upcomingEvents = filteredEvents
+  const upcomingEvents = events
     .filter(event => event.date >= new Date())
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 10);
@@ -158,7 +187,7 @@ export default function ContentDatesPage() {
       <FilterControls
         filters={filters}
         onFiltersChange={setFilters}
-        creators={Array.from(new Set(events.map(e => e.creator).filter(Boolean)))}
+        creators={Array.from(new Set(events.map(e => e.creator).filter((c): c is string => Boolean(c))))}
         tags={Array.from(new Set(events.flatMap(e => e.tags || [])))}
       />
 
@@ -180,9 +209,14 @@ export default function ContentDatesPage() {
                     <Calendar className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
-                      {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-                    </h2>
+                    <div className="flex items-center gap-2">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                        {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                      </h2>
+                      <span className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-blue-700 dark:text-blue-300 font-medium">
+                        {Intl.DateTimeFormat().resolvedOptions().timeZone}
+                      </span>
+                    </div>
                     <p className="text-xs text-gray-600 dark:text-gray-400">
                       {filteredEvents.length} event{filteredEvents.length !== 1 ? 's' : ''} total
                     </p>
@@ -207,12 +241,48 @@ export default function ContentDatesPage() {
 
             {/* Calendar Grid */}
             <div className="relative z-10 p-6">
-              <ContentDatesCalendar
-                currentDate={currentDate}
-                events={filteredEvents}
-                onDateClick={handleDateClick}
-                onEventClick={handleEventClick}
-              />
+              {isLoading ? (
+                <div className="space-y-4">
+                  {/* Calendar Header Skeleton - Days of Week */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
+                      <div key={day} className="text-center py-2">
+                        <div className="h-4 w-8 bg-gray-200 dark:bg-gray-700 rounded mx-auto animate-pulse"></div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Grid Skeleton */}
+                  <div className="grid grid-cols-7 gap-2">
+                    {[...Array(35)].map((_, dayIndex) => (
+                      <div
+                        key={dayIndex}
+                        className="min-h-[100px] md:min-h-[120px] p-2 rounded-lg border border-gray-200 dark:border-gray-700 bg-white/50 dark:bg-gray-800/50 space-y-2"
+                      >
+                        {/* Day number skeleton */}
+                        <div className="h-4 w-6 bg-gray-200 dark:bg-gray-700 rounded animate-pulse"></div>
+
+                        {/* Event badges skeleton - random number of events per day */}
+                        {dayIndex % 3 === 0 && (
+                          <div className="space-y-1">
+                            <div className="h-6 w-full bg-pink-200 dark:bg-pink-900/30 rounded animate-pulse"></div>
+                            {dayIndex % 2 === 0 && (
+                              <div className="h-6 w-full bg-purple-200 dark:bg-purple-900/30 rounded animate-pulse"></div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <ContentDatesCalendar
+                  currentDate={currentDate}
+                  events={filteredEvents}
+                  onDateClick={handleDateClick}
+                  onEventClick={handleEventClick}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -222,6 +292,7 @@ export default function ContentDatesPage() {
           <UpcomingEventsPanel
             events={upcomingEvents}
             onEventClick={handleEventClick}
+            isLoading={isLoading}
           />
         </div>
       </div>

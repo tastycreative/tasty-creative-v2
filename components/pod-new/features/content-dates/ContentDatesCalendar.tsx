@@ -1,6 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
+import { X } from "lucide-react";
 
 interface ContentDatesCalendarProps {
   currentDate: Date;
@@ -15,6 +17,7 @@ export default function ContentDatesCalendar({
   onDateClick,
   onEventClick,
 }: ContentDatesCalendarProps) {
+  const [expandedDate, setExpandedDate] = useState<Date | null>(null);
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
 
@@ -62,8 +65,10 @@ export default function ContentDatesCalendar({
 
   const weekDays = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
+  const expandedDayEvents = expandedDate ? getEventsForDate(expandedDate) : [];
+
   return (
-    <div>
+    <div className="relative">
       {/* Week Day Headers */}
       <div className="grid grid-cols-7 gap-2 mb-2">
         {weekDays.map(day => (
@@ -125,15 +130,20 @@ export default function ContentDatesCalendar({
                           className={`w-full text-left text-xs px-2 py-1 rounded text-white font-medium truncate transition-colors ${colorClasses[event.color]}`}
                           title={event.title}
                         >
-                          {event.time && <span className="mr-1">{event.time}</span>}
                           {event.title}
                         </button>
                       );
                     })}
                     {dayEvents.length > 2 && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 px-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setExpandedDate(date);
+                        }}
+                        className="w-full text-left text-xs text-gray-500 dark:text-gray-400 px-2 py-1 rounded hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+                      >
                         +{dayEvents.length - 2} more
-                      </div>
+                      </button>
                     )}
                   </div>
                 </>
@@ -142,6 +152,77 @@ export default function ContentDatesCalendar({
           );
         })}
       </div>
+
+      {/* All Events Modal */}
+      {expandedDate && expandedDayEvents.length > 0 && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setExpandedDate(null)}>
+          <div className="relative w-full max-w-md max-h-[80vh] bg-white dark:bg-gray-800 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 flex flex-col overflow-hidden" onClick={(e) => e.stopPropagation()}>
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05] pointer-events-none">
+              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+            </div>
+
+            {/* Header */}
+            <div className="relative z-10 flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100">
+                Events on {expandedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
+              </h3>
+              <button
+                onClick={() => setExpandedDate(null)}
+                className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600 dark:text-gray-400" />
+              </button>
+            </div>
+
+            {/* Events List */}
+            <div className="relative z-10 flex-1 overflow-y-auto p-4 space-y-2">
+              {expandedDayEvents.map((event) => {
+                const colorClasses = {
+                  pink: "bg-pink-500/80 hover:bg-pink-500 border-pink-500/30",
+                  purple: "bg-purple-500/80 hover:bg-purple-500 border-purple-500/30",
+                  blue: "bg-blue-500/80 hover:bg-blue-500 border-blue-500/30",
+                  green: "bg-green-500/80 hover:bg-green-500 border-green-500/30",
+                  orange: "bg-orange-500/80 hover:bg-orange-500 border-orange-500/30",
+                };
+
+                return (
+                  <button
+                    key={event.id}
+                    onClick={() => {
+                      onEventClick(event);
+                      setExpandedDate(null);
+                    }}
+                    className={`w-full text-left px-4 py-3 rounded-lg text-white font-medium transition-all border ${colorClasses[event.color]} shadow-sm hover:shadow-md`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold">{event.title}</span>
+                      {event.time && (
+                        <span className="text-xs opacity-90">{event.time}</span>
+                      )}
+                    </div>
+                    {event.creator && (
+                      <div className="text-xs opacity-90 mt-1">
+                        {event.creator}
+                      </div>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="relative z-10 p-4 border-t border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setExpandedDate(null)}
+                className="w-full px-4 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 font-semibold rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

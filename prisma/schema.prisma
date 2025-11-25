@@ -23,6 +23,7 @@ model User {
   assignedBoardColumnsByUser BoardColumnMemberAssignment[] @relation("BoardColumnAssignedBy")
   assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
   chatbotConversations       ChatbotConversation[]
+  contentEvents              ContentEvent[]                @relation("ContentEventCreator")
   ContentSubmission          ContentSubmission[]
   forumComments              ForumComment[]
   forumVotes                 ForumVote[]
@@ -239,6 +240,7 @@ model Task {
   status              String                @default("NOT_STARTED")
   podTeamId           String?
   taskNumber          Int                   @default(autoincrement())
+  contentEvent        ContentEvent?
   ModularWorkflow     ModularWorkflow?      @relation("ModularWorkflowTask")
   notifications       Notification[]
   oftvTask            OFTVTask?
@@ -347,6 +349,7 @@ model ClientModel {
   launchesPodFolderId   String?
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails?
+  contentEvents         ContentEvent[]
   liveFlyerGalleries    LiveFlyerGallery[]
   notifications         Notification[]
   oftvGallery           OFTVGallery?
@@ -1324,6 +1327,82 @@ enum OFTVFileType {
   IMAGE
   GIF
   OTHER
+}
+
+enum EventType {
+  PPV
+  LIVESTREAM
+}
+
+enum EventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum EventColor {
+  PINK
+  PURPLE
+  BLUE
+  GREEN
+  ORANGE
+}
+
+// Content Calendar Events for PPV and Livestreams
+model ContentEvent {
+  id          String      @id @default(cuid())
+  title       String      // Auto-generated format: "[Creator] - [Event Type]"
+  description String?
+
+  // Scheduling
+  date        DateTime
+  time        String?
+
+  // Event Classification
+  type        EventType
+  status      EventStatus @default(SCHEDULED)
+  color       EventColor  @default(PINK)
+
+  // Relationships
+  creatorId   String?
+  creator     ClientModel? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
+  createdById String
+  createdBy   User        @relation("ContentEventCreator", fields: [createdById], references: [id])
+
+  // Metadata
+  tags        String[]    @default([])
+
+  // PPV-specific fields
+  price       Float?
+  contentLink String?
+  editedVideoLink String?
+
+  // Shared fields
+  flyerLink   String?
+
+  // LIVESTREAM-specific fields
+  liveType    String?
+
+  // Attachments and Notes
+  attachments Json?
+  notes       String?
+
+  // Audit fields
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  completedAt DateTime?
+  cancelledAt DateTime?
+  deletedAt   DateTime?
+  // Optional: Link to task if workflow integration is needed
+  taskId      String?     @unique
+  task        Task?       @relation(fields: [taskId], references: [id])
+
+  @@index([date])
+  @@index([type])
+  @@index([status])
+  @@index([creatorId])
+  @@index([createdById])
+  @@index([createdAt])
 }
 
 // Daily activity statistics for tracking user engagement over time

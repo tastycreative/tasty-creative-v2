@@ -23,3 +23,9 @@ export const fttFlyerValidation = z.object({
   tip: z.number().min(1).default(10),
   get: z.number().min(1).default(100),
 });
+
+export const contentEventValidation = z.object({
+  date: z.string().min(1, "Date is required"),
+  type: z.string().min(1, "Event type is required"),
+  creator: z.string().min(1, "Creator is required"),
+});

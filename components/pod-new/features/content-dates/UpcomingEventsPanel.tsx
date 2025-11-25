@@ -6,11 +6,28 @@ import { Clock, Calendar, DollarSign, Tag, Video } from "lucide-react";
 interface UpcomingEventsPanelProps {
   events: ContentEvent[];
   onEventClick: (event: ContentEvent) => void;
+  isLoading?: boolean;
 }
 
-export default function UpcomingEventsPanel({ events, onEventClick }: UpcomingEventsPanelProps) {
+export default function UpcomingEventsPanel({ events, onEventClick, isLoading = false }: UpcomingEventsPanelProps) {
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatDateTime = (date: Date, time?: string) => {
+    const dateStr = formatDate(date);
+
+    if (time) {
+      // Convert 24h time to 12h format
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      const timeStr = `${hour12}:${minutes} ${ampm}`;
+      return `${dateStr} • ${timeStr}`;
+    }
+
+    return dateStr;
   };
 
   const getEventTypeIcon = (type: ContentEvent["type"]) => {
@@ -50,7 +67,37 @@ export default function UpcomingEventsPanel({ events, onEventClick }: UpcomingEv
 
       {/* Events List */}
       <div className="relative z-10 flex-1 overflow-y-auto p-6 space-y-3 min-h-0">
-        {events.length === 0 ? (
+        {isLoading ? (
+          // Skeleton Loader
+          <div className="space-y-3">
+            {[...Array(5)].map((_, idx) => (
+              <div
+                key={idx}
+                className="p-4 rounded-xl bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50"
+              >
+                <div className="flex items-start gap-3">
+                  {/* Icon skeleton */}
+                  <div className="w-8 h-8 rounded-lg bg-gray-200 dark:bg-gray-700 animate-pulse flex-shrink-0"></div>
+
+                  {/* Content skeleton */}
+                  <div className="flex-1 space-y-2">
+                    {/* Title skeleton */}
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4 animate-pulse"></div>
+
+                    {/* Date/Time skeleton */}
+                    <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2 animate-pulse"></div>
+
+                    {/* Badges skeleton */}
+                    <div className="flex gap-2">
+                      <div className="h-5 w-16 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                      <div className="h-5 w-12 bg-gray-200 dark:bg-gray-700 rounded-full animate-pulse"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : events.length === 0 ? (
           <div className="text-center py-12">
             <Calendar className="h-12 w-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
             <p className="text-sm text-gray-500 dark:text-gray-400">No upcoming events</p>
@@ -89,14 +136,8 @@ export default function UpcomingEventsPanel({ events, onEventClick }: UpcomingEv
 
                     {/* Date & Time */}
                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
-                      <Calendar className="h-3 w-3" />
-                      <span>{formatDate(event.date)}</span>
-                      {event.time && (
-                        <>
-                          <span>•</span>
-                          <span>{event.time}</span>
-                        </>
-                      )}
+                      <Clock className="h-3 w-3" />
+                      <span>{formatDateTime(event.date, event.time)}</span>
                     </div>
 
                     {/* Creator */}

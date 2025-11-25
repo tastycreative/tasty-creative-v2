@@ -21,13 +21,17 @@ interface ModelsDropdownListProps {
   onValueChange: (value: string) => void;
   placeholder?: string;
   className?: string;
+  disabled?: boolean;
+  hasError?: boolean;
 }
 
 const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
   value,
   onValueChange,
   placeholder = "Choose your model...",
-  className = ""
+  className = "",
+  disabled = false,
+  hasError = false
 }) => {
   const [clientModels, setClientModels] = useState<ClientModel[]>([]);
   const [filteredModels, setFilteredModels] = useState<ClientModel[]>([]);
@@ -101,13 +105,16 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
   };
 
   return (
-    <Select value={value} onValueChange={handleValueChange}>
-      <SelectTrigger className={className}>
-        <SelectValue 
-          placeholder={isLoading ? "Loading models..." : error ? "Error loading models" : placeholder} 
-        />
-      </SelectTrigger>
-      <SelectContent className="rounded-lg border shadow-lg !bg-[oklch(1_0_0)] dark:!bg-[oklch(0.205_0_0)] z-50">
+    <Select value={value} onValueChange={handleValueChange} disabled={disabled}>
+        <SelectTrigger
+          className={`${className} ${hasError ? "border-red-500 dark:border-red-500" : ""}`}
+          disabled={disabled}
+        >
+          <SelectValue
+            placeholder={isLoading ? "Loading models..." : error ? "Error loading models" : placeholder}
+          />
+        </SelectTrigger>
+        <SelectContent className="rounded-lg border shadow-lg !bg-[oklch(1_0_0)] dark:!bg-[oklch(0.205_0_0)] z-50">
         {/* Search Input */}
         <div className="p-2 border-b border-gray-200 dark:border-gray-700">
           <div className="relative">
