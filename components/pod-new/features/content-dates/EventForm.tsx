@@ -11,7 +11,7 @@ import {
   X,
 } from "lucide-react";
 import MarkdownEditor from "./MarkdownEditor";
-import ReactMarkdown from "react-markdown";
+import MarkdownViewer from "./MarkdownViewer";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
 import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
@@ -522,15 +522,7 @@ export default function EventForm({
             <FileText className="h-3.5 w-3.5" /> Notes / Requests
           </label>
           {isView ? (
-            formData?.notes ? (
-              <div className="p-3 bg-gray-50 dark:bg-gray-700/50 border rounded-lg prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300">
-                <ReactMarkdown>{formData.notes}</ReactMarkdown>
-              </div>
-            ) : (
-              <div className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border rounded-lg text-gray-500 dark:text-gray-400">
-                No notes
-              </div>
-            )
+            <MarkdownViewer value={formData?.notes || ""} />
           ) : (
             <MarkdownEditor
               disabled={disabled}

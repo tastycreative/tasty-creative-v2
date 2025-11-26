@@ -77,6 +77,8 @@ export default function ContentDatesPage() {
           editedVideoLink: event.editedVideoLink,
           flyerLink: event.flyerLink,
           liveType: event.liveType,
+          notes: event.notes,
+          attachments: event.attachments,
         }));
         setEvents(transformedEvents);
       }

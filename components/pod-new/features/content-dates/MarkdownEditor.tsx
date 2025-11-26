@@ -31,60 +31,259 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     ol: false,
   });
 
-  // Initialize editor with HTML converted from markdown
+  // Convert markdown to HTML for display
   useEffect(() => {
     if (editorRef.current && !isUpdatingRef.current) {
-      const currentMarkdown = htmlToMarkdown(editorRef.current.innerHTML);
-      if (value !== currentMarkdown) {
-        editorRef.current.innerHTML = markdownToHtml(value || "");
+      const html = markdownToHtml(value || "");
+      if (editorRef.current.innerHTML !== html) {
+        editorRef.current.innerHTML = html;
       }
     }
   }, [value]);
+
+  // Update active formats on selection change
+  useEffect(() => {
+    const handleSelectionChange = () => {
+      if (editorRef.current?.contains(document.getSelection()?.anchorNode || null)) {
+        updateActiveFormats();
+      }
+    };
+
+    document.addEventListener("selectionchange", handleSelectionChange);
+    return () => document.removeEventListener("selectionchange", handleSelectionChange);
+  }, []);
+
+  const markdownToHtml = (markdown: string): string => {
+    if (!markdown) return "";
+
+    let html = markdown;
+
+    // Headers
+    html = html.replace(/^### (.+)$/gim, "<h3>$1</h3>");
+    html = html.replace(/^## (.+)$/gim, "<h2>$1</h2>");
+    html = html.replace(/^# (.+)$/gim, "<h1>$1</h1>");
+
+    // Bold
+    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+    html = html.replace(/__(.+?)__/g, "<strong>$1</strong>");
+
+    // Italic
+    html = html.replace(/\*([^*]+?)\*/g, "<em>$1</em>");
+    html = html.replace(/_([^_]+?)_/g, "<em>$1</em>");
+
+    // Inline code
+    html = html.replace(/`([^`]+?)`/g, "<code>$1</code>");
+
+    // Links
+    html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2">$1</a>');
+
+    // Lists
+    const lines = html.split("\n");
+    let inUl = false;
+    let inOl = false;
+    const processedLines: string[] = [];
+
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      const ulMatch = line.match(/^[-*]\s+(.+)$/);
+      const olMatch = line.match(/^(\d+)\.\s+(.+)$/);
+
+      if (ulMatch) {
+        if (!inUl) {
+          processedLines.push("<ul>");
+          inUl = true;
+        }
+        processedLines.push(`<li>${ulMatch[1]}</li>`);
+      } else if (olMatch) {
+        if (!inOl) {
+          processedLines.push("<ol>");
+          inOl = true;
+        }
+        processedLines.push(`<li>${olMatch[2]}</li>`);
+      } else {
+        if (inUl) {
+          processedLines.push("</ul>");
+          inUl = false;
+        }
+        if (inOl) {
+          processedLines.push("</ol>");
+          inOl = false;
+        }
+        processedLines.push(line);
+      }
+    }
+
+    if (inUl) processedLines.push("</ul>");
+    if (inOl) processedLines.push("</ol>");
+
+    html = processedLines.join("\n");
+
+    // Line breaks - convert markdown hard breaks (two spaces + newline) to <br>
+    html = html.replace(/  \n/g, "<br>");
+    // Convert remaining single newlines to <br> for display
+    html = html.replace(/\n/g, "<br>");
+
+    return html;
+  };
+
+  const htmlToMarkdown = (html: string): string => {
+    let md = html;
+
+    // First, handle line breaks properly - convert divs and brs to newlines
+    // Using remark-breaks plugin in viewer, single newlines will be treated as line breaks
+    md = md.replace(/<div><br><\/div>/gi, "\n");
+    md = md.replace(/<div>/gi, "\n");
+    md = md.replace(/<\/div>/gi, "");
+    md = md.replace(/<br\s*\/?>/gi, "\n");
+
+    // Headers
+    md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, "# $1\n\n");
+    md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, "## $1\n\n");
+    md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, "### $1\n\n");
+
+    // Helper function to convert inline formatting within text
+    const convertInlineFormatting = (text: string): string => {
+      let result = text;
+      // Links
+      result = result.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, "[$2]($1)");
+      // Bold
+      result = result.replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**");
+      result = result.replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**");
+      // Italic
+      result = result.replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*");
+      result = result.replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*");
+      // Code
+      result = result.replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`");
+      // Remove any remaining HTML tags
+      result = result.replace(/<[^>]*>/g, "");
+      return result;
+    };
+
+    // Ordered lists - convert formatting INSIDE list items
+    md = md.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
+      let counter = 1;
+      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, (liMatch: string, liContent: string) => {
+        const cleaned = convertInlineFormatting(liContent.trim());
+        return `${counter++}. ${cleaned}\n`;
+      });
+      return `\n${items}\n`;
+    });
+
+    // Unordered lists - convert formatting INSIDE list items
+    md = md.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
+      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, (liMatch: string, liContent: string) => {
+        const cleaned = convertInlineFormatting(liContent.trim());
+        return `- ${cleaned}\n`;
+      });
+      return `\n${items}\n`;
+    });
+
+    // Links (outside lists)
+    md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, "[$2]($1)");
+
+    // Bold (outside lists)
+    md = md.replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**");
+    md = md.replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**");
+
+    // Italic (outside lists)
+    md = md.replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*");
+    md = md.replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*");
+
+    // Code (outside lists)
+    md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`");
+
+    // Paragraphs
+    md = md.replace(/<\/p>/gi, "\n\n");
+    md = md.replace(/<p[^>]*>/gi, "");
+
+    // Remove any remaining HTML tags
+    md = md.replace(/<[^>]*>/g, "");
+
+    // Decode entities
+    md = md.replace(/&nbsp;/g, " ");
+    md = md.replace(/&quot;/g, '"');
+    md = md.replace(/&lt;/g, "<");
+    md = md.replace(/&gt;/g, ">");
+    md = md.replace(/&amp;/g, "&");
+
+    // Clean up excessive whitespace but preserve single line breaks
+    md = md.replace(/\n{3,}/g, "\n\n");
+
+    // Trim each line
+    md = md.split('\n').map(line => line.trim()).join('\n');
+
+    // Final trim
+    md = md.trim();
+
+    return md;
+  };
+
+  const updateActiveFormats = () => {
+    if (!editorRef.current) return;
+
+    setActiveFormats({
+      bold: document.queryCommandState("bold"),
+      italic: document.queryCommandState("italic"),
+      h1: document.queryCommandValue("formatBlock") === "h1",
+      h2: document.queryCommandValue("formatBlock") === "h2",
+      ul: document.queryCommandState("insertUnorderedList"),
+      ol: document.queryCommandState("insertOrderedList"),
+    });
+  };
+
+  const handleInput = () => {
+    if (!editorRef.current) return;
+
+    isUpdatingRef.current = true;
+    const html = editorRef.current.innerHTML;
+    const markdown = htmlToMarkdown(html);
+    onChange(markdown);
+
+    setTimeout(() => {
+      isUpdatingRef.current = false;
+    }, 0);
+
+    updateActiveFormats();
+  };
 
   const execCommand = (command: string, value: string = "") => {
     document.execCommand(command, false, value);
   };
 
   const formatBold = () => {
-    const isActive = document.queryCommandState("bold");
     execCommand("bold");
-    setActiveFormats(prev => ({ ...prev, bold: !isActive }));
-    updateMarkdown();
+    handleInput();
+    setTimeout(updateActiveFormats, 0);
   };
 
   const formatItalic = () => {
-    const isActive = document.queryCommandState("italic");
     execCommand("italic");
-    setActiveFormats(prev => ({ ...prev, italic: !isActive }));
-    updateMarkdown();
+    handleInput();
+    setTimeout(updateActiveFormats, 0);
   };
 
   const formatH1 = () => {
-    const isActive = document.queryCommandValue("formatBlock") === "h1";
     execCommand("formatBlock", "h1");
-    setActiveFormats(prev => ({ ...prev, h1: !isActive, h2: false }));
-    updateMarkdown();
+    handleInput();
+    setTimeout(updateActiveFormats, 0);
   };
 
   const formatH2 = () => {
-    const isActive = document.queryCommandValue("formatBlock") === "h2";
     execCommand("formatBlock", "h2");
-    setActiveFormats(prev => ({ ...prev, h2: !isActive, h1: false }));
-    updateMarkdown();
+    handleInput();
+    setTimeout(updateActiveFormats, 0);
   };
 
   const formatBulletList = () => {
-    const isActive = document.queryCommandState("insertUnorderedList");
     execCommand("insertUnorderedList");
-    setActiveFormats(prev => ({ ...prev, ul: !isActive, ol: false }));
-    updateMarkdown();
+    handleInput();
+    setTimeout(updateActiveFormats, 0);
   };
 
   const formatNumberedList = () => {
-    const isActive = document.queryCommandState("insertOrderedList");
     execCommand("insertOrderedList");
-    setActiveFormats(prev => ({ ...prev, ol: !isActive, ul: false }));
-    updateMarkdown();
+    handleInput();
+    setTimeout(updateActiveFormats, 0);
   };
 
   const formatCode = () => {
@@ -92,12 +291,10 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     if (selection && selection.rangeCount > 0) {
       const range = selection.getRangeAt(0);
       const code = document.createElement("code");
-      code.className = "bg-gray-200 dark:bg-gray-600 px-1 rounded";
       try {
         range.surroundContents(code);
-        updateMarkdown();
+        handleInput();
       } catch (e) {
-        // If surroundContents fails, just use execCommand
         console.warn("Could not wrap in code tag");
       }
     }
@@ -107,272 +304,124 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     const url = prompt("Enter URL:");
     if (url) {
       execCommand("createLink", url);
-      updateMarkdown();
+      handleInput();
     }
-  };
-
-  const updateMarkdown = () => {
-    if (!editorRef.current) return;
-
-    isUpdatingRef.current = true;
-
-    // Convert HTML back to markdown
-    const html = editorRef.current.innerHTML;
-    const markdown = htmlToMarkdown(html);
-    onChange(markdown);
-
-    setTimeout(() => {
-      isUpdatingRef.current = false;
-    }, 0);
-  };
-
-  const markdownToHtml = (markdown: string): string => {
-    if (!markdown) return "";
-
-    let html = markdown;
-
-    // Headers (must come before other replacements)
-    html = html.replace(/^### (.+)$/gim, "<h3>$1</h3>");
-    html = html.replace(/^## (.+)$/gim, "<h2>$1</h2>");
-    html = html.replace(/^# (.+)$/gim, "<h1>$1</h1>");
-
-    // Bold (do before italic to handle ** correctly)
-    html = html.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
-    html = html.replace(/__(.+?)__/g, "<strong>$1</strong>");
-
-    // Italic (handle remaining single *)
-    html = html.replace(/\*([^*]+?)\*/g, "<em>$1</em>");
-    html = html.replace(/_([^_]+?)_/g, "<em>$1</em>");
-
-    // Code
-    html = html.replace(/`([^`]+?)`/g, '<code class="bg-gray-200 dark:bg-gray-600 px-1 rounded">$1</code>');
-
-    // Links
-    html = html.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '<a href="$2" title="$2" class="text-blue-600 dark:text-blue-400 underline cursor-pointer">$1</a>');
-
-    // Lists - handle line by line
-    const lines = html.split('\n');
-    let inUl = false;
-    let inOl = false;
-    const processedLines: string[] = [];
-
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i];
-      const ulMatch = line.match(/^[-*]\s+(.+)$/);
-      const olMatch = line.match(/^\d+\.\s+(.+)$/);
-
-      if (ulMatch) {
-        if (!inUl) {
-          processedLines.push('<ul>');
-          inUl = true;
-        }
-        processedLines.push(`<li>${ulMatch[1]}</li>`);
-      } else if (olMatch) {
-        if (!inOl) {
-          processedLines.push('<ol>');
-          inOl = true;
-        }
-        processedLines.push(`<li>${olMatch[1]}</li>`);
-      } else {
-        if (inUl) {
-          processedLines.push('</ul>');
-          inUl = false;
-        }
-        if (inOl) {
-          processedLines.push('</ol>');
-          inOl = false;
-        }
-        processedLines.push(line);
-      }
-    }
-
-    if (inUl) processedLines.push('</ul>');
-    if (inOl) processedLines.push('</ol>');
-
-    html = processedLines.join('\n');
-
-    // Paragraphs
-    html = html.replace(/\n\n+/g, '<br><br>');
-    html = html.replace(/\n/g, '<br>');
-
-    return html;
-  };
-
-  const htmlToMarkdown = (html: string): string => {
-    let md = html;
-
-    // Preserve line breaks before processing
-    md = md.replace(/<br\s*\/?>/gi, "\n");
-    md = md.replace(/<\/div>/gi, "</div>\n");
-    md = md.replace(/<\/p>/gi, "</p>\n");
-    md = md.replace(/<\/li>/gi, "</li>\n");
-
-    // Headers (handle both block headers and inline)
-    md = md.replace(/<h1[^>]*>(.*?)<\/h1>/gi, (match, content) => `# ${content.trim()}\n\n`);
-    md = md.replace(/<h2[^>]*>(.*?)<\/h2>/gi, (match, content) => `## ${content.trim()}\n\n`);
-    md = md.replace(/<h3[^>]*>(.*?)<\/h3>/gi, (match, content) => `### ${content.trim()}\n\n`);
-
-    // Lists - need to handle nested structure
-    // First, convert list items
-    md = md.replace(/<li[^>]*>(.*?)<\/li>/gi, (match, content) => {
-      // Clean the content
-      const cleaned = content.trim().replace(/<[^>]*>/g, '');
-      return `- ${cleaned}\n`;
-    });
-
-    // Remove ul/ol tags
-    md = md.replace(/<\/?ul[^>]*>/gi, "");
-    md = md.replace(/<\/?ol[^>]*>/gi, "");
-
-    // Links
-    md = md.replace(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/gi, "[$2]($1)");
-
-    // Bold
-    md = md.replace(/<strong[^>]*>(.*?)<\/strong>/gi, "**$1**");
-    md = md.replace(/<b[^>]*>(.*?)<\/b>/gi, "**$1**");
-
-    // Italic
-    md = md.replace(/<em[^>]*>(.*?)<\/em>/gi, "*$1*");
-    md = md.replace(/<i[^>]*>(.*?)<\/i>/gi, "*$1*");
-
-    // Code
-    md = md.replace(/<code[^>]*>(.*?)<\/code>/gi, "`$1`");
-
-    // Remove paragraphs and divs (keeping their content)
-    md = md.replace(/<\/?p[^>]*>/gi, "");
-    md = md.replace(/<\/?div[^>]*>/gi, "");
-
-    // Remove any remaining HTML tags
-    md = md.replace(/<[^>]*>/g, "");
-
-    // Decode HTML entities
-    md = md.replace(/&nbsp;/g, " ");
-    md = md.replace(/&quot;/g, '"');
-    md = md.replace(/&lt;/g, "<");
-    md = md.replace(/&gt;/g, ">");
-    md = md.replace(/&amp;/g, "&");
-
-    // Clean up whitespace
-    md = md.replace(/\n{3,}/g, "\n\n");
-    md = md.replace(/^\n+/, "");
-    md = md.replace(/\n+$/, "");
-
-    return md.trim();
   };
 
   return (
     <div className={`border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden bg-white dark:bg-gray-700 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
       {/* Formatting Toolbar */}
       <div className="flex items-center gap-1 px-2 py-2 bg-gray-50 dark:bg-gray-800 border-b border-gray-300 dark:border-gray-600 flex-wrap">
-          <button
-            type="button"
-            onClick={formatBold}
-            disabled={disabled}
-            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              activeFormats.bold
-                ? "bg-pink-500 text-white"
-                : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            }`}
-            title="Bold (Ctrl+B)"
-          >
-            <Bold className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={formatItalic}
-            disabled={disabled}
-            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              activeFormats.italic
-                ? "bg-pink-500 text-white"
-                : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            }`}
-            title="Italic (Ctrl+I)"
-          >
-            <Italic className="h-4 w-4" />
-          </button>
-          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
-          <button
-            type="button"
-            onClick={formatH1}
-            disabled={disabled}
-            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              activeFormats.h1
-                ? "bg-pink-500 text-white"
-                : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            }`}
-            title="Heading 1"
-          >
-            <Heading1 className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={formatH2}
-            disabled={disabled}
-            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              activeFormats.h2
-                ? "bg-pink-500 text-white"
-                : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            }`}
-            title="Heading 2"
-          >
-            <Heading2 className="h-4 w-4" />
-          </button>
-          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
-          <button
-            type="button"
-            onClick={formatBulletList}
-            disabled={disabled}
-            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              activeFormats.ul
-                ? "bg-pink-500 text-white"
-                : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            }`}
-            title="Bullet List"
-          >
-            <List className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={formatNumberedList}
-            disabled={disabled}
-            className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-              activeFormats.ol
-                ? "bg-pink-500 text-white"
-                : "hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-            }`}
-            title="Numbered List"
-          >
-            <ListOrdered className="h-4 w-4" />
-          </button>
-          <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
-          <button
-            type="button"
-            onClick={formatLink}
-            disabled={disabled}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Link"
-          >
-            <LinkIcon className="h-4 w-4" />
-          </button>
-          <button
-            type="button"
-            onClick={formatCode}
-            disabled={disabled}
-            className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            title="Inline Code"
-          >
-            <Code className="h-4 w-4" />
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={formatBold}
+          disabled={disabled}
+          className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            activeFormats.bold
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+          title="Bold (Ctrl+B)"
+        >
+          <Bold className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={formatItalic}
+          disabled={disabled}
+          className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            activeFormats.italic
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+          title="Italic (Ctrl+I)"
+        >
+          <Italic className="h-4 w-4" />
+        </button>
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+        <button
+          type="button"
+          onClick={formatH1}
+          disabled={disabled}
+          className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            activeFormats.h1
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+          title="Heading 1"
+        >
+          <Heading1 className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={formatH2}
+          disabled={disabled}
+          className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            activeFormats.h2
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+          title="Heading 2"
+        >
+          <Heading2 className="h-4 w-4" />
+        </button>
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+        <button
+          type="button"
+          onClick={formatBulletList}
+          disabled={disabled}
+          className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            activeFormats.ul
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+          title="Bullet List"
+        >
+          <List className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={formatNumberedList}
+          disabled={disabled}
+          className={`p-1.5 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+            activeFormats.ol
+              ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
+              : 'hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100'
+          }`}
+          title="Numbered List"
+        >
+          <ListOrdered className="h-4 w-4" />
+        </button>
+        <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+        <button
+          type="button"
+          onClick={formatLink}
+          disabled={disabled}
+          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Link"
+        >
+          <LinkIcon className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={formatCode}
+          disabled={disabled}
+          className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          title="Inline Code"
+        >
+          <Code className="h-4 w-4" />
+        </button>
+      </div>
 
-      {/* Rich Text Editor (WYSIWYG) */}
+      {/* WYSIWYG Editor */}
       <div className="relative min-h-[150px]">
         <div
           ref={editorRef}
           contentEditable={!disabled}
-          onInput={updateMarkdown}
-          onBlur={updateMarkdown}
-          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[150px] focus:outline-none max-w-none [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 [&:empty]:before:dark:text-gray-500
+          onInput={handleInput}
+          onBlur={handleInput}
+          className="w-full px-3 py-2 text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 min-h-[150px] focus:outline-none
+          [&:empty]:before:content-[attr(data-placeholder)] [&:empty]:before:text-gray-400 [&:empty]:before:dark:text-gray-500
           [&_h1]:text-2xl [&_h1]:font-bold [&_h1]:mb-2 [&_h1]:mt-2
           [&_h2]:text-xl [&_h2]:font-bold [&_h2]:mb-2 [&_h2]:mt-2
           [&_h3]:text-lg [&_h3]:font-bold [&_h3]:mb-1 [&_h3]:mt-1
@@ -384,7 +433,6 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
           [&_ol]:list-decimal [&_ol]:ml-6 [&_ol]:my-2
           [&_li]:my-1"
           suppressContentEditableWarning
-          style={{ whiteSpace: "pre-wrap" }}
           data-placeholder={placeholder || "Start typing..."}
         />
       </div>
@@ -392,7 +440,7 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
       {/* Helper text */}
       <div className="px-3 py-2 bg-gray-50 dark:bg-gray-800 border-t border-gray-300 dark:border-gray-600">
         <p className="text-[10px] text-gray-500 dark:text-gray-400">
-          Use the toolbar buttons to format your text. Markdown is saved automatically.
+          Format text as you type. Bold, italic, lists, and more render instantly. Markdown is saved automatically.
         </p>
       </div>
     </div>
