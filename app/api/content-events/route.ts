@@ -14,9 +14,15 @@ export async function GET(request: NextRequest) {
     const eventType = searchParams.get("eventType");
     const status = searchParams.get("status");
     const tags = searchParams.get("tags");
+    const includeDeleted = searchParams.get("includeDeleted") === "true";
 
     // Build filter conditions
     const where: any = {};
+
+    // By default, filter out deleted events unless explicitly requested
+    if (!includeDeleted) {
+      where.deletedAt = null;
+    }
 
     if (creator && creator !== "all") {
       // Find the creator by clientName

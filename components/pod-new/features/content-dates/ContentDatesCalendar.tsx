@@ -127,8 +127,12 @@ export default function ContentDatesCalendar({
                             e.stopPropagation();
                             onEventClick(event);
                           }}
-                          className={`w-full text-left text-xs px-2 py-1 rounded text-white font-medium truncate transition-colors ${colorClasses[event.color]}`}
-                          title={event.title}
+                          className={`w-full text-left text-xs px-2 py-1 rounded text-white font-medium truncate transition-colors ${
+                            event.deletedAt
+                              ? 'bg-gray-400/80 hover:bg-gray-400 line-through opacity-60'
+                              : colorClasses[event.color]
+                          }`}
+                          title={event.deletedAt ? `${event.title} (Deleted)` : event.title}
                         >
                           {event.title}
                         </button>
@@ -193,10 +197,19 @@ export default function ContentDatesCalendar({
                       onEventClick(event);
                       setExpandedDate(null);
                     }}
-                    className={`w-full text-left px-4 py-3 rounded-lg text-white font-medium transition-all border ${colorClasses[event.color]} shadow-sm hover:shadow-md`}
+                    className={`w-full text-left px-4 py-3 rounded-lg font-medium transition-all border shadow-sm hover:shadow-md ${
+                      event.deletedAt
+                        ? 'bg-gray-400/80 hover:bg-gray-400 border-gray-400/30 text-white opacity-60'
+                        : `${colorClasses[event.color]} text-white`
+                    }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold">{event.title}</span>
+                      <span className={`font-semibold ${event.deletedAt ? 'line-through' : ''}`}>
+                        {event.title}
+                        {event.deletedAt && (
+                          <span className="ml-2 text-xs font-normal">(Deleted)</span>
+                        )}
+                      </span>
                       {event.time && (
                         <span className="text-xs opacity-90">{event.time}</span>
                       )}

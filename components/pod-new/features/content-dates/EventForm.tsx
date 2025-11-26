@@ -407,10 +407,28 @@ export default function EventForm({
           )}
         </div>
 
+        {/* Notes */}
+        <div className="col-span-4">
+          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+            <FileText className="h-3.5 w-3.5" /> Notes / Requests
+          </label>
+          {isView ? (
+            <MarkdownViewer value={formData?.notes || ""} />
+          ) : (
+            <MarkdownEditor
+              disabled={disabled}
+              value={formData.notes}
+              onChange={(value) => setFormData?.({ ...formData, notes: value })}
+              placeholder="Add any notes or special requests here..."
+            />
+          )}
+        </div>
+
         {/* Attachments */}
         <div className="col-span-4">
           <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-            <Upload className="h-3.5 w-3.5" /> Attachments
+            <Upload className="h-3.5 w-3.5" /> Scheduled Screenshot{" "}
+            <span className="text-gray-500 dark:text-gray-400">(screenshot of OnlyFans queue)</span>
           </label>
 
           {isView ? (
@@ -513,23 +531,6 @@ export default function EventForm({
                 </label>
               </div>
             </div>
-          )}
-        </div>
-
-        {/* Notes */}
-        <div className="col-span-4">
-          <label className="flex items-center gap-1.5 text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-            <FileText className="h-3.5 w-3.5" /> Notes / Requests
-          </label>
-          {isView ? (
-            <MarkdownViewer value={formData?.notes || ""} />
-          ) : (
-            <MarkdownEditor
-              disabled={disabled}
-              value={formData.notes}
-              onChange={(value) => setFormData?.({ ...formData, notes: value })}
-              placeholder="Add any notes or special requests here..."
-            />
           )}
         </div>
       </div>

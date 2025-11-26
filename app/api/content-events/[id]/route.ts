@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -12,8 +12,9 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const event = await prisma.contentEvent.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         creator: {
           select: {
@@ -46,7 +47,7 @@ export async function GET(
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -54,6 +55,7 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const { id } = await params;
     const body = await request.json();
     const {
       title,
@@ -120,7 +122,7 @@ export async function PATCH(
     if (attachments !== undefined) updateData.attachments = attachments;
 
     const event = await prisma.contentEvent.update({
-      where: { id: params.id },
+      where: { id },
       data: updateData,
       include: {
         creator: {
@@ -148,9 +150,18 @@ export async function PATCH(
   }
 }
 
+// PUT method as alias to PATCH for compatibility
+export async function PUT(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return PATCH(request, { params });
+}
+
+// Soft delete - marks event as deleted instead of removing it
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -158,11 +169,16 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    await prisma.contentEvent.delete({
-      where: { id: params.id },
+    const { id } = await params;
+    // Soft delete by setting deletedAt timestamp
+    const event = await prisma.contentEvent.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+      },
     });
 
-    return NextResponse.json({ success: true }, { status: 200 });
+    return NextResponse.json({ success: true, event }, { status: 200 });
   } catch (error) {
     console.error("Error deleting content event:", error);
     return NextResponse.json(

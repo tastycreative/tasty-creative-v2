@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Filter, Plus, ChevronLeft, ChevronRight } from "lucide-react";
+import { Calendar, Filter, Plus, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
 import ContentDatesCalendar from "@/components/pod-new/features/content-dates/ContentDatesCalendar";
 import UpcomingEventsPanel from "@/components/pod-new/features/content-dates/UpcomingEventsPanel";
 import FilterControls from "@/components/pod-new/features/content-dates/FilterControls";
@@ -31,6 +31,7 @@ export interface ContentEvent {
   // Additional fields
   notes?: string;
   attachments?: any;
+  deletedAt?: Date | null;
 }
 
 export default function ContentDatesPage() {
@@ -38,6 +39,7 @@ export default function ContentDatesPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ContentEvent | null>(null);
+  const [showDeleted, setShowDeleted] = useState(true);
   const [filters, setFilters] = useState({
     creator: "all",
     eventType: "all",
@@ -56,6 +58,7 @@ export default function ContentDatesPage() {
       if (filters.eventType !== "all") queryParams.set("eventType", filters.eventType);
       if (filters.status !== "all") queryParams.set("status", filters.status);
       if (filters.tags.length > 0) queryParams.set("tags", filters.tags.join(","));
+      if (showDeleted) queryParams.set("includeDeleted", "true");
 
       const response = await fetch(`/api/content-events?${queryParams.toString()}`);
       if (response.ok) {
@@ -79,6 +82,7 @@ export default function ContentDatesPage() {
           liveType: event.liveType,
           notes: event.notes,
           attachments: event.attachments,
+          deletedAt: event.deletedAt ? new Date(event.deletedAt) : null,
         }));
         setEvents(transformedEvents);
       }
@@ -89,10 +93,10 @@ export default function ContentDatesPage() {
     }
   };
 
-  // Fetch events on mount and when filters change
+  // Fetch events on mount and when filters or showDeleted change
   useEffect(() => {
     fetchEvents();
-  }, [filters]);
+  }, [filters, showDeleted]);
 
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
@@ -151,11 +155,117 @@ export default function ContentDatesPage() {
     }
   };
 
+  const handleUpdateEvent = async (eventId: string, eventData: Partial<ContentEvent>) => {
+    try {
+      const response = await fetch(`/api/content-events/${eventId}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          date: eventData.date,
+          time: eventData.time,
+          type: eventData.type,
+          creator: eventData.creator,
+          tags: eventData.tags || [],
+          price: eventData.price,
+          color: eventData.color?.toUpperCase(),
+          contentLink: eventData.contentLink,
+          editedVideoLink: eventData.editedVideoLink,
+          flyerLink: eventData.flyerLink,
+          liveType: eventData.liveType,
+          notes: eventData.notes,
+          attachments: eventData.attachments,
+        }),
+      });
+
+      if (response.ok) {
+        // Refresh events list
+        await fetchEvents();
+        // Close the modal by clearing selected event
+        setSelectedEvent(null);
+      } else {
+        console.error("Failed to update event");
+      }
+    } catch (error) {
+      console.error("Error updating event:", error);
+      throw error;
+    }
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/content-events/${eventId}`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        // Refresh events list
+        await fetchEvents();
+        // Close the modal by clearing selected event
+        setSelectedEvent(null);
+      } else {
+        console.error("Failed to delete event");
+      }
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      throw error;
+    }
+  };
+
+  const handleRestoreEvent = async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/content-events/${eventId}/restore`, {
+        method: "POST",
+      });
+
+      if (response.ok) {
+        // Refresh events list
+        await fetchEvents();
+        // Close the modal by clearing selected event
+        setSelectedEvent(null);
+      } else {
+        console.error("Failed to restore event");
+      }
+    } catch (error) {
+      console.error("Error restoring event:", error);
+      throw error;
+    }
+  };
+
+  const handlePermanentDeleteEvent = async (eventId: string) => {
+    try {
+      const response = await fetch(`/api/content-events/${eventId}/permanent-delete`, {
+        method: "DELETE",
+      });
+
+      if (response.ok) {
+        // Refresh events list
+        await fetchEvents();
+        // Close the modal by clearing selected event
+        setSelectedEvent(null);
+      } else {
+        const errorData = await response.json();
+        console.error("Failed to permanently delete event:", errorData.error);
+        alert(errorData.error || "Failed to permanently delete event");
+      }
+    } catch (error) {
+      console.error("Error permanently deleting event:", error);
+      throw error;
+    }
+  };
+
   // Events are already filtered by the API
   const filteredEvents = events;
 
   const upcomingEvents = events
-    .filter(event => event.date >= new Date())
+    .filter(event => {
+      // Filter by date (must be in the future)
+      if (event.date < new Date()) return false;
+      // If showDeleted is false, exclude deleted events
+      if (!showDeleted && event.deletedAt) return false;
+      return true;
+    })
     .sort((a, b) => a.date.getTime() - b.date.getTime())
     .slice(0, 10);
 
@@ -172,16 +282,33 @@ export default function ContentDatesPage() {
               Plan, track, and execute all PPVs and Livestreams with full visibility
             </p>
           </div>
-          <button
-            onClick={() => {
-              setSelectedDate(null);
-              setIsCreateModalOpen(true);
-            }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Create Event</span>
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowDeleted(!showDeleted)}
+              className={`inline-flex items-center justify-center p-2 rounded-xl font-semibold transition-all ${
+                showDeleted
+                  ? 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+              }`}
+              title={showDeleted ? 'Hide deleted events' : 'Show deleted events'}
+            >
+              {showDeleted ? (
+                <EyeOff className="w-5 h-5" />
+              ) : (
+                <Eye className="w-5 h-5" />
+              )}
+            </button>
+            <button
+              onClick={() => {
+                setSelectedDate(null);
+                setIsCreateModalOpen(true);
+              }}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Create Event</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -314,6 +441,10 @@ export default function ContentDatesPage() {
         event={selectedEvent}
         isOpen={!!selectedEvent}
         onClose={() => setSelectedEvent(null)}
+        onUpdate={handleUpdateEvent}
+        onDelete={handleDeleteEvent}
+        onRestore={handleRestoreEvent}
+        onPermanentDelete={handlePermanentDeleteEvent}
       />
     </div>
   );

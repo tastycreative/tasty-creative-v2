@@ -1,7 +1,7 @@
 "use client";
 
 import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
-import { Clock, Calendar, DollarSign, Tag, Video } from "lucide-react";
+import { Clock, Calendar, DollarSign, Tag } from "lucide-react";
 
 interface UpcomingEventsPanelProps {
   events: ContentEvent[];
@@ -28,10 +28,6 @@ export default function UpcomingEventsPanel({ events, onEventClick, isLoading = 
     }
 
     return dateStr;
-  };
-
-  const getEventTypeIcon = (type: ContentEvent["type"]) => {
-    return type === "LIVESTREAM" ? Video : DollarSign;
   };
 
   const getStatusBadge = (status: ContentEvent["status"]) => {
@@ -105,34 +101,55 @@ export default function UpcomingEventsPanel({ events, onEventClick, isLoading = 
           </div>
         ) : (
           events.map((event) => {
-            const EventIcon = getEventTypeIcon(event.type);
             const statusBadge = getStatusBadge(event.status);
+            const dayOfMonth = event.date.getDate();
 
             return (
               <button
                 key={event.id}
                 onClick={() => onEventClick(event)}
-                className="w-full text-left p-4 rounded-xl bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 hover:bg-white dark:hover:bg-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 hover:shadow-md transition-all group"
+                className={`w-full text-left p-4 rounded-xl border transition-all group ${
+                  event.deletedAt
+                    ? 'bg-gray-100/50 dark:bg-gray-800/50 border-red-300/50 dark:border-red-800/50 opacity-60'
+                    : 'bg-white/50 dark:bg-gray-700/50 border-gray-200/50 dark:border-gray-600/50 hover:bg-white dark:hover:bg-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 hover:shadow-md'
+                }`}
               >
                 <div className="flex items-start gap-3">
-                  {/* Icon */}
-                  <div className={`p-2 rounded-lg flex-shrink-0 ${
-                    event.type === "PPV"
+                  {/* Date Number */}
+                  <div className={`w-12 h-12 rounded-lg flex-shrink-0 flex items-center justify-center ${
+                    event.deletedAt
+                      ? "bg-red-500/10 border border-red-500/20"
+                      : event.type === "PPV"
                       ? "bg-pink-500/10 border border-pink-500/20"
                       : "bg-purple-500/10 border border-purple-500/20"
                   }`}>
-                    <EventIcon className={`h-4 w-4 ${
-                      event.type === "PPV"
+                    <span className={`text-lg font-bold ${
+                      event.deletedAt
+                        ? "text-red-600 dark:text-red-400"
+                        : event.type === "PPV"
                         ? "text-pink-600 dark:text-pink-400"
                         : "text-purple-600 dark:text-purple-400"
-                    }`} />
+                    }`}>
+                      {dayOfMonth}
+                    </span>
                   </div>
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 truncate group-hover:text-pink-600 dark:group-hover:text-pink-400 transition-colors">
-                      {event.title}
-                    </h3>
+                    <div className="flex items-center gap-2">
+                      <h3 className={`text-sm font-semibold text-gray-900 dark:text-gray-100 truncate transition-colors ${
+                        event.deletedAt
+                          ? 'line-through text-gray-500 dark:text-gray-500'
+                          : 'group-hover:text-pink-600 dark:group-hover:text-pink-400'
+                      }`}>
+                        {event.title}
+                      </h3>
+                      {event.deletedAt && (
+                        <span className="text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded flex-shrink-0">
+                          DELETED
+                        </span>
+                      )}
+                    </div>
 
                     {/* Date & Time */}
                     <div className="flex items-center gap-2 mt-1 text-xs text-gray-600 dark:text-gray-400">
