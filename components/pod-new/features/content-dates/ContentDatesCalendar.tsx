@@ -11,6 +11,16 @@ interface ContentDatesCalendarProps {
   onEventClick: (event: ContentEvent) => void;
 }
 
+// Helper function to get initials from name
+const getInitials = (name: string): string => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 export default function ContentDatesCalendar({
   currentDate,
   events,
@@ -127,14 +137,42 @@ export default function ContentDatesCalendar({
                             e.stopPropagation();
                             onEventClick(event);
                           }}
-                          className={`w-full text-left text-xs px-2 py-1 rounded text-white font-medium truncate transition-colors ${
+                          className={`w-full text-left text-xs px-2 py-1 rounded text-white font-medium transition-colors flex items-center gap-1.5 ${
                             event.deletedAt
-                              ? 'bg-gray-400/80 hover:bg-gray-400 line-through opacity-60'
+                              ? 'bg-gray-400/80 hover:bg-gray-400 opacity-60'
                               : colorClasses[event.color]
                           }`}
-                          title={event.deletedAt ? `${event.title} (Deleted)` : event.title}
+                          title={event.deletedAt ? `${event.type} - ${event.creator || 'Unknown'} (Deleted)` : `${event.type} - ${event.creator || 'Unknown'}`}
                         >
-                          {event.title}
+                          {/* Profile Picture or Initials */}
+                          {event.creatorProfilePicture ? (
+                            <img
+                              src={event.creatorProfilePicture}
+                              alt={event.creator || 'Creator'}
+                              className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-white/50"
+                              onError={(e) => {
+                                // Fallback to initials if image fails to load
+                                const img = e.target as HTMLImageElement;
+                                img.style.display = 'none';
+                                const parent = img.parentElement;
+                                if (parent) {
+                                  const initialsDiv = document.createElement('div');
+                                  initialsDiv.className = 'flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-white text-[8px] font-bold border border-white/50 flex-shrink-0';
+                                  initialsDiv.textContent = getInitials(event.creator || '?');
+                                  parent.insertBefore(initialsDiv, img);
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-white text-[8px] font-bold border border-white/50 flex-shrink-0">
+                              {getInitials(event.creator || '?')}
+                            </div>
+                          )}
+
+                          {/* Event Type and Creator Name */}
+                          <span className={`truncate ${event.deletedAt ? 'line-through' : ''}`}>
+                            {event.type} - {event.creator || 'Unknown'}
+                          </span>
                         </button>
                       );
                     })}
@@ -203,22 +241,53 @@ export default function ContentDatesCalendar({
                         : `${colorClasses[event.color]} text-white`
                     }`}
                   >
-                    <div className="flex items-center justify-between">
-                      <span className={`font-semibold ${event.deletedAt ? 'line-through' : ''}`}>
-                        {event.title}
-                        {event.deletedAt && (
-                          <span className="ml-2 text-xs font-normal">(Deleted)</span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2 flex-1 min-w-0">
+                        {/* Profile Picture or Initials */}
+                        {event.creatorProfilePicture ? (
+                          <img
+                            src={event.creatorProfilePicture}
+                            alt={event.creator || 'Creator'}
+                            className="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white/50"
+                            onError={(e) => {
+                              // Fallback to initials if image fails to load
+                              const img = e.target as HTMLImageElement;
+                              img.style.display = 'none';
+                              const parent = img.parentElement;
+                              if (parent) {
+                                const initialsDiv = document.createElement('div');
+                                initialsDiv.className = 'flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white text-xs font-bold border-2 border-white/50 flex-shrink-0';
+                                initialsDiv.textContent = getInitials(event.creator || '?');
+                                parent.insertBefore(initialsDiv, img);
+                              }
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white text-xs font-bold border-2 border-white/50 flex-shrink-0">
+                            {getInitials(event.creator || '?')}
+                          </div>
                         )}
-                      </span>
+
+                        {/* Event Type and Creator Name */}
+                        <div className="flex-1 min-w-0">
+                          <span className={`font-semibold block truncate ${event.deletedAt ? 'line-through' : ''}`}>
+                            {event.type} - {event.creator || 'Unknown'}
+                            {event.deletedAt && (
+                              <span className="ml-2 text-xs font-normal">(Deleted)</span>
+                            )}
+                          </span>
+                          {event.title && (
+                            <div className="text-xs opacity-90 mt-0.5 truncate">
+                              {event.title}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
                       {event.time && (
-                        <span className="text-xs opacity-90">{event.time}</span>
+                        <span className="text-xs opacity-90 flex-shrink-0">{event.time}</span>
                       )}
                     </div>
-                    {event.creator && (
-                      <div className="text-xs opacity-90 mt-1">
-                        {event.creator}
-                      </div>
-                    )}
                   </button>
                 );
               })}

@@ -9,6 +9,16 @@ interface UpcomingEventsPanelProps {
   isLoading?: boolean;
 }
 
+// Helper function to get initials from name
+const getInitials = (name: string): string => {
+  if (!name) return '?';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) {
+    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  }
+  return name.substring(0, 2).toUpperCase();
+};
+
 export default function UpcomingEventsPanel({ events, onEventClick, isLoading = false }: UpcomingEventsPanelProps) {
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -137,12 +147,37 @@ export default function UpcomingEventsPanel({ events, onEventClick, isLoading = 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
+                      {/* Profile Picture or Initials */}
+                      {event.creatorProfilePicture ? (
+                        <img
+                          src={event.creatorProfilePicture}
+                          alt={event.creator || 'Creator'}
+                          className="w-6 h-6 rounded-full object-cover flex-shrink-0 border border-gray-200 dark:border-gray-700"
+                          onError={(e) => {
+                            // Fallback to initials if image fails to load
+                            const img = e.target as HTMLImageElement;
+                            img.style.display = 'none';
+                            const parent = img.parentElement;
+                            if (parent) {
+                              const initialsDiv = document.createElement('div');
+                              initialsDiv.className = 'flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white text-[10px] font-bold border border-gray-200 dark:border-gray-700 flex-shrink-0';
+                              initialsDiv.textContent = getInitials(event.creator || '?');
+                              parent.insertBefore(initialsDiv, img);
+                            }
+                          }}
+                        />
+                      ) : (
+                        <div className="flex items-center justify-center w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white text-[10px] font-bold border border-gray-200 dark:border-gray-700 flex-shrink-0">
+                          {getInitials(event.creator || '?')}
+                        </div>
+                      )}
+
                       <h3 className={`text-sm font-semibold text-gray-900 dark:text-gray-100 truncate transition-colors ${
                         event.deletedAt
                           ? 'line-through text-gray-500 dark:text-gray-500'
                           : 'group-hover:text-pink-600 dark:group-hover:text-pink-400'
                       }`}>
-                        {event.title}
+                        {event.type} - {event.creator || 'Unknown'}
                       </h3>
                       {event.deletedAt && (
                         <span className="text-[10px] font-medium text-red-600 dark:text-red-400 bg-red-500/10 px-1.5 py-0.5 rounded flex-shrink-0">

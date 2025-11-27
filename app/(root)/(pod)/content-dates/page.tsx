@@ -20,6 +20,7 @@ export interface ContentEvent {
   type: EventType;
   status: EventStatus;
   creator?: string;
+  creatorProfilePicture?: string;
   tags?: string[];
   price?: number;
   color: "pink" | "purple" | "blue" | "green" | "orange";
@@ -73,6 +74,7 @@ export default function ContentDatesPage() {
           type: event.type,
           status: event.status,
           creator: event.creator?.clientName,
+          creatorProfilePicture: event.creator?.profilePicture,
           tags: event.tags,
           price: event.price,
           color: event.color.toLowerCase() as ContentEvent["color"],

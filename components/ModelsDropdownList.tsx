@@ -38,6 +38,18 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(false);
+  const [hasLoaded, setHasLoaded] = useState(false);
+
+  // Helper function to get initials from name
+  const getInitials = (name: string): string => {
+    if (!name) return '?';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
 
   // Fetch client models from API
   const fetchClientModels = async () => {
@@ -55,11 +67,16 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
       if (data.success && Array.isArray(data.clientModels)) {
         // Filter out models with empty clientName, dropped status, and ensure they have valid data
         const validModels = data.clientModels.filter(
-          (model: ClientModel) => 
-            model.clientName && 
+          (model: ClientModel) =>
+            model.clientName &&
             model.clientName.trim() !== '' &&
             model.status.toLowerCase() !== 'dropped'
         );
+        console.log('📸 Model data sample:', validModels.slice(0, 3).map(m => ({
+          name: m.clientName,
+          hasProfilePic: !!m.profilePicture,
+          profilePicUrl: m.profilePicture
+        })));
         setClientModels(validModels);
         setFilteredModels(validModels);
       } else {
@@ -78,10 +95,13 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
     }
   };
 
-  // Fetch models on component mount
+  // Fetch models only when dropdown opens for the first time
   useEffect(() => {
-    fetchClientModels();
-  }, []);
+    if (isOpen && !hasLoaded) {
+      fetchClientModels();
+      setHasLoaded(true);
+    }
+  }, [isOpen, hasLoaded]);
 
   // Filter models based on search term
   useEffect(() => {
@@ -105,7 +125,7 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
   };
 
   return (
-    <Select value={value} onValueChange={handleValueChange} disabled={disabled}>
+    <Select value={value} onValueChange={handleValueChange} disabled={disabled} onOpenChange={setIsOpen}>
         <SelectTrigger
           className={`${className} ${hasError ? "border-red-500 dark:border-red-500" : ""}`}
           disabled={disabled}
@@ -153,16 +173,28 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
               className="text-sm py-2.5"
             >
               <div className="flex items-center gap-3">
-                {model.profilePicture && (
+                {model.profilePicture ? (
                   <img
                     src={model.profilePicture}
                     alt={model.clientName}
-                    className="w-6 h-6 rounded-full object-cover"
+                    className="w-8 h-8 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
                     onError={(e) => {
-                      // Hide image if it fails to load
-                      (e.target as HTMLImageElement).style.display = 'none';
+                      // Show initials fallback if image fails to load
+                      const img = e.target as HTMLImageElement;
+                      const parent = img.parentElement;
+                      if (parent) {
+                        img.style.display = 'none';
+                        const initialsDiv = document.createElement('div');
+                        initialsDiv.className = 'flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white text-xs font-bold';
+                        initialsDiv.textContent = getInitials(model.clientName);
+                        parent.insertBefore(initialsDiv, img);
+                      }
                     }}
                   />
+                ) : (
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white text-xs font-bold">
+                    {getInitials(model.clientName)}
+                  </div>
                 )}
                 <div>
                   <div className="font-medium">{model.clientName}</div>
