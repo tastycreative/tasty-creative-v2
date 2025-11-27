@@ -59,7 +59,11 @@ export default function BoardPage() {
     if (!selectedTeamId) return;
 
     const params = new URLSearchParams(searchParamsString);
-    if (params.get("team") === selectedTeamId) {
+
+    const urlTeam = params.get("team");
+    if (urlTeam === selectedTeamId) return;
+
+    if (urlTeam) {
       return;
     }
 
