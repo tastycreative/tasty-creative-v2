@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import {
   Calendar,
   Clock,
@@ -9,12 +9,28 @@ import {
   FileText,
   Upload,
   X,
+  Loader2,
 } from "lucide-react";
 import MarkdownEditor from "./MarkdownEditor";
 import MarkdownViewer from "./MarkdownViewer";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
 import AttachmentViewer from "@/components/ui/AttachmentViewer";
 import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
+
+interface TaskAttachment {
+  id: string;
+  name: string;
+  s3Key: string;
+  url?: string;
+  size: number;
+  type: string;
+  uploadedAt: string;
+}
+
+interface LocalFile {
+  file: File;
+  preview?: string; // For image previews
+}
 
 interface EventFormProps {
   mode: "edit" | "view";
@@ -27,6 +43,8 @@ interface EventFormProps {
   handleFileChange?: (files: FileList | null) => void;
   disabled?: boolean;
   errors?: Record<string, string>;
+  localFiles?: LocalFile[];
+  setLocalFiles?: (files: LocalFile[]) => void;
 }
 
 const truncateUrl = (url: string, maxLength: number = 40) => {
@@ -47,6 +65,8 @@ export default function EventForm({
   handleFileChange,
   disabled,
   errors = {},
+  localFiles = [],
+  setLocalFiles,
 }: EventFormProps) {
   const isView = mode === "view";
 
@@ -55,6 +75,46 @@ export default function EventForm({
       year: "numeric",
       month: "2-digit",
       day: "2-digit",
+    });
+  };
+
+  // Handle local file selection (no upload yet)
+  const handleLocalFileChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+
+    const newLocalFiles: LocalFile[] = [];
+
+    Array.from(files).forEach((file) => {
+      const localFile: LocalFile = { file };
+
+      // Generate preview for images
+      if (file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          localFile.preview = e.target?.result as string;
+          // Trigger re-render after preview is loaded
+          setLocalFiles?.([...localFiles, ...newLocalFiles]);
+        };
+        reader.readAsDataURL(file);
+      }
+
+      newLocalFiles.push(localFile);
+    });
+
+    setLocalFiles?.([...localFiles, ...newLocalFiles]);
+  };
+
+  // Remove local file
+  const removeLocalFile = (index: number) => {
+    const newFiles = localFiles.filter((_, i) => i !== index);
+    setLocalFiles?.(newFiles);
+  };
+
+  // Remove uploaded attachment
+  const removeAttachment = (index: number) => {
+    setFormData?.({
+      ...formData,
+      attachments: formData.attachments.filter((_: any, i: number) => i !== index),
     });
   };
 
@@ -445,18 +505,23 @@ export default function EventForm({
                 No attachments
               </div>
             )
-          ) : formData.attachments && formData.attachments.length === 0 ? (
+          ) : (!formData.attachments || formData.attachments.length === 0) && localFiles.length === 0 ? (
             <div
               onDragOver={handleDragOver}
               onDragLeave={handleDragLeave}
-              onDrop={handleDrop}
+              onDrop={(e) => {
+                e.preventDefault();
+                handleDragLeave?.(e);
+                handleLocalFileChange(e.dataTransfer.files);
+              }}
               className={`relative rounded-lg border-2 border-dashed transition-all ${disabled ? "opacity-50 cursor-not-allowed" : ""} ${isDragging ? "border-pink-500 bg-pink-50/50 dark:bg-pink-900/20" : "border-gray-300 dark:border-gray-600 bg-gray-50/50 dark:bg-gray-800/50"}`}
             >
               <input
                 type="file"
                 multiple
+                accept="image/*,.pdf"
                 disabled={disabled}
-                onChange={(e) => handleFileChange?.(e.target.files)}
+                onChange={(e) => handleLocalFileChange(e.target.files)}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                 id="file-upload"
               />
@@ -471,39 +536,41 @@ export default function EventForm({
                   Click to upload or drag and drop
                 </p>
                 <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  PNG, JPG, PDF, or any file type
+                  PNG, JPG, PDF up to 10MB
                 </p>
               </label>
             </div>
           ) : (
             <div className="space-y-2">
-              {formData.attachments.map((file: File, idx: number) => (
+              {/* Show uploaded attachments */}
+              {formData.attachments && formData.attachments.map((attachment: TaskAttachment, idx: number) => (
                 <div
-                  key={idx}
-                  className="flex items-center justify-between p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg group hover:border-pink-300 dark:hover:border-pink-500/50 transition-colors"
+                  key={`uploaded-${attachment.id || idx}`}
+                  className="flex items-center gap-3 p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg group hover:border-pink-300 dark:hover:border-pink-500/50 transition-colors"
                 >
-                  <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="p-1.5 rounded bg-pink-50 dark:bg-pink-900/30">
-                      <FileText className="h-3.5 w-3.5 text-pink-600 dark:text-pink-400" />
+                  {attachment.type?.startsWith('image/') && attachment.url ? (
+                    <img
+                      src={attachment.url}
+                      alt={attachment.name}
+                      className="w-12 h-12 rounded object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="p-1.5 rounded bg-pink-50 dark:bg-pink-900/30 flex-shrink-0">
+                      <FileText className="h-6 w-6 text-pink-600 dark:text-pink-400" />
                     </div>
-                    <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
-                      {file.name}
-                    </span>
-                    <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </span>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-gray-700 dark:text-gray-300 truncate font-medium">
+                      {attachment.name}
+                    </div>
+                    <div className="text-xs text-gray-400 dark:text-gray-500">
+                      {(attachment.size / 1024).toFixed(1)} KB • Uploaded
+                    </div>
                   </div>
                   <button
                     type="button"
                     disabled={disabled}
-                    onClick={() =>
-                      setFormData?.({
-                        ...formData,
-                        attachments: formData.attachments.filter(
-                          (_: any, i: number) => i !== idx
-                        ),
-                      })
-                    }
+                    onClick={() => removeAttachment(idx)}
                     className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <X className="h-4 w-4" />
@@ -511,12 +578,50 @@ export default function EventForm({
                 </div>
               ))}
 
+              {/* Show local files (not uploaded yet) */}
+              {localFiles.map((localFile, idx) => (
+                <div
+                  key={`local-${idx}`}
+                  className="flex items-center gap-3 p-2 bg-blue-50/50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-700 rounded-lg group hover:border-blue-300 dark:hover:border-blue-500/50 transition-colors"
+                >
+                  {localFile.preview ? (
+                    <img
+                      src={localFile.preview}
+                      alt={localFile.file.name}
+                      className="w-12 h-12 rounded object-cover flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="p-1.5 rounded bg-blue-100 dark:bg-blue-900/30 flex-shrink-0">
+                      <FileText className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-gray-700 dark:text-gray-300 truncate font-medium">
+                      {localFile.file.name}
+                    </div>
+                    <div className="text-xs text-blue-600 dark:text-blue-400">
+                      {(localFile.file.size / 1024).toFixed(1)} KB • Will upload on save
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    onClick={() => removeLocalFile(idx)}
+                    className="p-1 rounded hover:bg-red-50 dark:hover:bg-red-900/30 text-gray-400 hover:text-red-500 transition-colors flex-shrink-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ))}
+
+              {/* Add more files button */}
               <div className="relative">
                 <input
                   type="file"
                   multiple
+                  accept="image/*,.pdf"
                   disabled={disabled}
-                  onChange={(e) => handleFileChange?.(e.target.files)}
+                  onChange={(e) => handleLocalFileChange(e.target.files)}
                   className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
                   id="file-upload-more"
                 />
@@ -537,3 +642,33 @@ export default function EventForm({
     </div>
   );
 }
+
+// Export helper function for uploading local files to S3
+export async function uploadLocalFilesToS3(localFiles: LocalFile[]): Promise<TaskAttachment[]> {
+  const uploadedAttachments: TaskAttachment[] = [];
+
+  for (let i = 0; i < localFiles.length; i++) {
+    const localFile = localFiles[i];
+    const formDataToSend = new FormData();
+    formDataToSend.append('file', localFile.file);
+    formDataToSend.append('folder', 'content-dates');
+
+    const response = await fetch('/api/upload/s3', {
+      method: 'POST',
+      body: formDataToSend,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to upload ${localFile.file.name}`);
+    }
+
+    const data = await response.json();
+    if (data.success && data.attachment) {
+      uploadedAttachments.push(data.attachment);
+    }
+  }
+
+  return uploadedAttachments;
+}
+
+export type { LocalFile, TaskAttachment };

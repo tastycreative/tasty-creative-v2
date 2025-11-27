@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
 import { X, Edit2, Save, Trash2, RotateCcw } from "lucide-react";
-import EventForm from "./EventForm";
+import EventForm, { uploadLocalFilesToS3, LocalFile } from "./EventForm";
 import { contentEventValidation } from "@/schema/zodValidationSchema";
 
 interface EventDetailModalProps {
@@ -34,6 +34,7 @@ export default function EventDetailModal({
   const [formData, setFormData] = useState<any>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
+  const [localFiles, setLocalFiles] = useState<LocalFile[]>([]);
 
   // Initialize form data when event changes
   useEffect(() => {
@@ -63,6 +64,15 @@ export default function EventDetailModal({
       });
     }
   }, [event]);
+
+  // Reset edit mode and local files when modal closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsEditMode(false);
+      setLocalFiles([]);
+      setErrors({});
+    }
+  }, [isOpen]);
 
   // Clear errors when fields are updated
   useEffect(() => {
@@ -139,6 +149,13 @@ export default function EventDetailModal({
     setIsUpdating(true);
 
     try {
+      // Upload local files to S3 first
+      let uploadedAttachments = [...(formData.attachments || [])];
+      if (localFiles.length > 0) {
+        const newAttachments = await uploadLocalFilesToS3(localFiles);
+        uploadedAttachments = [...uploadedAttachments, ...newAttachments];
+      }
+
       const eventData: Partial<ContentEvent> = {
         date: new Date(formData.date),
         time: formData.time || undefined,
@@ -152,11 +169,12 @@ export default function EventDetailModal({
         flyerLink: formData.flyerLink || undefined,
         liveType: formData.liveType || undefined,
         notes: formData.notes || undefined,
-        attachments: formData.attachments && formData.attachments.length > 0 ? formData.attachments : undefined,
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
       };
 
       await onUpdate(event.id, eventData);
       setIsEditMode(false);
+      setLocalFiles([]); // Clear local files after successful update
     } catch (error) {
       console.error("Error updating event:", error);
     } finally {
@@ -167,6 +185,7 @@ export default function EventDetailModal({
   const handleCancelEdit = () => {
     setIsEditMode(false);
     setErrors({});
+    setLocalFiles([]); // Clear local files on cancel
     // Reset form data to original event data
     if (event) {
       const year = event.date.getFullYear();
@@ -328,6 +347,8 @@ export default function EventDetailModal({
               handleFileChange={handleFileChange}
               disabled={isUpdating}
               errors={errors}
+              localFiles={localFiles}
+              setLocalFiles={setLocalFiles}
             />
           </div>
 

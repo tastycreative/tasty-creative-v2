@@ -6,7 +6,7 @@ import { X, Calendar, Clock, DollarSign, Tag, FileText, Upload } from "lucide-re
 import { ContentEvent, EventType, EventStatus } from "@/app/(root)/(pod)/content-dates/page";
 import MarkdownEditor from "./MarkdownEditor";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
-import EventForm from "./EventForm";
+import EventForm, { uploadLocalFilesToS3, LocalFile } from "./EventForm";
 import { contentEventValidation } from "@/schema/zodValidationSchema";
 import { z } from "zod";
 
@@ -35,7 +35,7 @@ export default function CreateEventModal({
     price: "",
     color: "pink" as ContentEvent["color"],
     notes: "",
-    attachments: [] as File[],
+    attachments: [] as any[], // Changed from File[] to support TaskAttachment objects
     contentLink: "",
     editedVideoLink: "",
     flyerLink: "",
@@ -43,6 +43,7 @@ export default function CreateEventModal({
   });
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [localFiles, setLocalFiles] = useState<LocalFile[]>([]);
 
   useEffect(() => {
     if (prefilledDate) {
@@ -139,6 +140,13 @@ export default function CreateEventModal({
     setIsCreating(true);
 
     try {
+      // Upload local files to S3 first
+      let uploadedAttachments = [...(formData.attachments || [])];
+      if (localFiles.length > 0) {
+        const newAttachments = await uploadLocalFilesToS3(localFiles);
+        uploadedAttachments = [...uploadedAttachments, ...newAttachments];
+      }
+
       // Generate title from creator and type
       const generatedTitle = formData.creator
         ? `${formData.creator} - ${formData.type}`
@@ -158,7 +166,7 @@ export default function CreateEventModal({
         flyerLink: formData.flyerLink || undefined,
         liveType: formData.liveType || undefined,
         notes: formData.notes || undefined,
-        attachments: formData.attachments.length > 0 ? formData.attachments : undefined,
+        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
       };
 
       await onSubmit(eventData);
@@ -181,6 +189,7 @@ export default function CreateEventModal({
         flyerLink: "",
         liveType: "",
       });
+      setLocalFiles([]);
     } catch (error) {
       console.error("Error in form submission:", error);
     } finally {
@@ -227,6 +236,8 @@ export default function CreateEventModal({
                 handleFileChange={handleFileChange}
                 disabled={isCreating}
                 errors={errors}
+                localFiles={localFiles}
+                setLocalFiles={setLocalFiles}
               />
             </div>
 

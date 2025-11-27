@@ -31,10 +31,18 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     ol: false,
   });
 
+  // Helper function to normalize markdown by removing excessive line breaks
+  const normalizeMarkdown = (markdown: string): string => {
+    if (!markdown) return "";
+    // Replace 3 or more consecutive newlines with just 2
+    return markdown.replace(/\n{3,}/g, "\n\n").trim();
+  };
+
   // Convert markdown to HTML for display
   useEffect(() => {
     if (editorRef.current && !isUpdatingRef.current) {
-      const html = markdownToHtml(value || "");
+      const normalizedValue = normalizeMarkdown(value || "");
+      const html = markdownToHtml(normalizedValue);
       if (editorRef.current.innerHTML !== html) {
         editorRef.current.innerHTML = html;
       }
@@ -118,9 +126,12 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
 
     html = processedLines.join("\n");
 
-    // Line breaks - convert markdown hard breaks (two spaces + newline) to <br>
-    html = html.replace(/  \n/g, "<br>");
-    // Convert remaining single newlines to <br> for display
+    // Line breaks - convert double newlines to paragraph breaks
+    // First, normalize multiple newlines to double newlines max
+    html = html.replace(/\n{3,}/g, "\n\n");
+    // Convert double newlines to paragraph separators
+    html = html.replace(/\n\n/g, "<br><br>");
+    // Convert single newlines to single line breaks
     html = html.replace(/\n/g, "<br>");
 
     return html;
@@ -130,10 +141,13 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     let md = html;
 
     // First, handle line breaks properly - convert divs and brs to newlines
-    // Using remark-breaks plugin in viewer, single newlines will be treated as line breaks
+    // Normalize empty divs (which represent blank lines in contentEditable)
     md = md.replace(/<div><br><\/div>/gi, "\n");
+    md = md.replace(/<div>\s*<\/div>/gi, "\n");
     md = md.replace(/<div>/gi, "\n");
     md = md.replace(/<\/div>/gi, "");
+    // Convert consecutive <br> tags to single newlines
+    md = md.replace(/(<br\s*\/?>\s*){2,}/gi, "\n\n");
     md = md.replace(/<br\s*\/?>/gi, "\n");
 
     // Headers
@@ -162,20 +176,24 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     // Ordered lists - convert formatting INSIDE list items
     md = md.replace(/<ol[^>]*>(.*?)<\/ol>/gis, (match, content) => {
       let counter = 1;
-      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, (liMatch: string, liContent: string) => {
+      const items: string[] = [];
+      content.replace(/<li[^>]*>(.*?)<\/li>/gi, (_liMatch: string, liContent: string) => {
         const cleaned = convertInlineFormatting(liContent.trim());
-        return `${counter++}. ${cleaned}\n`;
+        items.push(`${counter++}. ${cleaned}`);
+        return '';
       });
-      return `\n${items}\n`;
+      return items.join('\n');
     });
 
     // Unordered lists - convert formatting INSIDE list items
     md = md.replace(/<ul[^>]*>(.*?)<\/ul>/gis, (match, content) => {
-      const items = content.replace(/<li[^>]*>(.*?)<\/li>/gi, (liMatch: string, liContent: string) => {
+      const items: string[] = [];
+      content.replace(/<li[^>]*>(.*?)<\/li>/gi, (_liMatch: string, liContent: string) => {
         const cleaned = convertInlineFormatting(liContent.trim());
-        return `- ${cleaned}\n`;
+        items.push(`- ${cleaned}`);
+        return '';
       });
-      return `\n${items}\n`;
+      return items.join('\n');
     });
 
     // Links (outside lists)
@@ -206,11 +224,11 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     md = md.replace(/&gt;/g, ">");
     md = md.replace(/&amp;/g, "&");
 
-    // Clean up excessive whitespace but preserve single line breaks
+    // Clean up excessive whitespace - normalize to max double line breaks
     md = md.replace(/\n{3,}/g, "\n\n");
 
-    // Trim each line
-    md = md.split('\n').map(line => line.trim()).join('\n');
+    // Remove trailing whitespace from each line
+    md = md.split('\n').map(line => line.trimEnd()).join('\n');
 
     // Final trim
     md = md.trim();
@@ -237,7 +255,9 @@ export default function MarkdownEditor({ value, onChange, placeholder, disabled 
     isUpdatingRef.current = true;
     const html = editorRef.current.innerHTML;
     const markdown = htmlToMarkdown(html);
-    onChange(markdown);
+    // Normalize markdown before saving to prevent excessive line breaks
+    const normalizedMarkdown = normalizeMarkdown(markdown);
+    onChange(normalizedMarkdown);
 
     setTimeout(() => {
       isUpdatingRef.current = false;
