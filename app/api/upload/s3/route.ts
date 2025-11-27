@@ -21,13 +21,16 @@ function getFileExtension(filename: string): string {
 }
 
 // Helper function to generate S3 key
-function generateS3Key(originalName: string, userId: string): string {
+function generateS3Key(originalName: string, userId: string, folder: string = 'task-attachments'): string {
   const timestamp = Date.now();
   const uuid = uuidv4();
   const extension = getFileExtension(originalName);
   const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
-  
-  return `task-attachments/${userId}/${timestamp}-${uuid}-${sanitizedName}`;
+
+  // Ensure folder is not empty or undefined
+  const safeFolder = folder && folder.trim() !== '' ? folder.trim() : 'task-attachments';
+
+  return `${safeFolder}/${userId}/${timestamp}-${uuid}-${sanitizedName}`;
 }
 
 // Helper function to get content type
@@ -69,6 +72,9 @@ export async function POST(request: NextRequest) {
 
     const formData = await request.formData();
     const file = formData.get('file') as File;
+    const folderParam = formData.get('folder') as string;
+    // Use task-attachments if folder is not provided or is empty/whitespace
+    const folder = folderParam && folderParam.trim() !== '' ? folderParam.trim() : 'task-attachments';
 
     if (!file) {
       return NextResponse.json(
@@ -106,7 +112,7 @@ export async function POST(request: NextRequest) {
     const buffer = Buffer.from(bytes);
 
     // Generate S3 key
-    const s3Key = generateS3Key(file.name, session.user.id);
+    const s3Key = generateS3Key(file.name, session.user.id, folder);
     const contentType = getContentType(file.name);
 
     // Sanitize metadata values (remove invalid characters for HTTP headers)
