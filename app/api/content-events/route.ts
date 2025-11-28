@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
     const creator = searchParams.get("creator");
     const eventType = searchParams.get("eventType");
     const status = searchParams.get("status");
+    const flyerLink = searchParams.get("flyerLink");
     const tags = searchParams.get("tags");
     const search = searchParams.get("search");
     const includeDeleted = searchParams.get("includeDeleted") === "true";
@@ -107,6 +108,16 @@ export async function GET(request: NextRequest) {
 
     if (status && status !== "all") {
       where.status = status;
+    }
+
+    if (flyerLink && flyerLink !== "all") {
+      if (flyerLink === "has") {
+        where.flyerLink = {
+          not: null,
+        };
+      } else if (flyerLink === "no") {
+        where.flyerLink = null;
+      }
     }
 
     if (tags) {

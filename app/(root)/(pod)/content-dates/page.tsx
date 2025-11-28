@@ -49,6 +49,7 @@ export default function ContentDatesPage() {
     creator: "all",
     eventType: "all",
     status: "all",
+    flyerLink: "all",
     tags: [] as string[],
   });
 
@@ -60,6 +61,7 @@ export default function ContentDatesPage() {
       if (filters.creator !== "all") queryParams.set("creator", filters.creator);
       if (filters.eventType !== "all") queryParams.set("eventType", filters.eventType);
       if (filters.status !== "all") queryParams.set("status", filters.status);
+      if (filters.flyerLink !== "all") queryParams.set("flyerLink", filters.flyerLink);
       if (filters.tags.length > 0) queryParams.set("tags", filters.tags.join(","));
       if (showDeleted) queryParams.set("includeDeleted", "true");
 

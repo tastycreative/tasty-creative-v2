@@ -10,6 +10,7 @@ interface FilterControlsProps {
     creator: string;
     eventType: string;
     status: string;
+    flyerLink: string;
     tags: string[];
   };
   onFiltersChange: (filters: any) => void;
@@ -50,6 +51,7 @@ export default function FilterControls({
     filters.creator !== "all" ||
     filters.eventType !== "all" ||
     filters.status !== "all" ||
+    filters.flyerLink !== "all" ||
     filters.tags.length > 0;
 
   const clearAllFilters = () => {
@@ -57,6 +59,7 @@ export default function FilterControls({
       creator: "all",
       eventType: "all",
       status: "all",
+      flyerLink: "all",
       tags: [],
     });
   };
@@ -110,7 +113,7 @@ export default function FilterControls({
         </div>
 
         {/* Filter Controls */}
-        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 ${showFilters ? 'block' : 'hidden lg:grid'}`}>
+        <div className={`grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 ${showFilters ? 'block' : 'hidden lg:grid'}`}>
           {/* Creator Filter */}
           <div>
             <label className="flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">
@@ -162,6 +165,30 @@ export default function FilterControls({
               <option value="SCHEDULED">Scheduled</option>
               <option value="COMPLETED">Completed</option>
               <option value="CANCELLED">Cancelled</option>
+            </select>
+          </div>
+
+          {/* Flyer Link Filter */}
+          <div>
+            <label className="flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">
+              <span>Flyer Link</span>
+              {filters.flyerLink !== "all" && (
+                <button
+                  onClick={() => onFiltersChange({ ...filters, flyerLink: "all" })}
+                  className="text-[10px] normal-case text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
+            </label>
+            <select
+              value={filters.flyerLink}
+              onChange={(e) => onFiltersChange({ ...filters, flyerLink: e.target.value })}
+              className="w-full px-3 py-2 text-sm bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900 dark:text-gray-100"
+            >
+              <option value="all">All Flyers</option>
+              <option value="has">Has Flyers</option>
+              <option value="no">No Flyers</option>
             </select>
           </div>
 
@@ -264,6 +291,14 @@ export default function FilterControls({
                 <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500/20 text-green-600 dark:text-green-400 text-xs rounded-full border border-green-500/30">
                   Status: {filters.status}
                   <button onClick={() => onFiltersChange({ ...filters, status: "all" })}>
+                    <X className="h-3 w-3" />
+                  </button>
+                </span>
+              )}
+              {filters.flyerLink !== "all" && (
+                <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-500/20 text-orange-600 dark:text-orange-400 text-xs rounded-full border border-orange-500/30">
+                  Flyer: {filters.flyerLink === "has" ? "Has Flyers" : "No Flyers"}
+                  <button onClick={() => onFiltersChange({ ...filters, flyerLink: "all" })}>
                     <X className="h-3 w-3" />
                   </button>
                 </span>
