@@ -29,19 +29,55 @@ const PERIOD_OPTIONS = [
 ];
 
 export function UserActivityChart({ data, period, onPeriodChange }: UserActivityChartProps) {
-  // Sort data by date ascending for chart
-  const sortedData = [...data].sort((a, b) =>
+  // Get user's timezone offset in milliseconds
+  const timezoneOffsetMs = new Date().getTimezoneOffset() * -60 * 1000; // negative because getTimezoneOffset returns UTC - local
+
+  // Convert UTC dates to local timezone dates
+  const processedData = data.reduce((acc, item) => {
+    // Parse as UTC date
+    const utcDate = new Date(item.date + 'T00:00:00Z');
+
+    // Add timezone offset to shift the date to local timezone
+    const localDate = new Date(utcDate.getTime() + timezoneOffsetMs);
+
+    // Extract local date components
+    const localDateStr = localDate.toISOString().split('T')[0];
+
+    // Find if we already have an entry for this local date
+    const existingIndex = acc.findIndex(d => d.date === localDateStr);
+
+    if (existingIndex >= 0) {
+      // If date exists, sum the counts
+      acc[existingIndex].count += item.count;
+    } else {
+      // New date, add it
+      acc.push({
+        date: localDateStr,
+        count: item.count,
+      });
+    }
+
+    return acc;
+  }, [] as DailyActivity[]);
+
+  // Sort by date ascending for chart
+  const sortedData = processedData.sort((a, b) =>
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
   // Format date for display
-  const formattedData = sortedData.map(item => ({
-    ...item,
-    displayDate: new Date(item.date).toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric'
-    }),
-  }));
+  const formattedData = sortedData.map(item => {
+    const [year, month, day] = item.date.split('-').map(Number);
+    const localDate = new Date(year, month - 1, day);
+
+    return {
+      ...item,
+      displayDate: localDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+      }),
+    };
+  });
 
   return (
     <div className="relative overflow-hidden rounded-2xl border border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-purple-900/20 dark:to-blue-900/20 p-6 shadow-lg h-full flex flex-col">

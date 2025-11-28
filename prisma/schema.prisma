@@ -69,8 +69,8 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  last_accessed     DateTime?
-  last_refreshed    DateTime?
+  last_accessed     DateTime? @db.Timestamptz(3)
+  last_refreshed    DateTime? @db.Timestamptz(3)
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])

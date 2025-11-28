@@ -18,6 +18,11 @@ export async function GET(request: Request) {
     const roleFilter = searchParams.get("role") || "";
     const activityPeriod = searchParams.get("activityPeriod") || "monthly";
 
+    // Get client timezone parameters for accurate "today" calculation
+    const clientTimezone = searchParams.get("timezone");
+    const clientStart = searchParams.get("start");
+    const clientEnd = searchParams.get("end");
+
     // Validate pagination parameters
     const pageSize = limit === "all" ? undefined : parseInt(limit || "10");
     const offset = pageSize ? (page - 1) * pageSize : 0;
@@ -57,6 +62,7 @@ export async function GET(request: Request) {
           accounts: {
             select: {
               last_accessed: true,
+              last_refreshed: true, // Added to force new query plan after schema change
             },
             where: {
               provider: "google",
@@ -79,8 +85,10 @@ export async function GET(request: Request) {
       }));
 
       // Calculate activity statistics
+      // Use client's "today" if provided, otherwise fallback to server UTC
       const now = new Date();
-      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const today = clientStart ? new Date(clientStart) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const tomorrow = clientEnd ? new Date(clientEnd) : new Date(today.getTime() + 24 * 60 * 60 * 1000);
 
       // Calculate date range based on period
       let startDate = new Date(today);
@@ -151,6 +159,7 @@ export async function GET(request: Request) {
       const twoThirdsPoint = new Date(startDate.getTime() + ((rangeDays * 2) / 3) * 24 * 60 * 60 * 1000);
 
       // Get users who accessed today with their details
+      // Use client's timezone window (today to tomorrow) for accurate filtering
       const activeTodayUsers = await prisma.$queryRaw<Array<{
         id: string;
         name: string | null;
@@ -167,6 +176,7 @@ export async function GET(request: Request) {
         FROM "User" u
         LEFT JOIN "Account" a ON a."userId" = u.id AND a.provider = 'google'
         WHERE COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") >= ${today}
+          AND COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") < ${tomorrow}
         ORDER BY "lastAccessed" DESC
       `;
 
@@ -194,29 +204,27 @@ export async function GET(request: Request) {
       const activeThisMonth = Number(activeMonthUsers[0]?.count || 0);
 
       // Format daily activity data
-      const formattedDailyActivity = dailyActivity.map(item => {
-        const itemDate = item.date.toISOString().split('T')[0];
-        const todayDate = today.toISOString().split('T')[0];
+      // Helper function to get local date string (YYYY-MM-DD) without timezone conversion
+      const getLocalDateString = (date: Date): string => {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      };
 
-        // Use real-time count for today, stored stats for historical dates
-        const count = itemDate === todayDate ? activeToday : Number(item.count);
+      // Format historical activity data - send UTC dates as-is
+      // Client will handle timezone conversion for display
+      const formattedDailyActivity = dailyActivity.map(item => ({
+        date: item.date.toISOString().split('T')[0], // Send as UTC date string
+        count: Number(item.count),
+      }));
 
-        return {
-          date: itemDate,
-          count,
-        };
+      // Add real-time "today" count with metadata for client-side processing
+      // Client will determine how to display this based on their timezone
+      formattedDailyActivity.unshift({
+        date: getLocalDateString(today), // Client's "today" date
+        count: activeToday,
       });
-
-      // If today's date is not in the daily activity data, add it with real-time count
-      const todayDate = today.toISOString().split('T')[0];
-      const hasTodayData = formattedDailyActivity.some(item => item.date === todayDate);
-
-      if (!hasTodayData && activeToday > 0) {
-        formattedDailyActivity.unshift({
-          date: todayDate,
-          count: activeToday,
-        });
-      }
 
       // Calculate pagination info
       const totalPages = pageSize ? Math.ceil(totalUsers / pageSize) : 1;
