@@ -56,6 +56,10 @@ interface AdminUsersParams {
   search?: string;
   role?: string;
   activityPeriod?: string;
+  // Optional timezone and window to allow server-side filtering in client timezone
+  timezone?: string;
+  start?: string; // ISO string for window start (inclusive)
+  end?: string; // ISO string for window end (exclusive)
 }
 
 const fetchAdminUsers = async (params: AdminUsersParams): Promise<AdminUsersResponse> => {
@@ -66,6 +70,9 @@ const fetchAdminUsers = async (params: AdminUsersParams): Promise<AdminUsersResp
   if (params.search) searchParams.set('search', params.search);
   if (params.role && params.role !== 'all') searchParams.set('role', params.role);
   if (params.activityPeriod) searchParams.set('activityPeriod', params.activityPeriod);
+  if (params.timezone) searchParams.set('timezone', params.timezone);
+  if (params.start) searchParams.set('start', params.start);
+  if (params.end) searchParams.set('end', params.end);
 
   const response = await fetch(`/api/admin/users?${searchParams.toString()}`);
   
