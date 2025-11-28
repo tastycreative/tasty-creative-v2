@@ -160,6 +160,7 @@ export async function GET(request: Request) {
 
       // Get users who accessed today with their details
       // Use client's timezone window (today to tomorrow) for accurate filtering
+      // Cast to timestamptz to handle both timestamp and timestamptz columns
       const activeTodayUsers = await prisma.$queryRaw<Array<{
         id: string;
         name: string | null;
@@ -172,31 +173,32 @@ export async function GET(request: Request) {
           u.name,
           u.email,
           u.image,
-          COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") as "lastAccessed"
+          COALESCE(a.last_accessed::timestamptz, u."lastAccessedAt"::timestamptz, u."updatedAt"::timestamptz, u."createdAt"::timestamptz) as "lastAccessed"
         FROM "User" u
         LEFT JOIN "Account" a ON a."userId" = u.id AND a.provider = 'google'
-        WHERE COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") >= ${today}
-          AND COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") < ${tomorrow}
+        WHERE COALESCE(a.last_accessed::timestamptz, u."lastAccessedAt"::timestamptz, u."updatedAt"::timestamptz, u."createdAt"::timestamptz) >= ${today}::timestamptz
+          AND COALESCE(a.last_accessed::timestamptz, u."lastAccessedAt"::timestamptz, u."updatedAt"::timestamptz, u."createdAt"::timestamptz) < ${tomorrow}::timestamptz
         ORDER BY "lastAccessed" DESC
       `;
 
       const activeToday = activeTodayUsers.length;
 
       // Calculate real-time unique user counts for week and month
+      // Cast to timestamptz to handle both timestamp and timestamptz columns
       const [activeWeekUsers, activeMonthUsers] = await Promise.all([
         // Unique users active in last 7 days
         prisma.$queryRaw<Array<{ count: bigint }>>`
           SELECT COUNT(DISTINCT u.id)::bigint as count
           FROM "User" u
           LEFT JOIN "Account" a ON a."userId" = u.id AND a.provider = 'google'
-          WHERE COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") >= ${weekAgo}
+          WHERE COALESCE(a.last_accessed::timestamptz, u."lastAccessedAt"::timestamptz, u."updatedAt"::timestamptz, u."createdAt"::timestamptz) >= ${weekAgo}::timestamptz
         `,
         // Unique users active in last 30 days
         prisma.$queryRaw<Array<{ count: bigint }>>`
           SELECT COUNT(DISTINCT u.id)::bigint as count
           FROM "User" u
           LEFT JOIN "Account" a ON a."userId" = u.id AND a.provider = 'google'
-          WHERE COALESCE(a.last_accessed, u."lastAccessedAt", u."updatedAt", u."createdAt") >= ${monthAgo}
+          WHERE COALESCE(a.last_accessed::timestamptz, u."lastAccessedAt"::timestamptz, u."updatedAt"::timestamptz, u."createdAt"::timestamptz) >= ${monthAgo}::timestamptz
         `,
       ]);
 
