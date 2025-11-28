@@ -65,7 +65,19 @@ const Calendar = () => {
   };
 
   // Helper function to get time string in user's timezone using Luxon
-  const getTimeStringInUserTimezone = (dateString: string) => {
+  const getTimeStringInUserTimezone = (dateString: string, raw?: any) => {
+    // For content events with a separate time field, use that instead
+    if (raw?.time) {
+      const time = raw.time;
+      // Convert 24h time to 12h format
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    }
+
+    // For Google Calendar events, use the datetime
     const dt = DateTime.fromISO(dateString).setZone(userTimezone);
     return dt.toLocaleString(DateTime.TIME_SIMPLE);
   };
@@ -79,6 +91,55 @@ const Calendar = () => {
       // For timed events, parse as UTC then convert to user's timezone
       return DateTime.fromISO(dateString, { zone: 'utc' }).setZone(userTimezone);
     }
+  };
+
+  // Helper to get initials (used for content events)
+  const getInitials = (name: any) => {
+    if (!name && name !== 0) return "?";
+    let str = "";
+    if (typeof name === 'string') str = name;
+    else if (typeof name === 'object' && name !== null) {
+      // try common fields
+      str = name.clientName || name.displayName || name.name || '';
+    } else {
+      str = String(name || '');
+    }
+
+    str = str.trim();
+    if (!str) return "?";
+    const parts = str.split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return str.substring(0, 2).toUpperCase();
+  };
+
+  // Helper to safely get creator display name (handles object or string)
+  const getCreatorName = (raw: any) => {
+    if (!raw) return 'Unknown';
+    if (typeof raw === 'string') return raw;
+    // raw may be the whole event payload - check if it has a creator property
+    if (raw.creator) {
+      // Creator is an object with clientName
+      if (typeof raw.creator === 'object' && raw.creator !== null) {
+        return raw.creator.clientName || raw.creator.displayName || raw.creator.name || 'Unknown';
+      }
+      // Creator is a string
+      if (typeof raw.creator === 'string') {
+        return raw.creator;
+      }
+    }
+    // Check if raw itself is the creator object
+    return raw.clientName || raw.displayName || raw.name || raw.creatorName || 'Unknown';
+  };
+
+  // Helper to safely get creator profile picture
+  const getCreatorProfilePicture = (raw: any): string | null => {
+    if (!raw) return null;
+    // Check if raw has a creator property
+    if (raw.creator && typeof raw.creator === 'object' && raw.creator !== null) {
+      return raw.creator.profilePicture || null;
+    }
+    // Check if raw itself has the profile picture
+    return raw.creatorProfilePicture || raw.profilePicture || null;
   };
 
   const handleViewEventDetails = async (eventId: string) => {
@@ -119,15 +180,54 @@ const Calendar = () => {
 
       try {
         // Always use the public calendar API without checking authentication
-        const events = await getPublicCalendarEvents(startDate, endDate);
+        const googleEvents = (await getPublicCalendarEvents(startDate, endDate)) || [];
 
-        // Filter out events that have "Call" in the title
-        const filteredEvents = events.filter(
+        // Filter out events that have "Call" in the title (applies to Google events)
+        const filteredGoogleEvents = googleEvents.filter(
           (event) => !event.summary?.toLowerCase().includes("call")
         );
 
-        // Update state with filtered events
-        setCalendarEvents(filteredEvents);
+        // Fetch content-dates events from our API and transform to calendar-like shape
+        let contentEvents: any[] = [];
+        try {
+          const resp = await fetch(`/api/content-events?includeDeleted=true`);
+          if (resp.ok) {
+            const data = await resp.json();
+            const items = data.events || data || [];
+
+            // Keep only events that fall inside the requested month range
+            contentEvents = (items || [])
+              .filter((ev: any) => {
+                if (!ev.date) return false;
+                const evDate = new Date(ev.date);
+                return evDate >= startDate && evDate <= endDate;
+              })
+              .map((ev: any) => ({
+                // Prefix id so it won't collide with Google event ids
+                id: `content-${ev.id}`,
+                summary: ev.title || ev.summary || "(No title)",
+                description: ev.description,
+                location: ev.flyerLink || ev.location,
+                // Use dateTime for timed events; content events typically have a single date
+                start: { dateTime: ev.date ? new Date(ev.date).toISOString() : undefined },
+                end: { dateTime: ev.date ? new Date(ev.date).toISOString() : undefined },
+                // Keep original payload for later detail rendering if needed
+                _raw: ev,
+                // mark source
+                source: "content",
+              }));
+          } else {
+            console.warn("Failed to fetch content events: ", resp.status);
+          }
+        } catch (err) {
+          console.error("Error fetching content events:", err);
+        }
+
+        // Merge Google events and content events so they coexist
+        const merged = [...filteredGoogleEvents, ...contentEvents];
+
+        // Update state with merged events
+        setCalendarEvents(merged);
       } catch (error) {
         console.error("Error loading calendar events:", error);
         setCalendarError("Failed to load events from calendar.");
@@ -301,20 +401,60 @@ const Calendar = () => {
 
                         {/* Events - max 2 shown, rest indicated with count */}
                         <div className="space-y-1 mt-2">
-                          {dayEvents.slice(0, 2).map((event, idx) => (
-                            <button
-                              key={idx}
-                              className="w-full text-left text-xs px-2 py-1 rounded border border-pink-300 dark:border-pink-500/50 bg-pink-500/20 dark:bg-pink-500/30 text-pink-700 dark:text-pink-300 truncate hover:bg-pink-500/30 dark:hover:bg-pink-500/40 transition-colors"
-                              title={event.summary}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (event.id) handleViewEventDetails(event.id);
-                              }}
-                              disabled={!event.id}
-                            >
-                              {event.summary}
-                            </button>
-                          ))}
+                          {dayEvents.slice(0, 2).map((event, idx) => {
+                            // If this is a content-dates event, render with content styling
+                            if ((event as any).source === "content") {
+                              const raw = (event as any)._raw || {};
+                              const colorClasses: Record<string, string> = {
+                                pink: "bg-pink-500/80 hover:bg-pink-500",
+                                purple: "bg-purple-500/80 hover:bg-purple-500",
+                                blue: "bg-blue-500/80 hover:bg-blue-500",
+                                green: "bg-green-500/80 hover:bg-green-500",
+                                orange: "bg-orange-500/80 hover:bg-orange-500",
+                              };
+
+                              const badgeClass = raw.deletedAt ? 'bg-gray-400/80 hover:bg-gray-400 opacity-60' : (colorClasses[raw.color] || 'bg-pink-500/80');
+
+                              return (
+                                <button
+                                  key={idx}
+                                  className={`w-full text-left text-xs px-2 py-1 rounded text-white font-medium transition-colors flex items-center gap-1.5 ${badgeClass}`}
+                                  title={raw.title || event.summary}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    // open content event detail by id (prefixed)
+                                    if (event.id) handleViewEventDetails(event.id);
+                                  }}
+                                >
+                                  {/* Profile */}
+                                  {getCreatorProfilePicture(raw) ? (
+                                    // eslint-disable-next-line @next/next/no-img-element
+                                    <img src={getCreatorProfilePicture(raw)!} alt={getCreatorName(raw) || 'Creator'} className="w-5 h-5 rounded-full object-cover flex-shrink-0 border border-white/50" />
+                                  ) : (
+                                    <div className="flex items-center justify-center w-5 h-5 rounded-full bg-white/20 text-white text-[8px] font-bold border border-white/50 flex-shrink-0">{getInitials(getCreatorName(raw))}</div>
+                                  )}
+
+                                  <span className="truncate">{(raw.type ? `${raw.type} - ` : '') + getCreatorName(raw)}</span>
+                                </button>
+                              );
+                            }
+
+                            // default: Google event styling
+                            return (
+                              <button
+                                key={idx}
+                                className="w-full text-left text-xs px-2 py-1 rounded border border-pink-300 dark:border-pink-500/50 bg-pink-500/20 dark:bg-pink-500/30 text-pink-700 dark:text-pink-300 truncate hover:bg-pink-500/30 dark:hover:bg-pink-500/40 transition-colors"
+                                title={event.summary}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (event.id) handleViewEventDetails(event.id);
+                                }}
+                                disabled={!event.id}
+                              >
+                                {event.summary}
+                              </button>
+                            );
+                          })}
                           {dayEvents.length > 2 && (
                             <button
                               className="w-full text-left text-xs text-gray-500 dark:text-gray-400 px-2 hover:text-pink-600 dark:hover:text-pink-400 transition-colors"
@@ -376,8 +516,50 @@ const Calendar = () => {
                     const eventDateStr = event.start.dateTime || event.start.date;
                     if (!eventDateStr) return null;
                     const isAllDay = !!event.start.date;
-                    const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr);
 
+                    // content event
+                    if ((event as any).source === 'content') {
+                      const raw = (event as any)._raw || {};
+                      const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr, raw);
+                      const colorClasses: Record<string, string> = {
+                        pink: "bg-pink-500/80 hover:bg-pink-500",
+                        purple: "bg-purple-500/80 hover:bg-purple-500",
+                        blue: "bg-blue-500/80 hover:bg-blue-500",
+                        green: "bg-green-500/80 hover:bg-green-500",
+                        orange: "bg-orange-500/80 hover:bg-orange-500",
+                      };
+
+                      const badgeClass = raw.deletedAt ? 'bg-gray-400/80 hover:bg-gray-400 opacity-60' : (colorClasses[raw.color] || 'bg-pink-500/80');
+
+                      return (
+                        <button
+                          key={index}
+                          className={`w-full group p-3 rounded-xl ${badgeClass} text-white transition-all cursor-pointer text-left`}
+                          onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                          disabled={!event.id}
+                        >
+                          <div className="flex items-start gap-3">
+                            {getCreatorProfilePicture(raw) ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={getCreatorProfilePicture(raw)!} alt={getCreatorName(raw) || 'Creator'} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white/50" />
+                            ) : (
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white text-xs font-bold border-2 border-white/50 flex-shrink-0">{getInitials(getCreatorName(raw))}</div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-semibold truncate">{raw.type ? `${raw.type} - ` : ''}{getCreatorName(raw)}</h4>
+                              {raw.title && <div className="text-xs opacity-90 mt-0.5 truncate">{raw.title}</div>}
+                              <div className="flex items-center gap-1 mt-1 text-xs text-white/90">
+                                <Clock className="h-3 w-3" />
+                                <span>{timeStr}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }
+
+                    // default google event
+                    const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr);
                     return (
                       <button
                         key={index}
@@ -440,8 +622,47 @@ const Calendar = () => {
                     const eventDateStr = event.start.dateTime || event.start.date;
                     if (!eventDateStr) return null;
                     const isAllDay = !!event.start.date;
-                    const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr);
 
+                    if ((event as any).source === 'content') {
+                      const raw = (event as any)._raw || {};
+                      const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr, raw);
+                      const colorClasses: Record<string, string> = {
+                        pink: "bg-pink-500/80 hover:bg-pink-500",
+                        purple: "bg-purple-500/80 hover:bg-purple-500",
+                        blue: "bg-blue-500/80 hover:bg-blue-500",
+                        green: "bg-green-500/80 hover:bg-green-500",
+                        orange: "bg-orange-500/80 hover:bg-orange-500",
+                      };
+                      const badgeClass = raw.deletedAt ? 'bg-gray-400/80 hover:bg-gray-400 opacity-60' : (colorClasses[raw.color] || 'bg-pink-500/80');
+
+                      return (
+                        <button
+                          key={index}
+                          className={`w-full group p-3 rounded-xl ${badgeClass} text-white transition-all cursor-pointer text-left`}
+                          onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                          disabled={!event.id}
+                        >
+                          <div className="flex items-start gap-3">
+                            {getCreatorProfilePicture(raw) ? (
+                              // eslint-disable-next-line @next/next/no-img-element
+                              <img src={getCreatorProfilePicture(raw)!} alt={getCreatorName(raw) || 'Creator'} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white/50" />
+                            ) : (
+                              <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white text-xs font-bold border-2 border-white/50 flex-shrink-0">{getInitials(getCreatorName(raw))}</div>
+                            )}
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-sm font-semibold truncate">{raw.type ? `${raw.type} - ` : ''}{getCreatorName(raw)}</h4>
+                              {raw.title && <div className="text-xs opacity-90 mt-0.5 truncate">{raw.title}</div>}
+                              <div className="flex items-center gap-1 mt-1 text-xs text-white/90">
+                                <Clock className="h-3 w-3" />
+                                <span>{timeStr}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    }
+
+                    const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr);
                     return (
                       <button
                         key={index}
@@ -517,8 +738,51 @@ const Calendar = () => {
                     if (!eventDateStr) return null;
                     const isAllDay = !!event.start.date;
                     const eventDate = parseEventDate(eventDateStr, isAllDay);
-                    const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr);
 
+                    if ((event as any).source === 'content') {
+                      const raw = (event as any)._raw || {};
+                      const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr, raw);
+                      const colorClasses: Record<string, string> = {
+                        pink: "bg-pink-500/80 hover:bg-pink-500",
+                        purple: "bg-purple-500/80 hover:bg-purple-500",
+                        blue: "bg-blue-500/80 hover:bg-blue-500",
+                        green: "bg-green-500/80 hover:bg-green-500",
+                        orange: "bg-orange-500/80 hover:bg-orange-500",
+                      };
+                      const badgeClass = raw.deletedAt ? 'bg-gray-400/80 hover:bg-gray-400 opacity-60' : (colorClasses[raw.color] || 'bg-pink-500/80');
+
+                      return (
+                        <div key={index}>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 px-1">
+                            {eventDate.toLocaleString({ month: 'short', day: 'numeric' })}
+                          </p>
+                          <button
+                            className={`w-full group p-3 rounded-xl ${badgeClass} text-white transition-all cursor-pointer text-left`}
+                            onClick={() => event.id ? handleViewEventDetails(event.id) : undefined}
+                            disabled={!event.id}
+                          >
+                            <div className="flex items-start gap-3">
+                              {getCreatorProfilePicture(raw) ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={getCreatorProfilePicture(raw)!} alt={getCreatorName(raw) || 'Creator'} className="w-8 h-8 rounded-full object-cover flex-shrink-0 border-2 border-white/50" />
+                              ) : (
+                                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-white/20 text-white text-xs font-bold border-2 border-white/50 flex-shrink-0">{getInitials(getCreatorName(raw))}</div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-sm font-semibold truncate">{raw.type ? `${raw.type} - ` : ''}{getCreatorName(raw)}</h4>
+                                {raw.title && <div className="text-xs opacity-90 mt-0.5 truncate">{raw.title}</div>}
+                                <div className="flex items-center gap-1 mt-1 text-xs text-white/90">
+                                  <Clock className="h-3 w-3" />
+                                  <span>{timeStr}</span>
+                                </div>
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    const timeStr = isAllDay ? "All day" : getTimeStringInUserTimezone(eventDateStr);
                     return (
                       <div key={index}>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mb-1 px-1">

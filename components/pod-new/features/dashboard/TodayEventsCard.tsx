@@ -17,6 +17,8 @@ interface CalendarEvent {
     dateTime?: string;
     date?: string;
   };
+  source?: string;
+  _raw?: any;
 }
 
 export default function TodayEventsCard() {
@@ -24,6 +26,7 @@ export default function TodayEventsCard() {
   const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [userTimezone] = useState<string>(DateTime.local().zoneName);
+  const [showAllEvents, setShowAllEvents] = useState(false);
 
   useEffect(() => {
     const fetchTodayEvents = async () => {
@@ -35,8 +38,50 @@ export default function TodayEventsCard() {
         const endOfDay = new Date(today);
         endOfDay.setHours(23, 59, 59, 999);
 
-        const events = await getPublicCalendarEvents(startOfDay, endOfDay);
-        setTodayEvents(events || []);
+        const googleEvents = (await getPublicCalendarEvents(startOfDay, endOfDay)) || [];
+
+        // Fetch content-dates events for today
+        let contentEvents: CalendarEvent[] = [];
+        try {
+          const resp = await fetch(`/api/content-events?includeDeleted=true`);
+          if (resp.ok) {
+            const data = await resp.json();
+            const items = data.events || data || [];
+
+            contentEvents = (items || [])
+              .filter((ev: any) => ev.date)
+              .map((ev: any) => {
+                const iso = new Date(ev.date).toISOString();
+                return {
+                  id: `content-${ev.id}`,
+                  summary: ev.title || ev.summary || "(No title)",
+                  start: { dateTime: iso, date: undefined },
+                  end: { dateTime: iso, date: undefined },
+                  source: "content",
+                  _raw: ev,
+                } as CalendarEvent;
+              })
+              .filter((ev: CalendarEvent) => {
+                // ensure it falls within today
+                const dt = ev.start.dateTime ? new Date(ev.start.dateTime) : ev.start.date ? new Date(ev.start.date) : null;
+                return dt && dt >= startOfDay && dt <= endOfDay;
+              });
+          }
+        } catch (err) {
+          console.error('Failed to fetch content events for today', err);
+        }
+
+        // Merge and dedupe by id
+        const combined = [...googleEvents, ...contentEvents];
+        const seen = new Set<string>();
+        const deduped = combined.filter((ev) => {
+          const key = ev.id || `${ev.summary}-${ev.start?.dateTime || ev.start?.date || ''}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        });
+
+        setTodayEvents(deduped || []);
       } catch (error) {
         console.error("Error fetching today's events:", error);
         setTodayEvents([]);
@@ -48,7 +93,67 @@ export default function TodayEventsCard() {
     fetchTodayEvents();
   }, []);
 
+  // Helper to get initials (used for content events)
+  const getInitials = (name: any) => {
+    if (!name && name !== 0) return "?";
+    let str = "";
+    if (typeof name === 'string') str = name;
+    else if (typeof name === 'object' && name !== null) {
+      str = name.clientName || name.displayName || name.name || '';
+    } else {
+      str = String(name || '');
+    }
+
+    str = str.trim();
+    if (!str) return "?";
+    const parts = str.split(/\s+/);
+    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    return str.substring(0, 2).toUpperCase();
+  };
+
+  // Helper to safely get creator display name (handles object or string)
+  const getCreatorName = (raw: any) => {
+    if (!raw) return 'Unknown';
+    if (typeof raw === 'string') return raw;
+    // raw may be the whole event payload - check if it has a creator property
+    if (raw.creator) {
+      // Creator is an object with clientName
+      if (typeof raw.creator === 'object' && raw.creator !== null) {
+        return raw.creator.clientName || raw.creator.displayName || raw.creator.name || 'Unknown';
+      }
+      // Creator is a string
+      if (typeof raw.creator === 'string') {
+        return raw.creator;
+      }
+    }
+    // Check if raw itself is the creator object
+    return raw.clientName || raw.displayName || raw.name || raw.creatorName || 'Unknown';
+  };
+
+  // Helper to safely get creator profile picture
+  const getCreatorProfilePicture = (raw: any): string | null => {
+    if (!raw) return null;
+    // Check if raw has a creator property
+    if (raw.creator && typeof raw.creator === 'object' && raw.creator !== null) {
+      return raw.creator.profilePicture || null;
+    }
+    // Check if raw itself has the profile picture
+    return raw.creatorProfilePicture || raw.profilePicture || null;
+  };
+
   const formatEventTime = (event: CalendarEvent) => {
+    // For content events with a separate time field
+    if (event.source === "content" && event._raw?.time) {
+      const time = event._raw.time;
+      // Convert 24h time to 12h format
+      const [hours, minutes] = time.split(':');
+      const hour = parseInt(hours);
+      const ampm = hour >= 12 ? 'PM' : 'AM';
+      const hour12 = hour % 12 || 12;
+      return `${hour12}:${minutes} ${ampm}`;
+    }
+
+    // For Google Calendar events
     const dateString = event.start.dateTime || event.start.date;
     if (!dateString) return "";
 
@@ -58,6 +163,75 @@ export default function TodayEventsCard() {
 
     const dt = DateTime.fromISO(dateString, { zone: 'utc' }).setZone(userTimezone);
     return dt.toLocaleString(DateTime.TIME_SIMPLE);
+  };
+
+  // Helper to render a single event
+  const renderEvent = (event: CalendarEvent) => {
+    const isContentEvent = event.source === "content";
+    const raw = event._raw || {};
+
+    if (isContentEvent) {
+      // Content event styling with color badges
+      const colorClasses: Record<string, string> = {
+        pink: "from-pink-500/90 to-pink-600/90",
+        purple: "from-purple-500/90 to-purple-600/90",
+        blue: "from-blue-500/90 to-blue-600/90",
+        green: "from-green-500/90 to-green-600/90",
+        orange: "from-orange-500/90 to-orange-600/90",
+      };
+      const gradientClass = raw.deletedAt
+        ? 'from-gray-400/90 to-gray-500/90 opacity-60'
+        : (colorClasses[raw.color] || 'from-pink-500/90 to-pink-600/90');
+
+      return (
+        <div
+          key={event.id}
+          className={`flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r ${gradientClass} text-white transition-all`}
+        >
+          {/* Profile Picture or Initials */}
+          {getCreatorProfilePicture(raw) ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={getCreatorProfilePicture(raw)!}
+              alt={getCreatorName(raw)}
+              className="w-6 h-6 rounded-full object-cover flex-shrink-0 border border-white/50"
+            />
+          ) : (
+            <div className="flex items-center justify-center w-6 h-6 rounded-full bg-white/20 text-white text-[9px] font-bold border border-white/50 flex-shrink-0">
+              {getInitials(getCreatorName(raw))}
+            </div>
+          )}
+
+          <div className="flex-1 min-w-0">
+            <p className="text-xs font-semibold truncate">
+              {raw.type ? `${raw.type} - ` : ''}{getCreatorName(raw)}
+            </p>
+            <p className="text-[10px] text-white/80 flex items-center gap-1">
+              <Clock className="h-2.5 w-2.5" />
+              {formatEventTime(event)}
+            </p>
+          </div>
+        </div>
+      );
+    }
+
+    // Google Calendar event - original styling
+    return (
+      <div
+        key={event.id}
+        className="flex items-start gap-2 p-2 rounded-lg bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+      >
+        <Clock className="h-3 w-3 text-pink-500 mt-0.5 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+            {event.summary}
+          </p>
+          <p className="text-[10px] text-gray-500 dark:text-gray-400">
+            {formatEventTime(event)}
+          </p>
+        </div>
+      </div>
+    );
   };
 
   // Get user's timezone abbreviation
@@ -136,26 +310,21 @@ export default function TodayEventsCard() {
               </div>
             ) : (
               <div className="space-y-2">
-                {todayEvents.slice(0, 3).map((event) => (
-                  <div
-                    key={event.id}
-                    className="flex items-start gap-2 p-2 rounded-lg bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 hover:bg-white dark:hover:bg-gray-700 transition-colors"
-                  >
-                    <Clock className="h-3 w-3 text-pink-500 mt-0.5 flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {event.summary}
-                      </p>
-                      <p className="text-[10px] text-gray-500 dark:text-gray-400">
-                        {formatEventTime(event)}
-                      </p>
-                    </div>
-                  </div>
-                ))}
+                {(showAllEvents ? todayEvents : todayEvents.slice(0, 3)).map((event) => renderEvent(event))}
                 {todayEvents.length > 3 && (
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                    +{todayEvents.length - 3} more event{todayEvents.length - 3 !== 1 ? 's' : ''}
-                  </p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowAllEvents(!showAllEvents);
+                    }}
+                    className="w-full text-xs text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 text-center mt-2 py-1 rounded-lg hover:bg-white/50 dark:hover:bg-gray-700/50 transition-all"
+                  >
+                    {showAllEvents ? (
+                      <>Show less</>
+                    ) : (
+                      <>+{todayEvents.length - 3} more event{todayEvents.length - 3 !== 1 ? 's' : ''}</>
+                    )}
+                  </button>
                 )}
               </div>
             )}
