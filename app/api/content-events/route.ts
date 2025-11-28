@@ -46,7 +46,9 @@ export async function GET(request: NextRequest) {
     const creator = searchParams.get("creator");
     const eventType = searchParams.get("eventType");
     const status = searchParams.get("status");
+    const flyerLink = searchParams.get("flyerLink");
     const tags = searchParams.get("tags");
+    const search = searchParams.get("search");
     const includeDeleted = searchParams.get("includeDeleted") === "true";
 
     // Build filter conditions
@@ -55,6 +57,38 @@ export async function GET(request: NextRequest) {
     // By default, filter out deleted events unless explicitly requested
     if (!includeDeleted) {
       where.deletedAt = null;
+    }
+
+    // Search across title, description, creator name, and tags
+    if (search && search.trim()) {
+      const searchLower = search.toLowerCase();
+      where.OR = [
+        {
+          title: {
+            contains: searchLower,
+            mode: 'insensitive',
+          },
+        },
+        {
+          description: {
+            contains: searchLower,
+            mode: 'insensitive',
+          },
+        },
+        {
+          creator: {
+            clientName: {
+              contains: searchLower,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          tags: {
+            hasSome: [searchLower],
+          },
+        },
+      ];
     }
 
     if (creator && creator !== "all") {
@@ -74,6 +108,16 @@ export async function GET(request: NextRequest) {
 
     if (status && status !== "all") {
       where.status = status;
+    }
+
+    if (flyerLink && flyerLink !== "all") {
+      if (flyerLink === "has") {
+        where.flyerLink = {
+          not: null,
+        };
+      } else if (flyerLink === "no") {
+        where.flyerLink = null;
+      }
     }
 
     if (tags) {

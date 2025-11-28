@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { Calendar, Filter, Plus, ChevronLeft, ChevronRight, Eye, EyeOff } from "lucide-react";
+import { useState, useMemo } from "react";
+import { Calendar, Filter, Plus, ChevronLeft, ChevronRight, Eye, EyeOff, Search, X } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ContentDatesCalendar from "@/components/pod-new/features/content-dates/ContentDatesCalendar";
 import UpcomingEventsPanel from "@/components/pod-new/features/content-dates/UpcomingEventsPanel";
 import FilterControls from "@/components/pod-new/features/content-dates/FilterControls";
@@ -36,89 +37,68 @@ export interface ContentEvent {
 }
 
 export default function ContentDatesPage() {
+  const queryClient = useQueryClient();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<ContentEvent | null>(null);
   const [showDeleted, setShowDeleted] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [filters, setFilters] = useState({
     creator: "all",
     eventType: "all",
     status: "all",
+    flyerLink: "all",
     tags: [] as string[],
   });
-  const [events, setEvents] = useState<ContentEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch events from database
-  const fetchEvents = async () => {
-    try {
-      setIsLoading(true);
+  // Fetch events with TanStack Query
+  const { data: events = [], isLoading } = useQuery({
+    queryKey: ['content-events', { ...filters, showDeleted }],
+    queryFn: async () => {
       const queryParams = new URLSearchParams();
       if (filters.creator !== "all") queryParams.set("creator", filters.creator);
       if (filters.eventType !== "all") queryParams.set("eventType", filters.eventType);
       if (filters.status !== "all") queryParams.set("status", filters.status);
+      if (filters.flyerLink !== "all") queryParams.set("flyerLink", filters.flyerLink);
       if (filters.tags.length > 0) queryParams.set("tags", filters.tags.join(","));
       if (showDeleted) queryParams.set("includeDeleted", "true");
 
       const response = await fetch(`/api/content-events?${queryParams.toString()}`);
-      if (response.ok) {
-        const data = await response.json();
-        // Transform API response to match ContentEvent interface
-        const transformedEvents = data.events.map((event: any) => ({
-          id: event.id,
-          title: event.title,
-          description: event.description,
-          date: new Date(event.date),
-          time: event.time,
-          type: event.type,
-          status: event.status,
-          creator: event.creator?.clientName,
-          creatorProfilePicture: event.creator?.profilePicture,
-          tags: event.tags,
-          price: event.price,
-          color: event.color.toLowerCase() as ContentEvent["color"],
-          contentLink: event.contentLink,
-          editedVideoLink: event.editedVideoLink,
-          flyerLink: event.flyerLink,
-          liveType: event.liveType,
-          notes: event.notes,
-          attachments: event.attachments,
-          deletedAt: event.deletedAt ? new Date(event.deletedAt) : null,
-        }));
-        setEvents(transformedEvents);
+      if (!response.ok) {
+        throw new Error('Failed to fetch events');
       }
-    } catch (error) {
-      console.error("Failed to fetch events:", error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  // Fetch events on mount and when filters or showDeleted change
-  useEffect(() => {
-    fetchEvents();
-  }, [filters, showDeleted]);
+      const data = await response.json();
+      // Transform API response to match ContentEvent interface
+      return data.events.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: new Date(event.date),
+        time: event.time,
+        type: event.type,
+        status: event.status,
+        creator: event.creator?.clientName,
+        creatorProfilePicture: event.creator?.profilePicture,
+        tags: event.tags,
+        price: event.price,
+        color: event.color.toLowerCase() as ContentEvent["color"],
+        contentLink: event.contentLink,
+        editedVideoLink: event.editedVideoLink,
+        flyerLink: event.flyerLink,
+        liveType: event.liveType,
+        notes: event.notes,
+        attachments: event.attachments,
+        deletedAt: event.deletedAt ? new Date(event.deletedAt) : null,
+      }));
+    },
+  });
 
-  const handlePrevMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
-  };
-
-  const handleNextMonth = () => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
-  };
-
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date);
-    setIsCreateModalOpen(true);
-  };
-
-  const handleEventClick = (event: ContentEvent) => {
-    setSelectedEvent(event);
-  };
-
-  const handleCreateEvent = async (eventData: Partial<ContentEvent>) => {
-    try {
+  // Create event mutation
+  const createEventMutation = useMutation({
+    mutationFn: async (eventData: Partial<ContentEvent>) => {
       const response = await fetch("/api/content-events", {
         method: "POST",
         headers: {
@@ -144,21 +124,22 @@ export default function ContentDatesPage() {
         }),
       });
 
-      if (response.ok) {
-        // Refresh events list
-        await fetchEvents();
-        setIsCreateModalOpen(false);
-        setSelectedDate(null);
-      } else {
-        console.error("Failed to create event");
+      if (!response.ok) {
+        throw new Error("Failed to create event");
       }
-    } catch (error) {
-      console.error("Error creating event:", error);
-    }
-  };
 
-  const handleUpdateEvent = async (eventId: string, eventData: Partial<ContentEvent>) => {
-    try {
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-events'] });
+      setIsCreateModalOpen(false);
+      setSelectedDate(null);
+    },
+  });
+
+  // Update event mutation
+  const updateEventMutation = useMutation({
+    mutationFn: async ({ eventId, eventData }: { eventId: string; eventData: Partial<ContentEvent> }) => {
       const response = await fetch(`/api/content-events/${eventId}`, {
         method: "PUT",
         headers: {
@@ -181,95 +162,174 @@ export default function ContentDatesPage() {
         }),
       });
 
-      if (response.ok) {
-        // Refresh events list
-        await fetchEvents();
-        // Close the modal by clearing selected event
-        setSelectedEvent(null);
-      } else {
-        console.error("Failed to update event");
+      if (!response.ok) {
+        throw new Error("Failed to update event");
       }
-    } catch (error) {
-      console.error("Error updating event:", error);
-      throw error;
-    }
-  };
 
-  const handleDeleteEvent = async (eventId: string) => {
-    try {
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-events'] });
+      setSelectedEvent(null);
+    },
+  });
+
+  // Delete event mutation
+  const deleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
       const response = await fetch(`/api/content-events/${eventId}`, {
         method: "DELETE",
       });
 
-      if (response.ok) {
-        // Refresh events list
-        await fetchEvents();
-        // Close the modal by clearing selected event
-        setSelectedEvent(null);
-      } else {
-        console.error("Failed to delete event");
+      if (!response.ok) {
+        throw new Error("Failed to delete event");
       }
-    } catch (error) {
-      console.error("Error deleting event:", error);
-      throw error;
-    }
-  };
 
-  const handleRestoreEvent = async (eventId: string) => {
-    try {
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-events'] });
+      setSelectedEvent(null);
+    },
+  });
+
+  // Restore event mutation
+  const restoreEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
       const response = await fetch(`/api/content-events/${eventId}/restore`, {
         method: "POST",
       });
 
-      if (response.ok) {
-        // Refresh events list
-        await fetchEvents();
-        // Close the modal by clearing selected event
-        setSelectedEvent(null);
-      } else {
-        console.error("Failed to restore event");
+      if (!response.ok) {
+        throw new Error("Failed to restore event");
       }
-    } catch (error) {
-      console.error("Error restoring event:", error);
-      throw error;
-    }
-  };
 
-  const handlePermanentDeleteEvent = async (eventId: string) => {
-    try {
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-events'] });
+      setSelectedEvent(null);
+    },
+  });
+
+  // Permanent delete event mutation
+  const permanentDeleteEventMutation = useMutation({
+    mutationFn: async (eventId: string) => {
       const response = await fetch(`/api/content-events/${eventId}/permanent-delete`, {
         method: "DELETE",
       });
 
-      if (response.ok) {
-        // Refresh events list
-        await fetchEvents();
-        // Close the modal by clearing selected event
-        setSelectedEvent(null);
-      } else {
+      if (!response.ok) {
         const errorData = await response.json();
-        console.error("Failed to permanently delete event:", errorData.error);
-        alert(errorData.error || "Failed to permanently delete event");
+        throw new Error(errorData.error || "Failed to permanently delete event");
       }
-    } catch (error) {
+
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['content-events'] });
+      setSelectedEvent(null);
+    },
+    onError: (error: Error) => {
       console.error("Error permanently deleting event:", error);
-      throw error;
-    }
+      alert(error.message);
+    },
+  });
+
+  const handlePrevMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
   };
 
-  // Events are already filtered by the API
+  const handleNextMonth = () => {
+    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+  };
+
+  const handleDateClick = (date: Date) => {
+    setSelectedDate(date);
+    setIsCreateModalOpen(true);
+  };
+
+  const handleEventClick = (event: ContentEvent) => {
+    setSelectedEvent(event);
+  };
+
+  const handleCreateEvent = async (eventData: Partial<ContentEvent>) => {
+    createEventMutation.mutate(eventData);
+  };
+
+  const handleUpdateEvent = async (eventId: string, eventData: Partial<ContentEvent>) => {
+    updateEventMutation.mutate({ eventId, eventData });
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    deleteEventMutation.mutate(eventId);
+  };
+
+  const handleRestoreEvent = async (eventId: string) => {
+    restoreEventMutation.mutate(eventId);
+  };
+
+  const handlePermanentDeleteEvent = async (eventId: string) => {
+    permanentDeleteEventMutation.mutate(eventId);
+  };
+
+  // Search events with API call (for dropdown only)
+  const { data: searchResults = [], isLoading: isSearching } = useQuery({
+    queryKey: ['search-events', searchTerm],
+    queryFn: async () => {
+      if (!searchTerm.trim() || searchTerm.trim().length < 2) return [];
+
+      const queryParams = new URLSearchParams();
+      queryParams.set("search", searchTerm);
+      queryParams.set("includeDeleted", showDeleted.toString());
+
+      const response = await fetch(`/api/content-events?${queryParams.toString()}`);
+      if (!response.ok) {
+        throw new Error('Failed to search events');
+      }
+
+      const data = await response.json();
+      return data.events.map((event: any) => ({
+        id: event.id,
+        title: event.title,
+        description: event.description,
+        date: new Date(event.date),
+        time: event.time,
+        type: event.type,
+        status: event.status,
+        creator: event.creator?.clientName,
+        creatorProfilePicture: event.creator?.profilePicture,
+        tags: event.tags,
+        price: event.price,
+        color: event.color.toLowerCase() as ContentEvent["color"],
+        contentLink: event.contentLink,
+        editedVideoLink: event.editedVideoLink,
+        flyerLink: event.flyerLink,
+        liveType: event.liveType,
+        notes: event.notes,
+        attachments: event.attachments,
+        deletedAt: event.deletedAt ? new Date(event.deletedAt) : null,
+      }));
+    },
+    enabled: searchTerm.trim().length >= 2,
+    staleTime: 1000 * 30, // Cache search results for 30 seconds
+  });
+
+  // Calendar and upcoming events always use the original filtered events (not search results)
   const filteredEvents = events;
 
-  const upcomingEvents = events
-    .filter(event => {
-      // Filter by date (must be in the future)
-      if (event.date < new Date()) return false;
-      // If showDeleted is false, exclude deleted events
-      if (!showDeleted && event.deletedAt) return false;
-      return true;
-    })
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
-    .slice(0, 10);
+  const upcomingEvents = useMemo(() => {
+    return filteredEvents
+      .filter((event: ContentEvent) => {
+        // Filter by date (must be in the future)
+        if (event.date < new Date()) return false;
+        // If showDeleted is false, exclude deleted events
+        if (!showDeleted && event.deletedAt) return false;
+        return true;
+      })
+      .sort((a: ContentEvent, b: ContentEvent) => a.date.getTime() - b.date.getTime())
+      .slice(0, 10);
+  }, [filteredEvents, showDeleted]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 p-4 md:p-6">
@@ -312,14 +372,130 @@ export default function ContentDatesPage() {
             </button>
           </div>
         </div>
+
+        {/* Search Bar */}
+        <div className="mt-4 relative">
+          <div className="relative">
+            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              onFocus={() => setIsSearchFocused(true)}
+              onBlur={() => setTimeout(() => setIsSearchFocused(false), 200)}
+              placeholder="Search events by title, description, creator, or tags..."
+              className="w-full pl-12 pr-12 py-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm("")}
+                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                title="Clear search"
+              >
+                <X className="h-4 w-4 text-gray-400" />
+              </button>
+            )}
+          </div>
+
+          {/* Search Dropdown Results */}
+          {isSearchFocused && searchTerm.trim().length >= 2 && (
+            <div className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg max-h-96 overflow-y-auto z-50">
+              {isSearching ? (
+                <div className="flex items-center justify-center py-8">
+                  <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-pink-600"></div>
+                    <span>Searching...</span>
+                  </div>
+                </div>
+              ) : searchResults.length > 0 ? (
+                <div className="p-2">
+                  <div className="text-xs text-gray-500 dark:text-gray-400 px-3 py-2">
+                    Found {searchResults.length} event{searchResults.length !== 1 ? 's' : ''}
+                  </div>
+                  {searchResults.map((event: ContentEvent) => {
+                    const colorClasses: Record<string, string> = {
+                      pink: "from-pink-500/90 to-pink-600/90",
+                      purple: "from-purple-500/90 to-purple-600/90",
+                      blue: "from-blue-500/90 to-blue-600/90",
+                      green: "from-green-500/90 to-green-600/90",
+                      orange: "from-orange-500/90 to-orange-600/90",
+                    };
+                    const gradientClass = event.deletedAt
+                      ? 'from-gray-400/90 to-gray-500/90 opacity-60'
+                      : (colorClasses[event.color] || 'from-pink-500/90 to-pink-600/90');
+
+                    return (
+                      <button
+                        key={event.id}
+                        onClick={() => {
+                          setSelectedEvent(event);
+                          setIsSearchFocused(false);
+                        }}
+                        className={`w-full flex items-center gap-3 p-3 rounded-lg bg-gradient-to-r ${gradientClass} text-white hover:shadow-md transition-all text-left mb-2`}
+                      >
+                        {event.creatorProfilePicture ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={event.creatorProfilePicture}
+                            alt={event.creator || 'Creator'}
+                            className="w-10 h-10 rounded-full object-cover flex-shrink-0 border-2 border-white/50"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/20 text-white text-xs font-bold border-2 border-white/50 flex-shrink-0">
+                            {event.creator?.substring(0, 2).toUpperCase() || '?'}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="text-sm font-semibold truncate">
+                            {event.type && `${event.type} - `}{event.creator || 'Unknown'}
+                          </div>
+                          {event.title && (
+                            <div className="text-xs opacity-90 truncate">{event.title}</div>
+                          )}
+                          <div className="text-xs opacity-80 mt-1">
+                            {event.date.toLocaleDateString('en-US', {
+                              month: 'short',
+                              day: 'numeric',
+                              year: 'numeric'
+                            })}
+                            {event.time && ` • ${event.time}`}
+                          </div>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-8 px-4">
+                  <Search className="h-12 w-12 text-gray-300 dark:text-gray-600 mb-3" />
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    No events found matching "{searchTerm}"
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Filter Controls */}
       <FilterControls
         filters={filters}
         onFiltersChange={setFilters}
-        creators={Array.from(new Set(events.map(e => e.creator).filter((c): c is string => Boolean(c))))}
-        tags={Array.from(new Set(events.flatMap(e => e.tags || [])))}
+        creators={Array.from(new Set(events.map((e: ContentEvent) => e.creator).filter((c: string | undefined): c is string => Boolean(c))))}
+        tags={(() => {
+          // Count tag frequencies
+          const tagCounts = new Map<string, number>();
+          events.forEach((e: ContentEvent) => {
+            (e.tags || []).forEach((tag: string) => {
+              tagCounts.set(tag, (tagCounts.get(tag) || 0) + 1);
+            });
+          });
+          // Sort by frequency (descending) and return unique tags
+          return Array.from(tagCounts.entries())
+            .sort((a, b) => b[1] - a[1])
+            .map(([tag]) => tag);
+        })()}
       />
 
       {/* Main Content Grid */}

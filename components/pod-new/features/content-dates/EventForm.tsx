@@ -159,8 +159,24 @@ export default function EventForm({
             Creator{!isView && " *"}
           </label>
           {isView ? (
-            <div className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border rounded-lg text-gray-900 dark:text-gray-100">
-              {formData?.creator || "Not set"}
+            <div className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 border rounded-lg text-gray-900 dark:text-gray-100 flex items-center gap-2">
+              {formData?.creatorProfilePicture ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={formData.creatorProfilePicture}
+                  alt={formData?.creator || 'Creator'}
+                  className="w-6 h-6 rounded-full object-cover border border-gray-300 dark:border-gray-600"
+                  onError={(e) => {
+                    // Hide image if it fails to load
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : formData?.creator ? (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white text-[10px] font-bold flex items-center justify-center border border-gray-300 dark:border-gray-600">
+                  {formData.creator.substring(0, 2).toUpperCase()}
+                </div>
+              ) : null}
+              <span>{formData?.creator || "Not set"}</span>
             </div>
           ) : (
             <>

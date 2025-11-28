@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   Select,
   SelectContent,
@@ -7,6 +7,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Search } from 'lucide-react';
+import { useQuery } from '@tanstack/react-query';
 
 interface ClientModel {
   id: string;
@@ -33,13 +34,8 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
   disabled = false,
   hasError = false
 }) => {
-  const [clientModels, setClientModels] = useState<ClientModel[]>([]);
-  const [filteredModels, setFilteredModels] = useState<ClientModel[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const [hasLoaded, setHasLoaded] = useState(false);
 
   // Helper function to get initials from name
   const getInitials = (name: string): string => {
@@ -51,19 +47,18 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
     return name.substring(0, 2).toUpperCase();
   };
 
-  // Fetch client models from API
-  const fetchClientModels = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
+  // Fetch client models with TanStack Query - cached globally
+  const { data: clientModels = [], isLoading, error } = useQuery({
+    queryKey: ['client-models'],
+    queryFn: async () => {
       const response = await fetch('/api/client-models');
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      
+
       if (data.success && Array.isArray(data.clientModels)) {
         // Filter out models with empty clientName, dropped status, and ensure they have valid data
         const validModels = data.clientModels.filter(
@@ -72,50 +67,33 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
             model.clientName.trim() !== '' &&
             model.status.toLowerCase() !== 'dropped'
         );
-        console.log('📸 Model data sample:', validModels.slice(0, 3).map(m => ({
+        console.log('📸 Model data sample:', validModels.slice(0, 3).map((m: ClientModel) => ({
           name: m.clientName,
           hasProfilePic: !!m.profilePicture,
           profilePicUrl: m.profilePicture
         })));
-        setClientModels(validModels);
-        setFilteredModels(validModels);
+        return validModels;
       } else {
         console.error('Failed to fetch client models:', data.error);
-        setError('Failed to load models');
-        setClientModels([]);
-        setFilteredModels([]);
+        throw new Error('Failed to load models');
       }
-    } catch (error) {
-      console.error('Error fetching client models:', error);
-      setError('Failed to load models');
-      setClientModels([]);
-      setFilteredModels([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    enabled: isOpen || !!value, // Only fetch when dropdown is opened or there's a value
+  });
 
-  // Fetch models only when dropdown opens for the first time
-  useEffect(() => {
-    if (isOpen && !hasLoaded) {
-      fetchClientModels();
-      setHasLoaded(true);
-    }
-  }, [isOpen, hasLoaded]);
-
-  // Filter models based on search term
-  useEffect(() => {
+  // Filter models based on search term - use useMemo directly without state
+  const filteredModels = useMemo(() => {
     if (searchTerm.trim() === '') {
-      setFilteredModels(clientModels);
+      return clientModels;
     } else {
-      const filtered = clientModels.filter((model) => {
+      return clientModels.filter((model: ClientModel) => {
         const searchLower = searchTerm.toLowerCase();
         return (
           model.clientName.toLowerCase().includes(searchLower) ||
           (model.name && model.name.toLowerCase().includes(searchLower))
         );
       });
-      setFilteredModels(filtered);
     }
   }, [searchTerm, clientModels]);
 
@@ -124,15 +102,49 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
     onValueChange(selectedClientName);
   };
 
+  // Find the selected model to display with profile picture
+  const selectedModel = clientModels.find((model: ClientModel) => model.clientName === value);
+
   return (
-    <Select value={value} onValueChange={handleValueChange} disabled={disabled} onOpenChange={setIsOpen}>
+    <div className="relative">
+      {/* Loading Overlay */}
+      {isLoading && value && !selectedModel && (
+        <div className="absolute inset-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-lg z-10 flex items-center justify-center">
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-300">
+            <div className="animate-spin rounded-full h-4 w-4 border-2 border-gray-300 border-t-pink-600"></div>
+            <span>Loading...</span>
+          </div>
+        </div>
+      )}
+
+      <Select value={value} onValueChange={handleValueChange} disabled={disabled} onOpenChange={setIsOpen}>
         <SelectTrigger
           className={`${className} ${hasError ? "border-red-500 dark:border-red-500" : ""}`}
           disabled={disabled}
         >
-          <SelectValue
-            placeholder={isLoading ? "Loading models..." : error ? "Error loading models" : placeholder}
-          />
+          {value && selectedModel ? (
+            <div className="flex items-center gap-2 w-full">
+              {selectedModel.profilePicture ? (
+                <img
+                  src={selectedModel.profilePicture}
+                  alt={selectedModel.clientName}
+                  className="w-6 h-6 rounded-full object-cover border border-gray-300 dark:border-gray-600"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).style.display = 'none';
+                  }}
+                />
+              ) : (
+                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-pink-500 to-purple-600 text-white text-[10px] font-bold flex items-center justify-center border border-gray-300 dark:border-gray-600">
+                  {getInitials(selectedModel.clientName)}
+                </div>
+              )}
+              <span className="truncate">{value}</span>
+            </div>
+          ) : (
+            <SelectValue
+              placeholder={isLoading ? "Loading models..." : (error ? "Error loading models" : placeholder)}
+            />
+          )}
         </SelectTrigger>
         <SelectContent className="rounded-lg border shadow-lg !bg-[oklch(1_0_0)] dark:!bg-[oklch(0.205_0_0)] z-50">
         {/* Search Input */}
@@ -224,6 +236,7 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
         )}
       </SelectContent>
     </Select>
+    </div>
   );
 };
 
