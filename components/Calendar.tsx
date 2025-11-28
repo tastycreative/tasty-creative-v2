@@ -44,15 +44,27 @@ const Calendar = () => {
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
   const [calendarError, setCalendarError] = useState("");
   const [isCalendarLoading, setIsCalendarLoading] = useState(false);
-  const [userTimezone] = useState<string>(
-    DateTime.local().zoneName
-  );
+  const [userTimezone, setUserTimezone] = useState<string>("");
+
+  // Ensure we detect the browser timezone on the client (e.g., Asia/Manila)
+  useEffect(() => {
+    try {
+      const tz = Intl?.DateTimeFormat?.().resolvedOptions().timeZone;
+      if (tz) setUserTimezone(tz);
+      else setUserTimezone(DateTime.local().zoneName || "UTC");
+    } catch (err) {
+      setUserTimezone(DateTime.local().zoneName || "UTC");
+    }
+  }, []);
+
+  // Use a stable timezone value (fallback to Intl if state not set)
+  const tz = userTimezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : DateTime.local().zoneName || 'UTC');
 
   // Helper function to format date in user's timezone using Luxon
   const formatDateInUserTimezone = (dateString: string, isAllDay = false) => {
     if (isAllDay) {
       // For all-day events, parse as date only in user's timezone to avoid shifting
-      const dt = DateTime.fromISO(dateString, { zone: userTimezone });
+      const dt = DateTime.fromISO(dateString, { zone: tz });
       return dt.toLocaleString({
         weekday: 'long',
         year: 'numeric',
@@ -78,7 +90,7 @@ const Calendar = () => {
     }
 
     // For Google Calendar events, use the datetime
-    const dt = DateTime.fromISO(dateString).setZone(userTimezone);
+  const dt = DateTime.fromISO(dateString).setZone(tz);
     return dt.toLocaleString(DateTime.TIME_SIMPLE);
   };
 
@@ -86,10 +98,10 @@ const Calendar = () => {
   const parseEventDate = (dateString: string, isAllDay: boolean) => {
     if (isAllDay) {
       // For all-day events, parse in user's timezone to keep the date stable
-      return DateTime.fromISO(dateString, { zone: userTimezone });
+      return DateTime.fromISO(dateString, { zone: tz });
     } else {
       // For timed events, parse as UTC then convert to user's timezone
-      return DateTime.fromISO(dateString, { zone: 'utc' }).setZone(userTimezone);
+      return DateTime.fromISO(dateString, { zone: 'utc' }).setZone(tz);
     }
   };
 
@@ -197,25 +209,49 @@ const Calendar = () => {
 
             // Keep only events that fall inside the requested month range
             contentEvents = (items || [])
-              .filter((ev: any) => {
-                if (!ev.date) return false;
-                const evDate = new Date(ev.date);
-                return evDate >= startDate && evDate <= endDate;
+              .map((ev: any) => {
+                if (!ev.date) return null;
+
+                // Normalize date using Luxon in the user's timezone to prevent day shifts
+                // If the event has a time field, treat it as a timed event; otherwise treat as all-day
+                const hasTime = !!ev.time;
+                try {
+                  if (hasTime) {
+                    // Combine date + time into an ISO string then convert to user's timezone
+                    // ev.date may already be an ISO datetime, but be defensive
+                    const combined = ev.time && ev.date && !ev.date.includes('T') ? `${ev.date}T${ev.time}` : ev.date;
+                    const dt = DateTime.fromISO(combined, { zone: userTimezone });
+                    return {
+                      id: `content-${ev.id}`,
+                      summary: ev.title || ev.summary || "(No title)",
+                      description: ev.description,
+                      location: ev.flyerLink || ev.location,
+                      start: { dateTime: dt.toISO() },
+                      end: { dateTime: dt.plus({ minutes: 60 }).toISO() },
+                      _raw: ev,
+                      source: "content",
+                    };
+                  } else {
+                    // All-day event: parse date in user's timezone and store date-only (YYYY-MM-DD)
+                    const dt = DateTime.fromISO(ev.date, { zone: userTimezone });
+                    const isoDateOnly = dt.toISODate(); // YYYY-MM-DD
+                    return {
+                      id: `content-${ev.id}`,
+                      summary: ev.title || ev.summary || "(No title)",
+                      description: ev.description,
+                      location: ev.flyerLink || ev.location,
+                      start: { date: isoDateOnly },
+                      end: { date: isoDateOnly },
+                      _raw: ev,
+                      source: "content",
+                    };
+                  }
+                } catch (err) {
+                  console.warn('Failed to parse content event date', ev, err);
+                  return null;
+                }
               })
-              .map((ev: any) => ({
-                // Prefix id so it won't collide with Google event ids
-                id: `content-${ev.id}`,
-                summary: ev.title || ev.summary || "(No title)",
-                description: ev.description,
-                location: ev.flyerLink || ev.location,
-                // Use dateTime for timed events; content events typically have a single date
-                start: { dateTime: ev.date ? new Date(ev.date).toISOString() : undefined },
-                end: { dateTime: ev.date ? new Date(ev.date).toISOString() : undefined },
-                // Keep original payload for later detail rendering if needed
-                _raw: ev,
-                // mark source
-                source: "content",
-              }));
+              .filter(Boolean) as any[];
           } else {
             console.warn("Failed to fetch content events: ", resp.status);
           }
@@ -290,10 +326,13 @@ const Calendar = () => {
                 <div className="p-2.5 rounded-xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 border border-pink-500/20">
                   <CalendarIcon className="h-5 w-5 text-pink-600 dark:text-pink-400" />
                 </div>
-                <div>
+                <div className="flex items-center gap-3">
                   <h2 className="text-2xl font-bold bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-white dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
-                    {DateTime.fromJSDate(selectedDate).setZone(userTimezone).toLocaleString({ month: "long", year: "numeric" })}
+                    {DateTime.fromJSDate(selectedDate).setZone(tz).toLocaleString({ month: "long", year: "numeric" })}
                   </h2>
+                  <span className="text-xs ml-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded text-blue-700 dark:text-blue-300 font-medium">
+                    {tz}
+                  </span>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
                     {calendarEvents.length} event{calendarEvents.length !== 1 ? 's' : ''} this month
                   </p>
