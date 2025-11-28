@@ -132,7 +132,9 @@ const ModelsDropdownList: React.FC<ModelsDropdownListProps> = ({
         >
           <SelectValue
             placeholder={isLoading ? "Loading models..." : error ? "Error loading models" : placeholder}
-          />
+          >
+            {value || undefined}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent className="rounded-lg border shadow-lg !bg-[oklch(1_0_0)] dark:!bg-[oklch(0.205_0_0)] z-50">
         {/* Search Input */}
