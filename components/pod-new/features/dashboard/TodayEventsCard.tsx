@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, Clock, ChevronRight, Loader2 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { getPublicCalendarEvents } from "@/app/services/google-calendar-implementation";
 import { DateTime } from "luxon";
 
@@ -23,75 +24,68 @@ interface CalendarEvent {
 
 export default function TodayEventsCard() {
   const router = useRouter();
-  const [todayEvents, setTodayEvents] = useState<CalendarEvent[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [userTimezone] = useState<string>(DateTime.local().zoneName);
   const [showAllEvents, setShowAllEvents] = useState(false);
 
-  useEffect(() => {
-    const fetchTodayEvents = async () => {
+  // Fetch today's events with TanStack Query
+  const { data: todayEvents = [], isLoading } = useQuery({
+    queryKey: ['today-events'],
+    queryFn: async () => {
+      const today = new Date();
+      const startOfDay = new Date(today);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(today);
+      endOfDay.setHours(23, 59, 59, 999);
+
+      // Fetch Google Calendar events
+      const googleEvents = (await getPublicCalendarEvents(startOfDay, endOfDay)) || [];
+
+      // Fetch content-dates events for today
+      let contentEvents: CalendarEvent[] = [];
       try {
-        setIsLoading(true);
-        const today = new Date();
-        const startOfDay = new Date(today);
-        startOfDay.setHours(0, 0, 0, 0);
-        const endOfDay = new Date(today);
-        endOfDay.setHours(23, 59, 59, 999);
+        const resp = await fetch(`/api/content-events?includeDeleted=true`);
+        if (resp.ok) {
+          const data = await resp.json();
+          const items = data.events || data || [];
 
-        const googleEvents = (await getPublicCalendarEvents(startOfDay, endOfDay)) || [];
-
-        // Fetch content-dates events for today
-        let contentEvents: CalendarEvent[] = [];
-        try {
-          const resp = await fetch(`/api/content-events?includeDeleted=true`);
-          if (resp.ok) {
-            const data = await resp.json();
-            const items = data.events || data || [];
-
-            contentEvents = (items || [])
-              .filter((ev: any) => ev.date)
-              .map((ev: any) => {
-                const iso = new Date(ev.date).toISOString();
-                return {
-                  id: `content-${ev.id}`,
-                  summary: ev.title || ev.summary || "(No title)",
-                  start: { dateTime: iso, date: undefined },
-                  end: { dateTime: iso, date: undefined },
-                  source: "content",
-                  _raw: ev,
-                } as CalendarEvent;
-              })
-              .filter((ev: CalendarEvent) => {
-                // ensure it falls within today
-                const dt = ev.start.dateTime ? new Date(ev.start.dateTime) : ev.start.date ? new Date(ev.start.date) : null;
-                return dt && dt >= startOfDay && dt <= endOfDay;
-              });
-          }
-        } catch (err) {
-          console.error('Failed to fetch content events for today', err);
+          contentEvents = (items || [])
+            .filter((ev: any) => ev.date)
+            .map((ev: any) => {
+              const iso = new Date(ev.date).toISOString();
+              return {
+                id: `content-${ev.id}`,
+                summary: ev.title || ev.summary || "(No title)",
+                start: { dateTime: iso, date: undefined },
+                end: { dateTime: iso, date: undefined },
+                source: "content",
+                _raw: ev,
+              } as CalendarEvent;
+            })
+            .filter((ev: CalendarEvent) => {
+              // ensure it falls within today
+              const dt = ev.start.dateTime ? new Date(ev.start.dateTime) : ev.start.date ? new Date(ev.start.date) : null;
+              return dt && dt >= startOfDay && dt <= endOfDay;
+            });
         }
-
-        // Merge and dedupe by id
-        const combined = [...googleEvents, ...contentEvents];
-        const seen = new Set<string>();
-        const deduped = combined.filter((ev) => {
-          const key = ev.id || `${ev.summary}-${ev.start?.dateTime || ev.start?.date || ''}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
-        });
-
-        setTodayEvents(deduped || []);
-      } catch (error) {
-        console.error("Error fetching today's events:", error);
-        setTodayEvents([]);
-      } finally {
-        setIsLoading(false);
+      } catch (err) {
+        console.error('Failed to fetch content events for today', err);
       }
-    };
 
-    fetchTodayEvents();
-  }, []);
+      // Merge and dedupe by id
+      const combined = [...googleEvents, ...contentEvents];
+      const seen = new Set<string>();
+      const deduped = combined.filter((ev) => {
+        const key = ev.id || `${ev.summary}-${ev.start?.dateTime || ev.start?.date || ''}`;
+        if (seen.has(key)) return false;
+        seen.add(key);
+        return true;
+      });
+
+      return deduped;
+    },
+    staleTime: 1000 * 60 * 5, // Consider data fresh for 5 minutes
+    refetchInterval: 1000 * 60 * 5, // Refetch every 5 minutes
+  });
 
   // Helper to get initials (used for content events)
   const getInitials = (name: any) => {

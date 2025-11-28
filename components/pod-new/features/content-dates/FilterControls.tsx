@@ -1,7 +1,8 @@
 "use client";
 
-import { Filter, X } from "lucide-react";
-import { useState } from "react";
+import { Filter, X, Tag, ChevronDown } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import ModelsDropdownList from "@/components/ModelsDropdownList";
 
 interface FilterControlsProps {
@@ -23,6 +24,27 @@ export default function FilterControls({
   tags,
 }: FilterControlsProps) {
   const [showFilters, setShowFilters] = useState(false);
+  const [showTagsDropdown, setShowTagsDropdown] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
+  const tagsDropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  // Close tags dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagsDropdownRef.current && !tagsDropdownRef.current.contains(event.target as Node)) {
+        setShowTagsDropdown(false);
+      }
+    };
+
+    if (showTagsDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [showTagsDropdown]);
 
   const hasActiveFilters =
     filters.creator !== "all" ||
@@ -143,30 +165,77 @@ export default function FilterControls({
             </select>
           </div>
 
-          {/* Tags Filter */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">
-              Tags
+          {/* Tags Filter - Inline with "View More" button */}
+          <div className="relative" ref={tagsDropdownRef}>
+            <label className="flex items-center justify-between text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wide mb-2">
+              <span>Tags</span>
+              {filters.tags.length > 0 && (
+                <button
+                  onClick={() => onFiltersChange({ ...filters, tags: [] })}
+                  className="text-[10px] normal-case text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 transition-colors"
+                >
+                  Clear
+                </button>
+              )}
             </label>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {tags.length > 0 ? (
-                tags.map((tag) => (
-                  <button
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    className={`px-2 py-1 text-xs rounded-full transition-colors ${
-                      filters.tags.includes(tag)
-                        ? "bg-pink-500 text-white"
-                        : "bg-white/50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-600/50 hover:bg-gray-100 dark:hover:bg-gray-600/50"
-                    }`}
-                  >
-                    {tag}
-                  </button>
-                ))
+                <>
+                  {tags.slice(0, 5).map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-2.5 py-1 text-xs rounded-full transition-all ${
+                        filters.tags.includes(tag)
+                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md"
+                          : "bg-white/50 dark:bg-gray-700/50 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-600/50 hover:bg-gray-100 dark:hover:bg-gray-600/50"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                  {tags.length > 5 && (
+                    <button
+                      onClick={() => setShowTagsDropdown(!showTagsDropdown)}
+                      className="px-2.5 py-1 text-xs rounded-full bg-blue-500/20 text-blue-600 dark:text-blue-400 border border-blue-500/30 hover:bg-blue-500/30 transition-all font-medium"
+                    >
+                      {showTagsDropdown ? "Show less" : `+${tags.length - 5} more`}
+                    </button>
+                  )}
+                </>
               ) : (
                 <span className="text-xs text-gray-500 dark:text-gray-400 italic">No tags available</span>
               )}
             </div>
+
+            {/* Expanded Tags Popup - Using Portal */}
+            {isMounted && showTagsDropdown && tags.length > 5 && createPortal(
+              <div
+                className="fixed z-[9999] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3 max-h-64 overflow-y-auto"
+                style={{
+                  top: tagsDropdownRef.current ? `${tagsDropdownRef.current.getBoundingClientRect().bottom + 4}px` : '0',
+                  left: tagsDropdownRef.current ? `${tagsDropdownRef.current.getBoundingClientRect().left}px` : '0',
+                  width: tagsDropdownRef.current ? `${tagsDropdownRef.current.offsetWidth}px` : 'auto',
+                }}
+              >
+                <div className="flex flex-wrap gap-1.5">
+                  {tags.slice(5).map((tag) => (
+                    <button
+                      key={tag}
+                      onClick={() => toggleTag(tag)}
+                      className={`px-2.5 py-1.5 text-xs rounded-full transition-all ${
+                        filters.tags.includes(tag)
+                          ? "bg-gradient-to-r from-pink-500 to-pink-600 text-white shadow-md"
+                          : "bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 border border-gray-200/50 dark:border-gray-600/50 hover:bg-gray-200 dark:hover:bg-gray-600"
+                      }`}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>,
+              document.body
+            )}
           </div>
         </div>
 
