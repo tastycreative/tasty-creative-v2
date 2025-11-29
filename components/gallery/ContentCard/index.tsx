@@ -179,12 +179,26 @@ const ContentCard: React.FC<ContentCardProps> = ({
           </div>
         )}
 
-        {/* Category Badge - Top Left (when not in selection mode) */}
-        {!selectionMode && content.category && (
-          <div className="absolute top-2 left-2 z-10">
-            <div className="bg-green-500 text-white text-xs font-medium px-3 py-1 rounded-full">
-              {content.category}
-            </div>
+        {/* Category Badge & Source Badge - Top Left (when not in selection mode) */}
+        {!selectionMode && (
+          <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5">
+            {content.category && (
+              <div className="bg-green-500 text-white text-xs font-medium px-3 py-1 rounded-full">
+                {content.category}
+              </div>
+            )}
+            {content.dataSource && (
+              <div
+                className={cn(
+                  "text-xs font-medium px-2 py-1 rounded-full",
+                  content.dataSource === "BOARD"
+                    ? "bg-blue-500 text-white"
+                    : "bg-gray-500/80 text-white"
+                )}
+              >
+                {content.dataSource === "BOARD" ? "Board" : "Sheet"}
+              </div>
+            )}
           </div>
         )}
 
@@ -229,6 +243,7 @@ export default React.memo(ContentCard, (prevProps, nextProps) => {
     prevProps.content.isPTR === nextProps.content.isPTR &&
     prevProps.content.ptrSent === nextProps.content.ptrSent &&
     prevProps.content.outcome === nextProps.content.outcome &&
+    prevProps.content.dataSource === nextProps.content.dataSource &&
     prevProps.selectionMode === nextProps.selectionMode &&
     prevProps.isSelected === nextProps.isSelected
   );

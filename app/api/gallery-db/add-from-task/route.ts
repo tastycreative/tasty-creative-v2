@@ -73,6 +73,8 @@ export async function POST(request: NextRequest) {
         outcome: null,                                        // Can be updated later
         notes: workflow.notes || null,                       // Additional notes
         schedule_tab: null,                                   // Auto-generate later
+        data_source: "BOARD",                                 // Mark as coming from Board
+        source_task_id: taskId,                               // Link to original task
       }
     })
 

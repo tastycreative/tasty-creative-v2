@@ -198,7 +198,6 @@ export async function GET(request: NextRequest) {
     // Fetch data from GalleryMasterList using Prisma
     const data = await prisma.galleryMasterList.findMany({
       where,
-      take: 1000,
       orderBy: {
         created_at: 'desc'
       }
@@ -303,7 +302,9 @@ export async function GET(request: NextRequest) {
         captionStyle: row.caption_style || '',
         outcome: row.outcome || '',
         scheduledDate: row.scheduled_date || '',
-        driveLink: row.drive_link || ''
+        driveLink: row.drive_link || '',
+        dataSource: (row.data_source as "BOARD" | "SHEET") || 'SHEET',
+        sourceTaskId: row.source_task_id || null
       }
     })
 
@@ -376,6 +377,17 @@ export async function GET(request: NextRequest) {
       count: count as number
     }))
 
+    // Extract distinct messageType values from SHEET items only (for Post Origin filter)
+    const sheetItems = items.filter(item => item.dataSource === 'SHEET' || !item.dataSource)
+    const sheetMessageTypeCounts = countByField(sheetItems, 'messageType')
+    const postOrigins = Object.entries(sheetMessageTypeCounts)
+      .filter(([name]) => name && name !== 'Unknown' && name.trim() !== '')
+      .map(([name, count]) => ({
+        name,
+        count: count as number
+      }))
+      .sort((a, b) => b.count - a.count)
+
     // Prepare response
     const responseData = {
       items: filteredItems,
@@ -387,6 +399,7 @@ export async function GET(request: NextRequest) {
       },
       categories,
       creators,
+      postOrigins,
       pagination: {
         currentPage: 1,
         totalPages: Math.ceil(filteredItems.length / limit),
@@ -435,6 +448,7 @@ export async function GET(request: NextRequest) {
         },
         categories: [],
         creators: [],
+        postOrigins: [],
         pagination: {
           currentPage: 1,
           totalPages: 0,

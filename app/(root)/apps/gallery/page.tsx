@@ -13,7 +13,7 @@ import { StatsCards } from "@/components/gallery/Stats";
 import Pagination from "@/components/gallery/Pagination";
 import GallerySkeleton from "@/components/gallery/GallerySkeleton";
 import { GalleryItem, FilterState } from "@/types/gallery";
-import { Grid3X3, SlidersHorizontal, RotateCcw, CheckSquare } from "lucide-react";
+import { Grid3X3, SlidersHorizontal, RotateCcw, CheckSquare, Table2, Kanban, FolderOpen } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -80,7 +80,7 @@ const GalleryContent = () => {
   );
   const [showFilters, setShowFilters] = useState(false);
 
-  // Consolidated filter state
+  // Consolidated filter state (default dataSource to SHEET)
   const [filters, setFilters] = useState<FilterState>({
     search: "",
     category: "all",
@@ -89,6 +89,8 @@ const GalleryContent = () => {
     outcome: "all",
     sortBy: "revenue",
     revenue: "",
+    dataSource: "SHEET",
+    postOrigin: "all",
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
@@ -115,6 +117,7 @@ const GalleryContent = () => {
   const galleryItems = galleryData?.items || [];
   const categories = galleryData?.categories || [];
   const creators = galleryData?.creators || [];
+  const postOrigins = galleryData?.postOrigins || [];
   const breakdown = galleryData?.breakdown || {
     favorites: 0,
     releases: 0,
@@ -165,6 +168,22 @@ const GalleryContent = () => {
       );
     }
 
+    // Apply data source filter
+    if (filters.dataSource && filters.dataSource !== "all") {
+      filteredItems = filteredItems.filter(
+        (item) => item.dataSource === filters.dataSource
+      );
+    }
+
+    // Apply post origin filter (only for SHEET items by their messageType)
+    if (filters.postOrigin && filters.postOrigin !== "all") {
+      filteredItems = filteredItems.filter(
+        (item) =>
+          (item.dataSource === "SHEET" || !item.dataSource) &&
+          item.messageType === filters.postOrigin
+      );
+    }
+
     // Apply search filter (using debounced search)
     if (debouncedSearch) {
       filteredItems = filteredItems.filter(
@@ -198,6 +217,8 @@ const GalleryContent = () => {
     filters.revenue,
     filters.messageType,
     filters.outcome,
+    filters.dataSource,
+    filters.postOrigin,
   ]);
 
   // Apply client-side sorting using useMemo for performance
@@ -606,6 +627,32 @@ const GalleryContent = () => {
 
           {/* Action Buttons */}
           <div className="flex items-center gap-3">
+            {/* Sheet/Board Toggle Switch */}
+            <div className="flex items-center h-12 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
+              <button
+                onClick={() => setFilters(prev => ({ ...prev, dataSource: "SHEET" }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  filters.dataSource === "SHEET"
+                    ? "bg-white dark:bg-gray-700 text-green-600 dark:text-green-400 shadow-sm"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                <Table2 className="w-4 h-4" />
+                Sheet
+              </button>
+              <button
+                onClick={() => setFilters(prev => ({ ...prev, dataSource: "BOARD" }))}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all duration-200 ${
+                  filters.dataSource === "BOARD"
+                    ? "bg-white dark:bg-gray-700 text-blue-600 dark:text-blue-400 shadow-sm"
+                    : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
+                }`}
+              >
+                <Kanban className="w-4 h-4" />
+                Board
+              </button>
+            </div>
+
             <Button
               variant="outline"
               size="sm"
@@ -641,8 +688,9 @@ const GalleryContent = () => {
               }
               categories={categories}
               creators={creators}
+              postOrigins={postOrigins}
               onClearAll={() =>
-                setFilters({
+                setFilters((prev) => ({
                   search: "",
                   category: "all",
                   creator: "all",
@@ -650,7 +698,9 @@ const GalleryContent = () => {
                   outcome: "all",
                   sortBy: "revenue",
                   revenue: "",
-                })
+                  dataSource: prev.dataSource, // Keep the current dataSource (controlled by header switch)
+                  postOrigin: "all",
+                }))
               }
             />
           </div>
@@ -664,30 +714,71 @@ const GalleryContent = () => {
         />
 
         {/* Content Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-          {paginatedContent.map((content, index) => (
-            <ErrorBoundary
-              key={`${content.tableName || "default"}-${content.id}-${content.sheetRowId || index}`}
-              fallback={
-                <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                  <div className="text-red-600 dark:text-red-400 text-sm">
-                    Error loading content: {content.title || content.id}
+        {paginatedContent.length > 0 ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
+            {paginatedContent.map((content, index) => (
+              <ErrorBoundary
+                key={`${content.tableName || "default"}-${content.id}-${content.sheetRowId || index}`}
+                fallback={
+                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                    <div className="text-red-600 dark:text-red-400 text-sm">
+                      Error loading content: {content.title || content.id}
+                    </div>
                   </div>
-                </div>
+                }
+              >
+                <ContentCard
+                  content={content}
+                  onToggleFavorite={handleToggleFavorite}
+                  onTogglePTR={handleTogglePTR}
+                  onMarkPTRAsSent={handleMarkPTRAsSent}
+                  selectionMode={selectionMode}
+                  isSelected={selectedIds.has(content.id)}
+                  onToggleSelection={toggleSelection}
+                />
+              </ErrorBoundary>
+            ))}
+          </div>
+        ) : (
+          <div className="flex flex-col items-center justify-center py-20 mb-8">
+            <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-6">
+              {filters.dataSource === "BOARD" ? (
+                <Kanban className="w-10 h-10 text-blue-500" />
+              ) : (
+                <Table2 className="w-10 h-10 text-green-500" />
+              )}
+            </div>
+            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+              No {filters.dataSource === "BOARD" ? "Board" : "Sheet"} Content
+            </h3>
+            <p className="text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
+              {filters.dataSource === "BOARD"
+                ? "No content has been marked as final from the Board yet. Mark tasks as final in the Board to see them here."
+                : "No content from the Sheet data source matches your current filters."
               }
+            </p>
+            <Button
+              variant="outline"
+              onClick={() => setFilters(prev => ({
+                ...prev,
+                dataSource: filters.dataSource === "BOARD" ? "SHEET" : "BOARD"
+              }))}
+              className="rounded-xl"
             >
-              <ContentCard
-                content={content}
-                onToggleFavorite={handleToggleFavorite}
-                onTogglePTR={handleTogglePTR}
-                onMarkPTRAsSent={handleMarkPTRAsSent}
-                selectionMode={selectionMode}
-                isSelected={selectedIds.has(content.id)}
-                onToggleSelection={toggleSelection}
-              />
-            </ErrorBoundary>
-          ))}
-        </div>
+              {filters.dataSource === "BOARD" ? (
+                <>
+                  <Table2 className="w-4 h-4 mr-2" />
+                  View Sheet Content
+                </>
+              ) : (
+                <>
+                  <Kanban className="w-4 h-4 mr-2" />
+                  View Board Content
+                </>
+              )}
+            </Button>
+          </div>
+        )}
 
         {/* Pagination */}
         {totalPages > 1 && (

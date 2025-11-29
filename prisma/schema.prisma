@@ -1019,6 +1019,8 @@ model GalleryMasterList {
   notes           String?
   drive_link      String?
   created_at      DateTime? @default(now()) @db.Timestamp(6)
+  data_source     String?   @default("SHEET")
+  source_task_id  String?
 
   @@map("GalleryMasterList")
 }

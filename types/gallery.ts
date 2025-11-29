@@ -46,6 +46,10 @@ export interface GalleryItem {
   rotationUpdatedAt?: string;
   driveLink?: string;
 
+  // Data source tracking
+  dataSource?: "BOARD" | "SHEET" | null;
+  sourceTaskId?: string | null;
+
   // Alias fields for compatibility
   caption?: string; // alias for captionText
   revenue?: number; // alias for totalRevenue
@@ -63,6 +67,8 @@ export interface FilterState {
   sortBy: string;
   revenue: string;
   contentTypeFilter?: string; // MM or Post filter
+  dataSource: "all" | "BOARD" | "SHEET"; // Data source filter
+  postOrigin: string; // Sheet messageType filter (distinct values from SHEET source)
 }
 
 export interface PaginationState {
