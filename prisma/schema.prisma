@@ -23,7 +23,7 @@ model User {
   assignedBoardColumnsByUser BoardColumnMemberAssignment[] @relation("BoardColumnAssignedBy")
   assignedBoardColumns       BoardColumnMemberAssignment[] @relation("BoardColumnAssignedUser")
   chatbotConversations       ChatbotConversation[]
-  contentEvents              ContentEvent[]                @relation("ContentEventCreator")
+  ContentEvent               ContentEvent[]
   ContentSubmission          ContentSubmission[]
   forumComments              ForumComment[]
   forumVotes                 ForumVote[]
@@ -69,8 +69,8 @@ model Account {
   scope             String?
   id_token          String?
   session_state     String?
-  last_accessed     DateTime? @db.Timestamptz(3)
-  last_refreshed    DateTime? @db.Timestamptz(3)
+  last_accessed     DateTime? @db.Timestamptz(6)
+  last_refreshed    DateTime? @db.Timestamptz(6)
   user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
@@ -240,7 +240,7 @@ model Task {
   status              String                @default("NOT_STARTED")
   podTeamId           String?
   taskNumber          Int                   @default(autoincrement())
-  contentEvent        ContentEvent?
+  ContentEvent        ContentEvent?
   ModularWorkflow     ModularWorkflow?      @relation("ModularWorkflowTask")
   notifications       Notification[]
   oftvTask            OFTVTask?
@@ -349,7 +349,7 @@ model ClientModel {
   launchesPodFolderId   String?
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails?
-  contentEvents         ContentEvent[]
+  ContentEvent          ContentEvent[]
   liveFlyerGalleries    LiveFlyerGallery[]
   notifications         Notification[]
   oftvGallery           OFTVGallery?
@@ -1017,6 +1017,7 @@ model GalleryMasterList {
   price           String?
   outcome         String?
   notes           String?
+  drive_link      String?
   created_at      DateTime? @default(now()) @db.Timestamp(6)
 
   @@map("GalleryMasterList")
@@ -1102,7 +1103,6 @@ model LiveFlyerGallery {
   date                 DateTime
   clientModelId        String
   finalOutput          String
-  template             String?
   psdFile              String?
   createdById          String
   requestId            String      @unique
@@ -1110,12 +1110,61 @@ model LiveFlyerGallery {
   updatedAt            DateTime    @updatedAt
   finalOutputThumbnail String
   fileName             String?
+  template             String?
   clientModel          ClientModel @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
   createdBy            User        @relation(fields: [createdById], references: [id], onDelete: Cascade)
 
   @@index([clientModelId])
   @@index([createdById])
   @@map("LiveFlyerGallery")
+}
+
+model DailyActivityStat {
+  id          String   @id @default(cuid())
+  date        DateTime @unique @db.Date
+  activeUsers Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([date])
+  @@map("DailyActivityStats")
+}
+
+model ContentEvent {
+  id              String       @id
+  title           String
+  description     String?
+  date            DateTime
+  time            String?
+  type            EventType
+  status          EventStatus  @default(SCHEDULED)
+  color           EventColor   @default(PINK)
+  creatorId       String?
+  createdById     String
+  tags            String[]     @default([])
+  price           Float?
+  contentLink     String?
+  editedVideoLink String?
+  flyerLink       String?
+  liveType        String?
+  attachments     Json?
+  notes           String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime
+  completedAt     DateTime?
+  cancelledAt     DateTime?
+  taskId          String?      @unique
+  deletedAt       DateTime?
+  User            User         @relation(fields: [createdById], references: [id])
+  ClientModel     ClientModel? @relation(fields: [creatorId], references: [id])
+  Task            Task?        @relation(fields: [taskId], references: [id])
+
+  @@index([createdAt])
+  @@index([createdById])
+  @@index([creatorId])
+  @@index([date])
+  @@index([status])
+  @@index([type])
 }
 
 enum Role {
@@ -1329,17 +1378,6 @@ enum OFTVFileType {
   OTHER
 }
 
-enum EventType {
-  PPV
-  LIVESTREAM
-}
-
-enum EventStatus {
-  SCHEDULED
-  COMPLETED
-  CANCELLED
-}
-
 enum EventColor {
   PINK
   PURPLE
@@ -1348,71 +1386,13 @@ enum EventColor {
   ORANGE
 }
 
-// Content Calendar Events for PPV and Livestreams
-model ContentEvent {
-  id          String      @id @default(cuid())
-  title       String      // Auto-generated format: "[Creator] - [Event Type]"
-  description String?
-
-  // Scheduling
-  date        DateTime
-  time        String?
-
-  // Event Classification
-  type        EventType
-  status      EventStatus @default(SCHEDULED)
-  color       EventColor  @default(PINK)
-
-  // Relationships
-  creatorId   String?
-  creator     ClientModel? @relation(fields: [creatorId], references: [id], onDelete: SetNull)
-  createdById String
-  createdBy   User        @relation("ContentEventCreator", fields: [createdById], references: [id])
-
-  // Metadata
-  tags        String[]    @default([])
-
-  // PPV-specific fields
-  price       Float?
-  contentLink String?
-  editedVideoLink String?
-
-  // Shared fields
-  flyerLink   String?
-
-  // LIVESTREAM-specific fields
-  liveType    String?
-
-  // Attachments and Notes
-  attachments Json?
-  notes       String?
-
-  // Audit fields
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  completedAt DateTime?
-  cancelledAt DateTime?
-  deletedAt   DateTime?
-  // Optional: Link to task if workflow integration is needed
-  taskId      String?     @unique
-  task        Task?       @relation(fields: [taskId], references: [id])
-
-  @@index([date])
-  @@index([type])
-  @@index([status])
-  @@index([creatorId])
-  @@index([createdById])
-  @@index([createdAt])
+enum EventStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
 }
 
-// Daily activity statistics for tracking user engagement over time
-model DailyActivityStat {
-  id          String   @id @default(cuid())
-  date        DateTime @unique @db.Date
-  activeUsers Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-
-  @@index([date])
-  @@map("DailyActivityStats")
+enum EventType {
+  PPV
+  LIVESTREAM
 }

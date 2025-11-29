@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +11,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { X, Filter } from "lucide-react";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { X, Filter, Search, ChevronDown, Check } from "lucide-react";
 import SortSelector from "./SortSelector";
 import { FilterState } from "@/types/gallery";
 import { cn } from "@/lib/utils";
@@ -33,6 +39,25 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
   onClearAll,
   className = "",
 }) => {
+  const [creatorSearch, setCreatorSearch] = useState("");
+  const [creatorPopoverOpen, setCreatorPopoverOpen] = useState(false);
+
+  // Filter creators based on search
+  const filteredCreators = useMemo(() => {
+    if (!creatorSearch.trim()) return creators;
+    const searchLower = creatorSearch.toLowerCase();
+    return creators.filter((creator) =>
+      creator.name.toLowerCase().includes(searchLower)
+    );
+  }, [creators, creatorSearch]);
+
+  // Get selected creator display name
+  const selectedCreatorDisplay = useMemo(() => {
+    if (filters.creator === "all") return "All Creators";
+    const found = creators.find((c) => c.name === filters.creator);
+    return found ? `${found.name} (${found.count})` : filters.creator;
+  }, [filters.creator, creators]);
+
   // Calculate active filters count for badge
   const activeFiltersCount = [
     filters.category !== "all" ? 1 : 0,
@@ -136,30 +161,89 @@ const FilterPanel: React.FC<FilterPanelProps> = ({
             </Select>
           </div>
 
-          {/* Creator - High importance */}
+          {/* Creator - High importance with search */}
           <div className="space-y-2">
             <label className="text-xs font-medium text-gray-700 dark:text-gray-300 uppercase tracking-wide">
               Creator
             </label>
-            <Select
-              value={filters.creator}
-              onValueChange={(value) => onFiltersChange({ creator: value })}
-            >
-              <SelectTrigger className={cn(
-                "bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors",
-                filters.creator !== "all" && "ring-1 ring-blue-500/20 border-blue-300 dark:border-blue-600"
-              )}>
-                <SelectValue placeholder="All Creators" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Creators</SelectItem>
-                {creators.map((creator) => (
-                  <SelectItem key={creator.name} value={creator.name}>
-                    {creator.name} <span className="text-gray-400">({creator.count})</span>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Popover open={creatorPopoverOpen} onOpenChange={setCreatorPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  role="combobox"
+                  aria-expanded={creatorPopoverOpen}
+                  className={cn(
+                    "w-full justify-between bg-gray-50 dark:bg-gray-700 border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors font-normal",
+                    filters.creator !== "all" && "ring-1 ring-blue-500/20 border-blue-300 dark:border-blue-600"
+                  )}
+                >
+                  <span className="truncate">{selectedCreatorDisplay}</span>
+                  <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[280px] p-0" align="start">
+                {/* Search Input */}
+                <div className="p-2 border-b border-gray-200 dark:border-gray-700">
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                    <Input
+                      placeholder="Search creators..."
+                      value={creatorSearch}
+                      onChange={(e) => setCreatorSearch(e.target.value)}
+                      className="pl-8 h-9 bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-600"
+                    />
+                  </div>
+                </div>
+                {/* Scrollable Creator List */}
+                <ScrollArea className="h-[250px]">
+                  <div className="p-1">
+                    {/* All Creators Option */}
+                    <button
+                      onClick={() => {
+                        onFiltersChange({ creator: "all" });
+                        setCreatorPopoverOpen(false);
+                        setCreatorSearch("");
+                      }}
+                      className={cn(
+                        "w-full flex items-center justify-between px-2 py-1.5 text-sm rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+                        filters.creator === "all" && "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                      )}
+                    >
+                      <span>All Creators</span>
+                      {filters.creator === "all" && <Check className="h-4 w-4" />}
+                    </button>
+
+                    {/* Filtered Creator Options */}
+                    {filteredCreators.length > 0 ? (
+                      filteredCreators.map((creator) => (
+                        <button
+                          key={creator.name}
+                          onClick={() => {
+                            onFiltersChange({ creator: creator.name });
+                            setCreatorPopoverOpen(false);
+                            setCreatorSearch("");
+                          }}
+                          className={cn(
+                            "w-full flex items-center justify-between px-2 py-1.5 text-sm rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors",
+                            filters.creator === creator.name && "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300"
+                          )}
+                        >
+                          <span className="truncate">
+                            {creator.name}{" "}
+                            <span className="text-gray-400">({creator.count})</span>
+                          </span>
+                          {filters.creator === creator.name && <Check className="h-4 w-4 shrink-0" />}
+                        </button>
+                      ))
+                    ) : (
+                      <div className="px-2 py-4 text-sm text-gray-500 dark:text-gray-400 text-center">
+                        No creators found
+                      </div>
+                    )}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
         </div>
 

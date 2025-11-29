@@ -44,7 +44,8 @@ export interface GalleryItem {
   dateMarkedSent?: string;
   markedBy?: string;
   rotationUpdatedAt?: string;
-  
+  driveLink?: string;
+
   // Alias fields for compatibility
   caption?: string; // alias for captionText
   revenue?: number; // alias for totalRevenue

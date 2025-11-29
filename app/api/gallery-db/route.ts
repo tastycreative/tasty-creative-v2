@@ -260,7 +260,7 @@ export async function GET(request: NextRequest) {
       return {
         id: itemId,
         sheetRowId: itemId,
-        title: row.content_style || row.message_type || `Item ${index + 1}`,
+        title: `${row.page || ''} ${row.message_type || ''}`.trim() || 'Untitled',
         captionText: row.caption || '',
         caption: row.caption || '',
         price: price,
@@ -302,7 +302,8 @@ export async function GET(request: NextRequest) {
         paywallContent: row.paywall_content || '',
         captionStyle: row.caption_style || '',
         outcome: row.outcome || '',
-        scheduledDate: row.scheduled_date || ''
+        scheduledDate: row.scheduled_date || '',
+        driveLink: row.drive_link || ''
       }
     })
 

@@ -1,15 +1,48 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, DollarSign, TrendingUp, Package, Calendar, Clock, FileText, Tag, User, Database, Link as LinkIcon, MessageSquare, Star, CheckCircle, Edit3, Save, XCircle, ChevronDown, ChevronUp, Sparkles } from "lucide-react";
+import {
+  X,
+  DollarSign,
+  TrendingUp,
+  Package,
+  Calendar,
+  Clock,
+  FileText,
+  Tag,
+  User,
+  Database,
+  Link as LinkIcon,
+  MessageSquare,
+  Star,
+  CheckCircle,
+  Edit3,
+  Save,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Sparkles,
+} from "lucide-react";
 import { GalleryItem } from "@/types/gallery";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -49,7 +82,12 @@ export default function ContentDetailModal({
   });
 
   // Get media URL with fallback chain
-  const mediaUrl = content.gifUrl || content.previewUrl || content.mediaUrl || content.thumbnailUrl || "/api/placeholder-image";
+  const mediaUrl =
+    content.gifUrl ||
+    content.previewUrl ||
+    content.mediaUrl ||
+    content.thumbnailUrl ||
+    "/api/placeholder-image";
 
   // Check if it's a GIF
   const isGif = mediaUrl.toLowerCase().includes(".gif");
@@ -58,8 +96,12 @@ export default function ContentDetailModal({
   const isVideo = mediaUrl.toLowerCase().match(/\.(mp4|mov|webm)$/);
 
   // Calculate ROI
-  const roi = content.price > 0 ? (content.totalRevenue / content.price).toFixed(2) : "N/A";
-  const isHighROI = content.price > 0 && content.totalRevenue / content.price > 10;
+  const roi =
+    content.price > 0
+      ? (content.totalRevenue / content.price).toFixed(2)
+      : "N/A";
+  const isHighROI =
+    content.price > 0 && content.totalRevenue / content.price > 10;
 
   const formatRevenueTimestamp = (timestamp?: string) => {
     if (!timestamp) return "Not updated yet";
@@ -167,17 +209,22 @@ export default function ContentDetailModal({
         }
         if (result.item.daysSinceLastSent !== undefined) {
           content.daysSinceLastSent =
-            result.item.daysSinceLastSent !== null ? result.item.daysSinceLastSent : undefined;
+            result.item.daysSinceLastSent !== null
+              ? result.item.daysSinceLastSent
+              : undefined;
         }
         if (result.item.isReadyForRotation !== undefined) {
           content.isReadyForRotation =
-            result.item.isReadyForRotation !== null ? result.item.isReadyForRotation : undefined;
+            result.item.isReadyForRotation !== null
+              ? result.item.isReadyForRotation
+              : undefined;
         }
         if (result.item.dateMarkedSent !== undefined) {
           content.dateMarkedSent = result.item.dateMarkedSent || undefined;
         }
         if (result.item.rotationUpdatedAt !== undefined) {
-          content.rotationUpdatedAt = result.item.rotationUpdatedAt || undefined;
+          content.rotationUpdatedAt =
+            result.item.rotationUpdatedAt || undefined;
         }
       }
 
@@ -194,13 +241,17 @@ export default function ContentDetailModal({
   };
 
   // Get current value (edited or original)
-  const getCurrentValue = <K extends keyof GalleryItem>(key: K): GalleryItem[K] => {
-    return (editedData[key] !== undefined ? editedData[key] : content[key]) as GalleryItem[K];
+  const getCurrentValue = <K extends keyof GalleryItem>(
+    key: K
+  ): GalleryItem[K] => {
+    return (
+      editedData[key] !== undefined ? editedData[key] : content[key]
+    ) as GalleryItem[K];
   };
 
   // Toggle section expansion
   const toggleSection = (section: keyof typeof expandedSections) => {
-    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
+    setExpandedSections((prev) => ({ ...prev, [section]: !prev[section] }));
   };
 
   const currentRevenue = Number(getCurrentValue("totalRevenue") || 0);
@@ -213,10 +264,13 @@ export default function ContentDetailModal({
   const hasRotationData =
     isEditing ||
     Boolean(content.rotationStatus) ||
-    (content.daysSinceLastSent !== undefined && content.daysSinceLastSent !== null) ||
+    (content.daysSinceLastSent !== undefined &&
+      content.daysSinceLastSent !== null) ||
     content.isReadyForRotation !== undefined ||
     Boolean(content.dateMarkedSent) ||
-    Boolean(content.performanceHistory && content.performanceHistory.length > 0);
+    Boolean(
+      content.performanceHistory && content.performanceHistory.length > 0
+    );
 
   // Collapsible section component
   const CollapsibleSection = ({
@@ -227,7 +281,7 @@ export default function ContentDetailModal({
     defaultOpen = true,
     iconColor = "text-blue-600 dark:text-blue-400",
     bgGradient = "from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20",
-    borderColor = "border-blue-200 dark:border-blue-700"
+    borderColor = "border-blue-200 dark:border-blue-700",
   }: {
     id: keyof typeof expandedSections;
     title: string;
@@ -241,23 +295,35 @@ export default function ContentDetailModal({
     const isExpanded = expandedSections[id];
 
     return (
-      <div className={cn(
-        "bg-gradient-to-br rounded-xl border transition-all duration-200",
-        bgGradient,
-        borderColor,
-        isEditing && isExpanded && "ring-2 ring-pink-500/50 shadow-lg"
-      )}>
+      <div
+        className={cn(
+          "bg-gradient-to-br rounded-xl border transition-all duration-200",
+          bgGradient,
+          borderColor,
+          isEditing && isExpanded && "ring-2 ring-pink-500/50 shadow-lg"
+        )}
+      >
         <button
           onClick={() => toggleSection(id)}
           className="w-full flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 rounded-t-xl transition-colors"
         >
           <div className="flex items-center gap-3">
-            <div className={cn("p-2 bg-white/60 dark:bg-black/20 rounded-xl shadow-sm", isExpanded && "scale-110 transition-transform")}>
+            <div
+              className={cn(
+                "p-2 bg-white/60 dark:bg-black/20 rounded-xl shadow-sm",
+                isExpanded && "scale-110 transition-transform"
+              )}
+            >
               <Icon className={cn("w-5 h-5", iconColor)} />
             </div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">{title}</h3>
+            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+              {title}
+            </h3>
             {isEditing && isExpanded && (
-              <Badge variant="outline" className="bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-500/50 ml-2">
+              <Badge
+                variant="outline"
+                className="bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-500/50 ml-2"
+              >
                 <Sparkles className="w-3 h-3 mr-1" />
                 Editing
               </Badge>
@@ -273,9 +339,7 @@ export default function ContentDetailModal({
         {isExpanded && (
           <>
             <Separator className="opacity-50" />
-            <div className="p-5">
-              {children}
-            </div>
+            <div className="p-5">{children}</div>
           </>
         )}
       </div>
@@ -301,40 +365,61 @@ export default function ContentDetailModal({
                 </DialogTitle>
 
                 <DialogDescription className="sr-only">
-                  Detailed view of content item including performance metrics, media, and editing capabilities
+                  Detailed view of content item including performance metrics,
+                  media, and editing capabilities
                 </DialogDescription>
 
                 {/* Status Badges */}
                 <div className="flex items-center gap-2 flex-wrap">
                   {content.category && (
-                    <Badge variant="secondary" className={cn(
-                      "font-semibold shadow-sm",
-                      content.category === "PTR" && "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
-                      content.category === "Solo" && "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
-                      content.category === "Group" && "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
-                    )}>
+                    <Badge
+                      variant="secondary"
+                      className={cn(
+                        "font-semibold shadow-sm",
+                        content.category === "PTR" &&
+                          "bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300",
+                        content.category === "Solo" &&
+                          "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300",
+                        content.category === "Group" &&
+                          "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300"
+                      )}
+                    >
                       {content.category}
                     </Badge>
                   )}
                   {content.outcome && (
-                    <Badge variant={content.outcome === "Good" ? "default" : "destructive"} className="font-semibold shadow-sm">
+                    <Badge
+                      variant={
+                        content.outcome === "Good" ? "default" : "destructive"
+                      }
+                      className="font-semibold shadow-sm"
+                    >
                       {content.outcome === "Good" ? "✓ Good" : "✗ Bad"} Outcome
                     </Badge>
                   )}
                   {content.isPTR && (
-                    <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-semibold shadow-sm">
+                    <Badge
+                      variant="secondary"
+                      className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-semibold shadow-sm"
+                    >
                       <Package className="w-3 h-3 mr-1" />
                       PTR
                     </Badge>
                   )}
                   {content.ptrSent && (
-                    <Badge variant="default" className="bg-green-600 text-white font-semibold shadow-sm">
+                    <Badge
+                      variant="default"
+                      className="bg-green-600 text-white font-semibold shadow-sm"
+                    >
                       <CheckCircle className="w-3 h-3 mr-1" />
                       Sent
                     </Badge>
                   )}
                   {isHighROI && (
-                    <Badge variant="secondary" className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 font-semibold shadow-sm">
+                    <Badge
+                      variant="secondary"
+                      className="bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300 font-semibold shadow-sm"
+                    >
                       🔥 High ROI
                     </Badge>
                   )}
@@ -427,7 +512,12 @@ export default function ContentDetailModal({
                         : "hover:bg-rose-50 dark:hover:bg-rose-900/20"
                     )}
                   >
-                    <Star className={cn("h-5 w-5 mr-2", content.isFavorite && "fill-current")} />
+                    <Star
+                      className={cn(
+                        "h-5 w-5 mr-2",
+                        content.isFavorite && "fill-current"
+                      )}
+                    />
                     {content.isFavorite ? "Favorited" : "Add to Favorites"}
                   </Button>
                 )}
@@ -460,7 +550,10 @@ export default function ContentDetailModal({
               </div>
 
               {/* Media URLs Section */}
-              {(content.gifUrl || content.previewUrl || content.mediaUrl || content.thumbnailUrl) && (
+              {(content.gifUrl ||
+                content.previewUrl ||
+                content.mediaUrl ||
+                content.thumbnailUrl) && (
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 border border-blue-200 dark:border-blue-700">
                   <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
                     <LinkIcon className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -469,32 +562,60 @@ export default function ContentDetailModal({
                   <div className="space-y-2 text-xs">
                     {content.gifUrl && (
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">GIF URL:</span>
-                        <a href={content.gifUrl} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono">
+                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">
+                          GIF URL:
+                        </span>
+                        <a
+                          href={content.gifUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono"
+                        >
                           {content.gifUrl}
                         </a>
                       </div>
                     )}
                     {content.previewUrl && (
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Preview URL:</span>
-                        <a href={content.previewUrl} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono">
+                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">
+                          Preview URL:
+                        </span>
+                        <a
+                          href={content.previewUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono"
+                        >
                           {content.previewUrl}
                         </a>
                       </div>
                     )}
                     {content.mediaUrl && (
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Media URL:</span>
-                        <a href={content.mediaUrl} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono">
+                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">
+                          Media URL:
+                        </span>
+                        <a
+                          href={content.mediaUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono"
+                        >
                           {content.mediaUrl}
                         </a>
                       </div>
                     )}
                     {content.thumbnailUrl && (
                       <div>
-                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">Thumbnail URL:</span>
-                        <a href={content.thumbnailUrl} target="_blank" rel="noopener noreferrer" className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono">
+                        <span className="text-gray-500 dark:text-gray-400 block mb-0.5">
+                          Thumbnail URL:
+                        </span>
+                        <a
+                          href={content.thumbnailUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="block text-blue-600 dark:text-blue-400 hover:underline truncate font-mono"
+                        >
                           {content.thumbnailUrl}
                         </a>
                       </div>
@@ -517,25 +638,41 @@ export default function ContentDetailModal({
               >
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between items-start gap-4">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">Title:</span>
-                    <span className="text-blue-900 dark:text-blue-200 font-semibold text-right">{content.title || content.contentStyle || "Untitled"}</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                      Title:
+                    </span>
+                    <span className="text-blue-900 dark:text-blue-200 font-semibold text-right">
+                      {content.title || content.contentStyle || "Untitled"}
+                    </span>
                   </div>
                   {content.creatorName && (
                     <div className="flex justify-between items-start gap-4">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">Creator:</span>
-                      <span className="text-blue-900 dark:text-blue-200 font-semibold">{content.creatorName}</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                        Creator:
+                      </span>
+                      <span className="text-blue-900 dark:text-blue-200 font-semibold">
+                        {content.creatorName}
+                      </span>
                     </div>
                   )}
                   {content.type && (
                     <div className="flex justify-between items-start gap-4">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">Type:</span>
-                      <span className="text-blue-900 dark:text-blue-200 font-semibold">{content.type}</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                        Type:
+                      </span>
+                      <span className="text-blue-900 dark:text-blue-200 font-semibold">
+                        {content.type}
+                      </span>
                     </div>
                   )}
                   {content.messageType && (
                     <div className="flex justify-between items-start gap-4">
-                      <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">Message Type:</span>
-                      <span className="text-blue-900 dark:text-blue-200 font-semibold text-right">{content.messageType}</span>
+                      <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                        Message Type:
+                      </span>
+                      <span className="text-blue-900 dark:text-blue-200 font-semibold text-right">
+                        {content.messageType}
+                      </span>
                     </div>
                   )}
 
@@ -543,11 +680,15 @@ export default function ContentDetailModal({
 
                   {/* Editable Category */}
                   <div className="flex justify-between items-center gap-4">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">Category:</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                      Category:
+                    </span>
                     {isEditing ? (
                       <Select
                         value={getCurrentValue("category") || ""}
-                        onValueChange={(value) => setEditedData({ ...editedData, category: value })}
+                        onValueChange={(value) =>
+                          setEditedData({ ...editedData, category: value })
+                        }
                       >
                         <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-600">
                           <SelectValue placeholder="Select category" />
@@ -560,17 +701,26 @@ export default function ContentDetailModal({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-blue-900 dark:text-blue-200 font-semibold">{getCurrentValue("category") || "N/A"}</span>
+                      <span className="text-blue-900 dark:text-blue-200 font-semibold">
+                        {getCurrentValue("category") || "N/A"}
+                      </span>
                     )}
                   </div>
 
                   {/* Editable Outcome */}
                   <div className="flex justify-between items-center gap-4">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">Outcome:</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                      Outcome:
+                    </span>
                     {isEditing ? (
                       <Select
                         value={getCurrentValue("outcome") || ""}
-                        onValueChange={(value) => setEditedData({ ...editedData, outcome: value as "Good" | "Bad" })}
+                        onValueChange={(value) =>
+                          setEditedData({
+                            ...editedData,
+                            outcome: value as "Good" | "Bad",
+                          })
+                        }
                       >
                         <SelectTrigger className="w-[200px] bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-600">
                           <SelectValue placeholder="Select outcome" />
@@ -581,24 +731,53 @@ export default function ContentDetailModal({
                         </SelectContent>
                       </Select>
                     ) : (
-                      <span className="text-blue-900 dark:text-blue-200 font-semibold">{getCurrentValue("outcome") || "N/A"}</span>
+                      <span className="text-blue-900 dark:text-blue-200 font-semibold">
+                        {getCurrentValue("outcome") || "N/A"}
+                      </span>
                     )}
                   </div>
 
                   {/* Editable Content Style */}
                   <div className="flex justify-between items-center gap-4">
-                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">Content Style:</span>
+                    <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                      Content Style:
+                    </span>
                     {isEditing ? (
                       <Input
                         value={getCurrentValue("contentStyle") || ""}
-                        onChange={(e) => setEditedData({ ...editedData, contentStyle: e.target.value })}
+                        onChange={(e) =>
+                          setEditedData({
+                            ...editedData,
+                            contentStyle: e.target.value,
+                          })
+                        }
                         className="w-[200px] bg-white dark:bg-gray-800 border-blue-300 dark:border-blue-600"
                         placeholder="Content style"
                       />
                     ) : (
-                      <span className="text-blue-900 dark:text-blue-200 font-semibold">{getCurrentValue("contentStyle") || "N/A"}</span>
+                      <span className="text-blue-900 dark:text-blue-200 font-semibold">
+                        {getCurrentValue("contentStyle") || "N/A"}
+                      </span>
                     )}
                   </div>
+
+                  {/* Drive Link */}
+                  {content.driveLink && (
+                    <div className="flex justify-between items-center gap-4">
+                      <span className="text-blue-600 dark:text-blue-400 font-medium min-w-[120px]">
+                        Drive Link:
+                      </span>
+                      <a
+                        href={content.driveLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 dark:text-blue-400 hover:underline font-medium truncate max-w-[250px] flex items-center gap-1"
+                      >
+                        <LinkIcon className="w-3 h-3 flex-shrink-0" />
+                        Open Drive
+                      </a>
+                    </div>
+                  )}
                 </div>
               </CollapsibleSection>
 
@@ -616,7 +795,9 @@ export default function ContentDetailModal({
                   <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-green-200/50 dark:border-green-700/50">
                     <div className="flex items-center gap-2 mb-2">
                       <DollarSign className="h-4 w-4 text-green-600 dark:text-green-400" />
-                      <span className="text-xs text-green-600 dark:text-green-400 font-medium uppercase tracking-wide">Price</span>
+                      <span className="text-xs text-green-600 dark:text-green-400 font-medium uppercase tracking-wide">
+                        Price
+                      </span>
                     </div>
                     {isEditing ? (
                       <Input
@@ -624,18 +805,27 @@ export default function ContentDetailModal({
                         step="0.01"
                         min="0"
                         value={getCurrentValue("price") || 0}
-                        onChange={(e) => setEditedData({ ...editedData, price: parseFloat(e.target.value) || 0 })}
+                        onChange={(e) =>
+                          setEditedData({
+                            ...editedData,
+                            price: parseFloat(e.target.value) || 0,
+                          })
+                        }
                         className="text-2xl font-black bg-white dark:bg-gray-800 border-green-300 dark:border-green-600"
                       />
                     ) : (
-                      <p className="text-3xl font-black text-green-900 dark:text-green-200">${getCurrentValue("price").toFixed(2)}</p>
+                      <p className="text-3xl font-black text-green-900 dark:text-green-200">
+                        ${getCurrentValue("price").toFixed(2)}
+                      </p>
                     )}
                   </div>
 
                   <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-emerald-200/50 dark:border-emerald-700/50">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wide">Revenue</span>
+                      <span className="text-xs text-emerald-600 dark:text-emerald-400 font-medium uppercase tracking-wide">
+                        Revenue
+                      </span>
                     </div>
                     {isEditing ? (
                       <Input
@@ -673,17 +863,25 @@ export default function ContentDetailModal({
                   <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-blue-200/50 dark:border-blue-700/50">
                     <div className="flex items-center gap-2 mb-2">
                       <Package className="h-4 w-4 text-blue-600 dark:text-blue-400" />
-                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wide">Purchases</span>
+                      <span className="text-xs text-blue-600 dark:text-blue-400 font-medium uppercase tracking-wide">
+                        Purchases
+                      </span>
                     </div>
-                    <p className="text-3xl font-black text-blue-900 dark:text-blue-200">{content.totalBuys || 0}</p>
+                    <p className="text-3xl font-black text-blue-900 dark:text-blue-200">
+                      {content.totalBuys || 0}
+                    </p>
                   </div>
 
                   <div className="bg-white/60 dark:bg-gray-800/60 rounded-xl p-4 border border-purple-200/50 dark:border-purple-700/50">
                     <div className="flex items-center gap-2 mb-2">
                       <TrendingUp className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                      <span className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wide">ROI</span>
+                      <span className="text-xs text-purple-600 dark:text-purple-400 font-medium uppercase tracking-wide">
+                        ROI
+                      </span>
                     </div>
-                    <p className="text-3xl font-black text-purple-900 dark:text-purple-200">{roi}x</p>
+                    <p className="text-3xl font-black text-purple-900 dark:text-purple-200">
+                      {roi}x
+                    </p>
                   </div>
                 </div>
               </CollapsibleSection>
@@ -701,7 +899,12 @@ export default function ContentDetailModal({
                   {isEditing ? (
                     <Textarea
                       value={getCurrentValue("captionText") || ""}
-                      onChange={(e) => setEditedData({ ...editedData, captionText: e.target.value })}
+                      onChange={(e) =>
+                        setEditedData({
+                          ...editedData,
+                          captionText: e.target.value,
+                        })
+                      }
                       className="min-h-[140px] bg-white dark:bg-gray-800 border-purple-300 dark:border-purple-600 text-sm leading-relaxed resize-none"
                       placeholder="Enter caption text..."
                     />
@@ -712,7 +915,10 @@ export default function ContentDetailModal({
                   )}
                   {content.captionStyle && (
                     <div className="mt-3">
-                      <Badge variant="secondary" className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300">
+                      <Badge
+                        variant="secondary"
+                        className="bg-purple-100 dark:bg-purple-900/40 text-purple-700 dark:text-purple-300"
+                      >
                         Style: {content.captionStyle}
                       </Badge>
                     </div>
@@ -734,12 +940,23 @@ export default function ContentDetailModal({
                   <div className="space-y-4 text-sm">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div className="flex flex-col gap-1">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Rotation Status</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          Rotation Status
+                        </span>
                         {isEditing ? (
                           <Select
-                            value={(getCurrentValue("rotationStatus") as string) || ""}
+                            value={
+                              (getCurrentValue("rotationStatus") as string) ||
+                              ""
+                            }
                             onValueChange={(value) =>
-                              setEditedData({ ...editedData, rotationStatus: value as "Active" | "Resting" | "Ready" })
+                              setEditedData({
+                                ...editedData,
+                                rotationStatus: value as
+                                  | "Active"
+                                  | "Resting"
+                                  | "Ready",
+                              })
                             }
                           >
                             <SelectTrigger className="bg-white dark:bg-gray-800 border-amber-300 dark:border-amber-600">
@@ -757,11 +974,12 @@ export default function ContentDetailModal({
                               content.rotationStatus === "Active"
                                 ? "default"
                                 : content.rotationStatus === "Ready"
-                                ? "secondary"
-                                : "outline"
+                                  ? "secondary"
+                                  : "outline"
                             }
                             className={cn(
-                              content.rotationStatus === "Active" && "bg-green-600 text-white",
+                              content.rotationStatus === "Active" &&
+                                "bg-green-600 text-white",
                               content.rotationStatus === "Ready" &&
                                 "bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
                             )}
@@ -769,29 +987,40 @@ export default function ContentDetailModal({
                             {content.rotationStatus}
                           </Badge>
                         ) : (
-                          <span className="text-gray-500 dark:text-gray-400">Not set</span>
+                          <span className="text-gray-500 dark:text-gray-400">
+                            Not set
+                          </span>
                         )}
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Days Since Last Sent</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          Days Since Last Sent
+                        </span>
                         {isEditing ? (
                           <Input
                             type="number"
                             min="0"
                             value={
-                              getCurrentValue("daysSinceLastSent") !== undefined &&
+                              getCurrentValue("daysSinceLastSent") !==
+                                undefined &&
                               getCurrentValue("daysSinceLastSent") !== null
-                                ? (getCurrentValue("daysSinceLastSent") as number)
+                                ? (getCurrentValue(
+                                    "daysSinceLastSent"
+                                  ) as number)
                                 : ""
                             }
                             onChange={(e) => {
-                              const value = e.target.value
-                              const parsed = value === "" ? undefined : parseInt(value, 10)
+                              const value = e.target.value;
+                              const parsed =
+                                value === "" ? undefined : parseInt(value, 10);
                               setEditedData({
                                 ...editedData,
-                                daysSinceLastSent: parsed === undefined || isNaN(parsed) ? undefined : parsed,
-                              })
+                                daysSinceLastSent:
+                                  parsed === undefined || isNaN(parsed)
+                                    ? undefined
+                                    : parsed,
+                              });
                             }}
                             className="bg-white dark:bg-gray-800 border-amber-300 dark:border-amber-600"
                           />
@@ -803,11 +1032,15 @@ export default function ContentDetailModal({
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Ready for Rotation</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          Ready for Rotation
+                        </span>
                         {isEditing ? (
                           <div className="flex items-center gap-2">
                             <Checkbox
-                              checked={Boolean(getCurrentValue("isReadyForRotation"))}
+                              checked={Boolean(
+                                getCurrentValue("isReadyForRotation")
+                              )}
                               onCheckedChange={(checked) =>
                                 setEditedData({
                                   ...editedData,
@@ -815,7 +1048,9 @@ export default function ContentDetailModal({
                                 })
                               }
                             />
-                            <span className="text-sm text-gray-700 dark:text-gray-200">Mark as ready</span>
+                            <span className="text-sm text-gray-700 dark:text-gray-200">
+                              Mark as ready
+                            </span>
                           </div>
                         ) : (
                           <span className="text-amber-900 dark:text-amber-200 font-semibold">
@@ -825,22 +1060,32 @@ export default function ContentDetailModal({
                       </div>
 
                       <div className="flex flex-col gap-1">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Date Marked Sent</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          Date Marked Sent
+                        </span>
                         {isEditing ? (
                           <Input
                             type="datetime-local"
-                            value={toLocalDateInputValue(getCurrentValue("dateMarkedSent") as string | undefined)}
+                            value={toLocalDateInputValue(
+                              getCurrentValue("dateMarkedSent") as
+                                | string
+                                | undefined
+                            )}
                             onChange={(e) =>
                               setEditedData({
                                 ...editedData,
-                                dateMarkedSent: fromLocalDateInputValue(e.target.value),
+                                dateMarkedSent: fromLocalDateInputValue(
+                                  e.target.value
+                                ),
                               })
                             }
                             className="bg-white dark:bg-gray-800 border-amber-300 dark:border-amber-600"
                           />
                         ) : (
                           <span className="text-amber-900 dark:text-amber-200 font-semibold">
-                            {content.dateMarkedSent ? formatDate(content.dateMarkedSent) : "N/A"}
+                            {content.dateMarkedSent
+                              ? formatDate(content.dateMarkedSent)
+                              : "N/A"}
                           </span>
                         )}
                       </div>
@@ -852,49 +1097,58 @@ export default function ContentDetailModal({
 
                     {content.markedBy && (
                       <div className="flex justify-between">
-                        <span className="text-amber-600 dark:text-amber-400 font-medium">Marked By:</span>
-                        <span className="text-amber-900 dark:text-amber-200 font-semibold">{content.markedBy}</span>
+                        <span className="text-amber-600 dark:text-amber-400 font-medium">
+                          Marked By:
+                        </span>
+                        <span className="text-amber-900 dark:text-amber-200 font-semibold">
+                          {content.markedBy}
+                        </span>
                       </div>
                     )}
 
-                    {content.performanceHistory && content.performanceHistory.length > 0 && (
-                      <>
-                        <Separator className="my-3" />
-                        <div>
-                          <span className="text-amber-600 dark:text-amber-400 font-medium block mb-3">
-                            Performance History:
-                          </span>
-                          <div className="space-y-2">
-                            {content.performanceHistory.map((entry, idx) => (
-                              <div
-                                key={idx}
-                                className="flex justify-between items-center text-xs bg-white/60 dark:bg-gray-800/60 rounded-lg px-3 py-2 border border-amber-200/50 dark:border-amber-700/50"
-                              >
-                                <span className="text-gray-600 dark:text-gray-400">{formatDate(entry.sentDate)}</span>
-                                <Badge
-                                  variant={
-                                    entry.result === "good"
-                                      ? "default"
-                                      : entry.result === "bad"
-                                      ? "destructive"
-                                      : "outline"
-                                  }
-                                  className="text-xs"
+                    {content.performanceHistory &&
+                      content.performanceHistory.length > 0 && (
+                        <>
+                          <Separator className="my-3" />
+                          <div>
+                            <span className="text-amber-600 dark:text-amber-400 font-medium block mb-3">
+                              Performance History:
+                            </span>
+                            <div className="space-y-2">
+                              {content.performanceHistory.map((entry, idx) => (
+                                <div
+                                  key={idx}
+                                  className="flex justify-between items-center text-xs bg-white/60 dark:bg-gray-800/60 rounded-lg px-3 py-2 border border-amber-200/50 dark:border-amber-700/50"
                                 >
-                                  {entry.result || "pending"}
-                                </Badge>
-                              </div>
-                            ))}
+                                  <span className="text-gray-600 dark:text-gray-400">
+                                    {formatDate(entry.sentDate)}
+                                  </span>
+                                  <Badge
+                                    variant={
+                                      entry.result === "good"
+                                        ? "default"
+                                        : entry.result === "bad"
+                                          ? "destructive"
+                                          : "outline"
+                                    }
+                                    className="text-xs"
+                                  >
+                                    {entry.result || "pending"}
+                                  </Badge>
+                                </div>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      </>
-                    )}
+                        </>
+                      )}
                   </div>
                 </CollapsibleSection>
               )}
 
               {/* Scheduling Section */}
-              {(content.scheduleTab || content.scheduledDate || content.timePST) && (
+              {(content.scheduleTab ||
+                content.scheduledDate ||
+                content.timePST) && (
                 <CollapsibleSection
                   id="scheduling"
                   title="Scheduling Details"
@@ -907,20 +1161,32 @@ export default function ContentDetailModal({
                   <div className="space-y-2 text-sm">
                     {content.scheduleTab && (
                       <div className="flex justify-between">
-                        <span className="text-cyan-600 dark:text-cyan-400 font-medium">Schedule Tab:</span>
-                        <span className="text-cyan-900 dark:text-cyan-200 font-semibold">{content.scheduleTab}</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 font-medium">
+                          Schedule Tab:
+                        </span>
+                        <span className="text-cyan-900 dark:text-cyan-200 font-semibold">
+                          {content.scheduleTab}
+                        </span>
                       </div>
                     )}
                     {content.scheduledDate && (
                       <div className="flex justify-between">
-                        <span className="text-cyan-600 dark:text-cyan-400 font-medium">Scheduled Date:</span>
-                        <span className="text-cyan-900 dark:text-cyan-200 font-semibold">{content.scheduledDate}</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 font-medium">
+                          Scheduled Date:
+                        </span>
+                        <span className="text-cyan-900 dark:text-cyan-200 font-semibold">
+                          {content.scheduledDate}
+                        </span>
                       </div>
                     )}
                     {content.timePST && (
                       <div className="flex justify-between">
-                        <span className="text-cyan-600 dark:text-cyan-400 font-medium">Time (PST):</span>
-                        <span className="text-cyan-900 dark:text-cyan-200 font-semibold">{content.timePST}</span>
+                        <span className="text-cyan-600 dark:text-cyan-400 font-medium">
+                          Time (PST):
+                        </span>
+                        <span className="text-cyan-900 dark:text-cyan-200 font-semibold">
+                          {content.timePST}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -941,7 +1207,9 @@ export default function ContentDetailModal({
                   {isEditing ? (
                     <Textarea
                       value={getCurrentValue("notes") || ""}
-                      onChange={(e) => setEditedData({ ...editedData, notes: e.target.value })}
+                      onChange={(e) =>
+                        setEditedData({ ...editedData, notes: e.target.value })
+                      }
                       className="min-h-[120px] bg-white dark:bg-gray-800 border-yellow-300 dark:border-yellow-600 text-sm leading-relaxed resize-none"
                       placeholder="Enter notes..."
                     />
@@ -960,7 +1228,9 @@ export default function ContentDetailModal({
                     <div className="p-2 bg-white/60 dark:bg-black/20 rounded-xl shadow-sm">
                       <Tag className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                     </div>
-                    <h3 className="font-semibold text-rose-900 dark:text-rose-100">Paywall Content</h3>
+                    <h3 className="font-semibold text-rose-900 dark:text-rose-100">
+                      Paywall Content
+                    </h3>
                   </div>
                   <p className="text-sm text-rose-800 dark:text-rose-200 leading-relaxed">
                     {content.paywallContent}
@@ -980,37 +1250,61 @@ export default function ContentDetailModal({
               >
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-gray-600 dark:text-gray-400 font-medium">Content ID:</span>
-                    <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">{content.id}</span>
+                    <span className="text-gray-600 dark:text-gray-400 font-medium">
+                      Content ID:
+                    </span>
+                    <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">
+                      {content.id}
+                    </span>
                   </div>
                   {content.sheetRowId && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400 font-medium">Sheet Row ID:</span>
-                      <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">{content.sheetRowId}</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Sheet Row ID:
+                      </span>
+                      <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">
+                        {content.sheetRowId}
+                      </span>
                     </div>
                   )}
                   {content.tableName && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400 font-medium">Table Name:</span>
-                      <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">{content.tableName}</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Table Name:
+                      </span>
+                      <span className="text-gray-900 dark:text-gray-200 font-mono text-xs">
+                        {content.tableName}
+                      </span>
                     </div>
                   )}
                   {content.usageCount !== undefined && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400 font-medium">Usage Count:</span>
-                      <span className="text-gray-900 dark:text-gray-200 font-semibold">{content.usageCount}</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Usage Count:
+                      </span>
+                      <span className="text-gray-900 dark:text-gray-200 font-semibold">
+                        {content.usageCount}
+                      </span>
                     </div>
                   )}
                   {content.lastUsed && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400 font-medium">Last Used:</span>
-                      <span className="text-gray-900 dark:text-gray-200 font-semibold">{formatDate(content.lastUsed.toString())}</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Last Used:
+                      </span>
+                      <span className="text-gray-900 dark:text-gray-200 font-semibold">
+                        {formatDate(content.lastUsed.toString())}
+                      </span>
                     </div>
                   )}
                   {content.dateAdded && (
                     <div className="flex justify-between">
-                      <span className="text-gray-600 dark:text-gray-400 font-medium">Date Added:</span>
-                      <span className="text-gray-900 dark:text-gray-200 font-semibold">{formatDate(content.dateAdded)}</span>
+                      <span className="text-gray-600 dark:text-gray-400 font-medium">
+                        Date Added:
+                      </span>
+                      <span className="text-gray-900 dark:text-gray-200 font-semibold">
+                        {formatDate(content.dateAdded)}
+                      </span>
                     </div>
                   )}
                 </div>

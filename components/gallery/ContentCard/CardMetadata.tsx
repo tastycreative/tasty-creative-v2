@@ -37,7 +37,7 @@ const CardMetadata: React.FC<CardMetadataProps> = ({ content }) => {
       {/* Title and Badges */}
       <div className="flex items-start justify-between gap-2">
         <h3 className="font-semibold text-gray-900 dark:text-white text-sm leading-tight line-clamp-2 flex-1">
-          {content.contentStyle || content.messageType || content.title}
+          {content.title}
         </h3>
         <div className="flex items-center gap-1 flex-shrink-0">
           {content.outcome && (
