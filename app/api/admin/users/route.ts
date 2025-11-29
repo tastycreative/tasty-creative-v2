@@ -131,11 +131,19 @@ export async function GET(request: Request) {
       monthAgo.setDate(monthAgo.getDate() - 30);
 
       // Get daily activity counts from DailyActivityStat table
+      // Exclude today since we'll use real-time count instead
+      // Convert client's "today" to UTC to properly compare with database dates
+      const todayUTC = new Date(Date.UTC(
+        today.getFullYear(),
+        today.getMonth(),
+        today.getDate()
+      ));
+
       const dailyActivityStats = await prisma.dailyActivityStat.findMany({
         where: {
           date: {
             gte: startDate,
-            lte: endDate,
+            lt: todayUTC, // Get all historical data before today (UTC)
           },
         },
         select: {
@@ -206,25 +214,17 @@ export async function GET(request: Request) {
       const activeThisMonth = Number(activeMonthUsers[0]?.count || 0);
 
       // Format daily activity data
-      // Helper function to get local date string (YYYY-MM-DD) without timezone conversion
-      const getLocalDateString = (date: Date): string => {
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, '0');
-        const day = String(date.getDate()).padStart(2, '0');
-        return `${year}-${month}-${day}`;
-      };
-
-      // Format historical activity data - send UTC dates as-is
+      // Send all dates as UTC date strings for consistency
       // Client will handle timezone conversion for display
       const formattedDailyActivity = dailyActivity.map(item => ({
-        date: item.date.toISOString().split('T')[0], // Send as UTC date string
+        date: item.date.toISOString().split('T')[0], // UTC date string (YYYY-MM-DD)
         count: Number(item.count),
       }));
 
-      // Add real-time "today" count with metadata for client-side processing
-      // Client will determine how to display this based on their timezone
+      // Add real-time "today" count using UTC representation of client's today
+      // todayUTC already calculated above for the query
       formattedDailyActivity.unshift({
-        date: getLocalDateString(today), // Client's "today" date
+        date: todayUTC.toISOString().split('T')[0], // UTC date string
         count: activeToday,
       });
 
