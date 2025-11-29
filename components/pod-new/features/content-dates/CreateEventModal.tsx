@@ -44,6 +44,7 @@ export default function CreateEventModal({
   const [isDragging, setIsDragging] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [localFiles, setLocalFiles] = useState<LocalFile[]>([]);
+  const [confirmQueued, setConfirmQueued] = useState(false);
 
   useEffect(() => {
     if (prefilledDate) {
@@ -84,6 +85,21 @@ export default function CreateEventModal({
       setErrors(newErrors);
     }
   }, [formData.date, formData.type, formData.creator]);
+
+  // Clear confirmQueued error when checkbox toggled on
+  useEffect(() => {
+    if (confirmQueued && errors.confirmQueued) {
+      const copy = { ...errors };
+      delete copy.confirmQueued;
+      setErrors(copy);
+    }
+  }, [confirmQueued]);
+
+  // If there are no image attachments (uploaded or local), reset confirmQueued to false
+  useEffect(() => {
+    const hasImage = (formData.attachments || []).some((a: any) => a?.type?.startsWith?.('image/')) || localFiles.some((lf) => lf.file.type?.startsWith?.('image/'));
+    if (!hasImage && confirmQueued) setConfirmQueued(false);
+  }, [formData.attachments, localFiles]);
 
   const handleFileChange = (files: FileList | null) => {
     if (files) {
@@ -134,6 +150,13 @@ export default function CreateEventModal({
       return;
     }
 
+    // If there are image attachments (uploaded or local), require confirmQueued
+    const previewHasImage = (formData.attachments || []).some((a: any) => a?.type?.startsWith?.('image/')) || localFiles.some((lf) => lf.file.type?.startsWith?.('image/'));
+    if (previewHasImage && !confirmQueued) {
+      setErrors((prev) => ({ ...prev, confirmQueued: 'Please confirm the event is in the queue since a screenshot is attached.' }));
+      return;
+    }
+
     // Clear errors if validation passes
     setErrors({});
 
@@ -152,7 +175,9 @@ export default function CreateEventModal({
         ? `${formData.creator} - ${formData.type}`
         : formData.type;
 
-      const eventData: Partial<ContentEvent> = {
+    const hasImageAttachment = uploadedAttachments.some((a: any) => a?.type?.startsWith?.('image/'));
+
+    const eventData: Partial<ContentEvent> = {
         title: generatedTitle,
         date: new Date(formData.date),
         time: formData.time || undefined,
@@ -160,13 +185,16 @@ export default function CreateEventModal({
         creator: formData.creator || undefined,
         tags: formData.tags ? formData.tags.split(',').map(t => t.trim()) : undefined,
         price: formData.price ? parseFloat(formData.price) : undefined,
-        color: formData.color,
+  // If confirmed queued and there is an image, force green; if no images, force pink. Otherwise keep chosen color.
+  color: (confirmQueued && hasImageAttachment) ? 'green' as ContentEvent["color"] : (!hasImageAttachment ? 'pink' as ContentEvent["color"] : formData.color),
         contentLink: formData.contentLink || undefined,
         editedVideoLink: formData.editedVideoLink || undefined,
         flyerLink: formData.flyerLink || undefined,
-        liveType: formData.liveType || undefined,
+        liveType: (formData.liveType as any) || undefined,
         notes: formData.notes || undefined,
         attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+      // If user confirmed queued and there is at least one image attachment, mark as IN_QUEUE
+      status: (confirmQueued && uploadedAttachments.some((a: any) => a?.type?.startsWith?.('image/'))) ? ("IN_QUEUE" as EventStatus) : ("PROCESSING" as EventStatus),
       };
 
       await onSubmit(eventData);
@@ -242,7 +270,33 @@ export default function CreateEventModal({
             </div>
 
             {/* Actions */}
-            <div className="flex items-center gap-3 p-4 sm:p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+            <div className="p-4 sm:p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+              {/* Show confirm checkbox when there are image attachments (uploaded or local) */}
+              {((formData.attachments && formData.attachments.some((a: any) => a?.type?.startsWith?.('image/'))) || localFiles.length > 0) && (
+                <div className="flex items-start gap-3 mb-3">
+                  <input
+                    id="confirm-queued"
+                    type="checkbox"
+                    checked={confirmQueued}
+                    onChange={(e) => setConfirmQueued(e.target.checked)}
+                    disabled={isCreating}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                  />
+                  <div className="text-sm">
+                    <label htmlFor="confirm-queued" className="font-medium text-gray-700 dark:text-gray-200">
+                      Confirm event in queue?
+                    </label>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                      I confirm this screenshot shows the event in the platform queue; when confirmed the event will be marked In queue (green). Default state is Processing.
+                    </div>
+                    {errors.confirmQueued && (
+                      <div className="text-xs text-red-500 mt-1">{errors.confirmQueued}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center gap-3">
               <button
                 type="button"
                 onClick={onClose}
@@ -265,6 +319,7 @@ export default function CreateEventModal({
                   'Create Event'
                 )}
               </button>
+              </div>
             </div>
           </form>
         </div>

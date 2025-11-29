@@ -72,11 +72,11 @@ export default function EventView({ mode, formData, setFormData, isDragging, han
         <div>
           <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">Status</label>
           {isView ? (
-            <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-100 text-blue-700">{formData?.status}</div>
+            <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-100 text-blue-700">{formData?.status === 'PROCESSING' ? 'Processing' : formData?.status === 'IN_QUEUE' ? 'In queue' : formData?.status}</div>
           ) : (
             <select value={formData.status} onChange={(e) => setFormData?.({ ...formData, status: e.target.value })} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-gray-700 border rounded-lg">
-              <option value="QUEUING">Queuing</option>
-              <option value="QUEUED">Queued</option>
+              <option value="IN_QUEUE">In queue</option>
+              <option value="PROCESSING">Processing</option>
             </select>
           )}
         </div>

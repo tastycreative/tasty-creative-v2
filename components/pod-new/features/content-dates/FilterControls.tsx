@@ -162,8 +162,8 @@ export default function FilterControls({
               className="w-full px-3 py-2 text-sm bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900 dark:text-gray-100"
             >
               <option value="all">All Statuses</option>
-              <option value="QUEUING">Queuing</option>
-              <option value="QUEUED">Queued</option>
+              <option value="PROCESSING">Processing</option>
+              <option value="IN_QUEUE">In queue</option>
             </select>
           </div>
 

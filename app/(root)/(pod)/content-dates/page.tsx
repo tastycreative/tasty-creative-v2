@@ -5,12 +5,13 @@ import { Calendar, Filter, Plus, ChevronLeft, ChevronRight, Eye, EyeOff, Search,
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ContentDatesCalendar from "@/components/pod-new/features/content-dates/ContentDatesCalendar";
 import UpcomingEventsPanel from "@/components/pod-new/features/content-dates/UpcomingEventsPanel";
+import TodaysEventsPanel from "@/components/pod-new/features/content-dates/TodaysEventsPanel";
 import FilterControls from "@/components/pod-new/features/content-dates/FilterControls";
 import CreateEventModal from "@/components/pod-new/features/content-dates/CreateEventModal";
 import EventDetailModal from "@/components/pod-new/features/content-dates/EventDetailModal";
 
 export type EventType = "PPV" | "LIVESTREAM";
-export type EventStatus = "QUEUING" | "QUEUED";
+export type EventStatus = "IN_QUEUE" | "PROCESSING";
 
 export interface ContentEvent {
   id: string;
@@ -98,7 +99,7 @@ export default function ContentDatesPage() {
 
   // Create event mutation
   const createEventMutation = useMutation({
-    mutationFn: async (eventData: Partial<ContentEvent>) => {
+  mutationFn: async (eventData: Partial<ContentEvent>) => {
       const response = await fetch("/api/content-events", {
         method: "POST",
         headers: {
@@ -110,7 +111,8 @@ export default function ContentDatesPage() {
           date: eventData.date,
           time: eventData.time,
           type: eventData.type,
-          status: eventData.status || "QUEUING",
+      // Default to PROCESSING unless the client explicitly sets IN_QUEUE
+      status: eventData.status || "PROCESSING",
           creator: eventData.creator,
           tags: eventData.tags || [],
           price: eventData.price,
@@ -254,23 +256,23 @@ export default function ContentDatesPage() {
   };
 
   const handleCreateEvent = async (eventData: Partial<ContentEvent>) => {
-    createEventMutation.mutate(eventData);
+  return createEventMutation.mutateAsync(eventData);
   };
 
   const handleUpdateEvent = async (eventId: string, eventData: Partial<ContentEvent>) => {
-    updateEventMutation.mutate({ eventId, eventData });
+  return updateEventMutation.mutateAsync({ eventId, eventData });
   };
 
   const handleDeleteEvent = async (eventId: string) => {
-    deleteEventMutation.mutate(eventId);
+  return deleteEventMutation.mutateAsync(eventId);
   };
 
   const handleRestoreEvent = async (eventId: string) => {
-    restoreEventMutation.mutate(eventId);
+  return restoreEventMutation.mutateAsync(eventId);
   };
 
   const handlePermanentDeleteEvent = async (eventId: string) => {
-    permanentDeleteEventMutation.mutate(eventId);
+  return permanentDeleteEventMutation.mutateAsync(eventId);
   };
 
   // Search events with API call (for dropdown only)
@@ -329,6 +331,17 @@ export default function ContentDatesPage() {
       })
       .sort((a: ContentEvent, b: ContentEvent) => a.date.getTime() - b.date.getTime())
       .slice(0, 10);
+  }, [filteredEvents, showDeleted]);
+
+  const todaysEvents = useMemo(() => {
+    const start = new Date();
+    start.setHours(0,0,0,0);
+    const end = new Date();
+    end.setHours(23,59,59,999);
+
+    return filteredEvents.filter((event: ContentEvent) => {
+      return event.date >= start && event.date <= end && (!event.deletedAt || showDeleted);
+    }).sort((a,b) => a.date.getTime() - b.date.getTime());
   }, [filteredEvents, showDeleted]);
 
   return (
@@ -499,7 +512,7 @@ export default function ContentDatesPage() {
       />
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6">
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-6 items-stretch">
         {/* Calendar Section - Takes 2 columns */}
         <div className="lg:col-span-2">
           <div className="relative overflow-hidden rounded-2xl border border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-purple-900/20 dark:to-blue-900/20 shadow-lg">
@@ -594,8 +607,12 @@ export default function ContentDatesPage() {
           </div>
         </div>
 
-        {/* Upcoming Events Panel - Takes 1 column */}
-        <div className="lg:col-span-1">
+  {/* Upcoming Events Panel - Takes 1 column */}
+  <div className="lg:col-span-1 flex flex-col h-full">
+          {/* Today's Events - placed above Upcoming Events for quick access */}
+          <div className="mb-6">
+            <TodaysEventsPanel events={todaysEvents} onEventClick={handleEventClick} isLoading={isLoading} />
+          </div>
           <UpcomingEventsPanel
             events={upcomingEvents}
             onEventClick={handleEventClick}

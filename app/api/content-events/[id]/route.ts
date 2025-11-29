@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 
 // Helper function to convert Google Drive links to direct image URLs
 const convertGoogleDriveLink = (url: string | null): string | null => {
@@ -22,18 +23,30 @@ const convertGoogleDriveLink = (url: string | null): string | null => {
       }
 
       if (driveId) {
-        // Use thumbnail endpoint like EnhancedModelCard (more reliable)
+        // Use thumbnail endpoint
         return `https://drive.google.com/thumbnail?id=${driveId}&sz=w200`;
       }
     } catch (e) {
-      // If URL parsing fails, return original
       return url;
     }
   }
 
-  // Return as-is if not a Google Drive link (regular image URLs, etc.)
   return url;
 };
+
+// Create an S3 client factory (only if env vars present)
+function createS3ClientIfConfigured() {
+  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_REGION && process.env.AWS_S3_BUCKET) {
+    return new S3Client({
+      region: process.env.AWS_REGION,
+      credentials: {
+        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      },
+    });
+  }
+  return null;
+}
 
 export async function GET(
   request: NextRequest,
@@ -49,14 +62,14 @@ export async function GET(
     const event = await prisma.contentEvent.findUnique({
       where: { id },
       include: {
-        creator: {
+        ClientModel: {
           select: {
             clientName: true,
             profileLink: true,
             profilePicture: true,
           },
         },
-        createdBy: {
+        User: {
           select: {
             name: true,
             email: true,
@@ -69,13 +82,15 @@ export async function GET(
       return NextResponse.json({ error: "Event not found" }, { status: 404 });
     }
 
-    // Transform event to convert Google Drive links
+    // Transform event to convert Google Drive links and normalize color
     const transformedEvent = {
       ...event,
-      creator: event.creator ? {
-        ...event.creator,
-        profilePicture: convertGoogleDriveLink(event.creator.profileLink) || convertGoogleDriveLink(event.creator.profilePicture) || null,
+      color: event.color ? event.color.toLowerCase() : event.color,
+      creator: event.ClientModel ? {
+        ...event.ClientModel,
+        profilePicture: convertGoogleDriveLink(event.ClientModel.profileLink) || convertGoogleDriveLink(event.ClientModel.profilePicture) || null,
       } : null,
+      createdBy: event.User || null,
     };
 
     return NextResponse.json({ event: transformedEvent }, { status: 200 });
@@ -164,18 +179,43 @@ export async function PATCH(
     if (notes !== undefined) updateData.notes = notes;
     if (attachments !== undefined) updateData.attachments = attachments;
 
+    // Fetch existing event to detect removed attachments
+    const existingEvent = await prisma.contentEvent.findUnique({ where: { id } });
+    const existingAttachments = (existingEvent?.attachments as any[]) || [];
+
+    // Compute removed attachments (present before, not in incoming attachments list)
+    const removedAttachments: any[] = [];
+    const incomingAttachments = Array.isArray(attachments) ? attachments : undefined;
+    if (incomingAttachments !== undefined) {
+      const incomingIds = new Set(incomingAttachments.map((a: any) => a?.id).filter(Boolean));
+      const incomingS3Keys = new Set(incomingAttachments.map((a: any) => a?.s3Key).filter(Boolean));
+      for (const att of existingAttachments) {
+        const hasId = att && att.id && incomingIds.has(att.id);
+        const hasKey = att && att.s3Key && incomingS3Keys.has(att.s3Key);
+        if (!hasId && !hasKey) {
+          removedAttachments.push(att);
+        }
+      }
+
+      // If client sent attachments array but it has no image attachments, make sure color becomes PINK
+      const hasImageInIncoming = incomingAttachments.some((a: any) => a?.type?.startsWith?.('image/'));
+      if (!hasImageInIncoming) {
+        updateData.color = 'PINK';
+      }
+    }
+
     const event = await prisma.contentEvent.update({
       where: { id },
       data: updateData,
       include: {
-        creator: {
+        ClientModel: {
           select: {
             clientName: true,
             profileLink: true,
             profilePicture: true,
           },
         },
-        createdBy: {
+        User: {
           select: {
             name: true,
             email: true,
@@ -184,13 +224,43 @@ export async function PATCH(
       },
     });
 
-    // Transform event to convert Google Drive links
+    // After successful update, attempt to delete removed attachments from S3
+    if (removedAttachments.length > 0) {
+      try {
+        const s3Client = createS3ClientIfConfigured();
+        if (s3Client) {
+          for (const att of removedAttachments) {
+            try {
+              const key = att?.s3Key;
+              if (!key) continue;
+              // Basic safety: only delete keys that include the user's id
+              if (!key.includes(session.user.id)) {
+                console.warn(`Skipping delete of s3 key not owned by user: ${key}`);
+                continue;
+              }
+              const cmd = new DeleteObjectCommand({ Bucket: process.env.AWS_S3_BUCKET!, Key: key });
+              await s3Client.send(cmd);
+            } catch (innerErr) {
+              console.error('Failed to delete S3 object for attachment', att, innerErr);
+            }
+          }
+        } else {
+          console.warn('AWS env vars missing; skipping S3 deletions for removed attachments');
+        }
+      } catch (err) {
+        console.error('Error during S3 deletions of removed attachments:', err);
+      }
+    }
+
+    // Transform event to convert Google Drive links and normalize color
     const transformedEvent = {
       ...event,
-      creator: event.creator ? {
-        ...event.creator,
-        profilePicture: convertGoogleDriveLink(event.creator.profileLink) || convertGoogleDriveLink(event.creator.profilePicture) || null,
+      color: event.color ? event.color.toLowerCase() : event.color,
+      creator: event.ClientModel ? {
+        ...event.ClientModel,
+        profilePicture: convertGoogleDriveLink(event.ClientModel.profileLink) || convertGoogleDriveLink(event.ClientModel.profilePicture) || null,
       } : null,
+      createdBy: event.User || null,
     };
 
     return NextResponse.json({ event: transformedEvent }, { status: 200 });
@@ -233,10 +303,7 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, event }, { status: 200 });
   } catch (error) {
-    console.error("Error deleting content event:", error);
-    return NextResponse.json(
-      { error: "Failed to delete content event" },
-      { status: 500 }
-    );
+  console.error("Error deleting content event:", error);
+  return NextResponse.json({ error: "Failed to delete content event" }, { status: 500 });
   }
 }

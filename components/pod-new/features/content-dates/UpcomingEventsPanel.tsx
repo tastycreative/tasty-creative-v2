@@ -42,10 +42,10 @@ export default function UpcomingEventsPanel({ events, onEventClick, isLoading = 
 
   const getStatusBadge = (status: ContentEvent["status"]) => {
     const badges = {
-      QUEUING: { text: "Queuing", className: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30" },
-      QUEUED: { text: "Queued", className: "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30" },
-    };
-    return badges[status];
+      IN_QUEUE: { text: "In queue", className: "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30" },
+      PROCESSING: { text: "Processing", className: "bg-pink-500/20 text-pink-600 dark:text-pink-400 border-pink-500/30" },
+    } as Record<string, { text: string; className: string }>;
+    return badges[status] || { text: status, className: "bg-gray-100 text-gray-700 border-gray-200" };
   };
 
   return (

@@ -216,7 +216,7 @@ const Calendar = () => {
                 // If the event has a time field, treat it as a timed event; otherwise treat as all-day
                 const hasTime = !!ev.time;
                 try {
-                  if (hasTime) {
+                    if (hasTime) {
                     // Combine date + time into an ISO string then convert to user's timezone
                     // ev.date may already be an ISO datetime, but be defensive
                     const combined = ev.time && ev.date && !ev.date.includes('T') ? `${ev.date}T${ev.time}` : ev.date;
@@ -228,7 +228,7 @@ const Calendar = () => {
                       location: ev.flyerLink || ev.location,
                       start: { dateTime: dt.toISO() },
                       end: { dateTime: dt.plus({ minutes: 60 }).toISO() },
-                      _raw: ev,
+                      _raw: { ...ev, color: ev.color ? ev.color.toLowerCase() : ev.color },
                       source: "content",
                     };
                   } else {
@@ -242,7 +242,7 @@ const Calendar = () => {
                       location: ev.flyerLink || ev.location,
                       start: { date: isoDateOnly },
                       end: { date: isoDateOnly },
-                      _raw: ev,
+                      _raw: { ...ev, color: ev.color ? ev.color.toLowerCase() : ev.color },
                       source: "content",
                     };
                   }

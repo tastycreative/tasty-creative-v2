@@ -1137,7 +1137,7 @@ model ContentEvent {
   date            DateTime
   time            String?
   type            EventType
-  status          EventStatus?  @default(QUEUING)
+  status          EventStatus?  @default(IN_QUEUE)
   color           EventColor   @default(PINK)
   creatorId       String?
   createdById     String
@@ -1387,8 +1387,8 @@ enum EventColor {
 }
 
 enum EventStatus {
-  QUEUING
-  QUEUED
+  IN_QUEUE
+  PROCESSING
 }
 
 enum EventType {

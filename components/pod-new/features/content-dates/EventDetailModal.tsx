@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
-import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
+import { ContentEvent, EventStatus } from "@/app/(root)/(pod)/content-dates/page";
 import { X, Edit2, Save, Trash2, RotateCcw } from "lucide-react";
 import EventForm, { uploadLocalFilesToS3, LocalFile } from "./EventForm";
 import { contentEventValidation } from "@/schema/zodValidationSchema";
@@ -35,6 +35,7 @@ export default function EventDetailModal({
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isDragging, setIsDragging] = useState(false);
   const [localFiles, setLocalFiles] = useState<LocalFile[]>([]);
+  const [confirmQueued, setConfirmQueued] = useState(false);
 
   // Initialize form data when event changes
   useEffect(() => {
@@ -72,6 +73,7 @@ export default function EventDetailModal({
       setIsEditMode(false);
       setLocalFiles([]);
       setErrors({});
+  setConfirmQueued(false);
     }
   }, [isOpen]);
 
@@ -95,6 +97,13 @@ export default function EventDetailModal({
       setErrors(newErrors);
     }
   }, [formData?.date, formData?.type, formData?.creator]);
+
+  // If there are no image attachments (uploaded or local), reset confirmQueued to false
+  useEffect(() => {
+    if (!formData) return;
+    const hasImage = (formData.attachments || []).some((a: any) => a?.type?.startsWith?.('image/')) || localFiles.some((lf) => lf.file.type?.startsWith?.('image/'));
+    if (!hasImage && confirmQueued) setConfirmQueued(false);
+  }, [formData?.attachments, localFiles]);
 
   if (!isOpen || !event || !formData) return null;
 
@@ -157,20 +166,34 @@ export default function EventDetailModal({
         uploadedAttachments = [...uploadedAttachments, ...newAttachments];
       }
 
-      const eventData: Partial<ContentEvent> = {
-        date: new Date(formData.date),
-        time: formData.time || undefined,
-        type: formData.type,
-        creator: formData.creator || undefined,
-        tags: formData.tags ? formData.tags.split(',').map((t: string) => t.trim()) : undefined,
-        price: formData.price ? parseFloat(formData.price) : undefined,
-        color: formData.color,
+      // If there are image attachments (uploaded or local), require confirmQueued
+      const previewHasImage = (formData.attachments || []).some((a: any) => a?.type?.startsWith?.('image/')) || localFiles.some((lf) => lf.file.type?.startsWith?.('image/'));
+      if (previewHasImage && !confirmQueued) {
+        setErrors((prev) => ({ ...prev, confirmQueued: 'Please confirm the event is in the queue since a screenshot is attached.' }));
+        setIsUpdating(false);
+        return;
+      }
+
+  const hasImageAttachment = uploadedAttachments.some((a: any) => a?.type?.startsWith?.('image/'));
+
+  const eventData: Partial<ContentEvent> = {
+    date: new Date(formData.date),
+    time: formData.time || undefined,
+    type: formData.type,
+    creator: formData.creator || undefined,
+    tags: formData.tags ? formData.tags.split(',').map((t: string) => t.trim()) : undefined,
+    price: formData.price ? parseFloat(formData.price) : undefined,
+  // If confirmed queued and has image -> green; if no images -> pink; otherwise keep current color
+  color: (confirmQueued && hasImageAttachment) ? 'green' as ContentEvent["color"] : (!hasImageAttachment ? 'pink' as ContentEvent["color"] : formData.color),
         contentLink: formData.contentLink || undefined,
         editedVideoLink: formData.editedVideoLink || undefined,
         flyerLink: formData.flyerLink || undefined,
         liveType: formData.liveType || undefined,
         notes: formData.notes || undefined,
-        attachments: uploadedAttachments.length > 0 ? uploadedAttachments : undefined,
+  // Always send attachments on update (empty array means user removed all)
+  attachments: uploadedAttachments,
+  // If user confirms and there are images, set IN_QUEUE; otherwise set PROCESSING by default
+  status: (confirmQueued && uploadedAttachments.some((a: any) => a?.type?.startsWith?.('image/'))) ? ("IN_QUEUE" as EventStatus) : ("PROCESSING" as EventStatus),
       };
 
       await onUpdate(event.id, eventData);
@@ -355,87 +378,116 @@ export default function EventDetailModal({
           </div>
 
           {/* Footer */}
-          <div className="flex items-center gap-3 p-4 sm:p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+          <div className="p-4 sm:p-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
             {isEditMode ? (
               <>
-                <button
-                  onClick={handleCancelEdit}
-                  disabled={isUpdating}
-                  className="flex-1 px-6 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleUpdate}
-                  disabled={isUpdating}
-                  className="flex-1 px-6 py-2.5 text-sm bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {isUpdating ? (
-                    <>
-                      <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
-                      Updating...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="h-4 w-4" />
-                      Save Changes
-                    </>
-                  )}
-                </button>
+                {/* Show confirm checkbox when there are image attachments (uploaded or local) */}
+                {((formData.attachments && formData.attachments.some((a: any) => a?.type?.startsWith?.('image/'))) || localFiles.length > 0) && (
+                  <div className="flex items-start gap-3 mb-3">
+                      <input
+                        id="confirm-queued-edit"
+                        type="checkbox"
+                        checked={confirmQueued}
+                        onChange={(e) => setConfirmQueued(e.target.checked)}
+                        disabled={isUpdating}
+                        className="mt-1 h-4 w-4 rounded border-gray-300 text-pink-600 focus:ring-pink-500"
+                      />
+                    <div className="text-sm">
+                      <label htmlFor="confirm-queued-edit" className="font-medium text-gray-700 dark:text-gray-200">
+                        Confirm event in queue?
+                      </label>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">
+                        I confirm this screenshot shows the event in the platform queue; when confirmed the event will be marked In queue (green). Default state is Processing.
+                      </div>
+                      {errors.confirmQueued && (
+                        <div className="text-xs text-red-500 mt-1">{errors.confirmQueued}</div>
+                      )}
+                    </div>
+                  </div>
+                )}
+
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={handleCancelEdit}
+                    disabled={isUpdating}
+                    className="flex-1 px-6 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleUpdate}
+                    disabled={isUpdating}
+                    className="flex-1 px-6 py-2.5 text-sm bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {isUpdating ? (
+                      <>
+                        <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                        Updating...
+                      </>
+                    ) : (
+                      <>
+                        <Save className="h-4 w-4" />
+                        Save Changes
+                      </>
+                    )}
+                  </button>
+                </div>
               </>
             ) : (
               <>
-                {event.deletedAt ? (
-                  // Deleted event - show restore button and close
-                  <>
-                    {onRestore && (
+                <div className="flex items-center gap-3">
+                  {event.deletedAt ? (
+                    // Deleted event - show restore button and close
+                    <>
+                      {onRestore && (
+                        <button
+                          onClick={handleRestore}
+                          disabled={isRestoring || isPermanentDeleting}
+                          className="flex-1 px-6 py-2.5 text-sm bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        >
+                          {isRestoring ? (
+                            <>
+                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
+                              Restoring...
+                            </>
+                          ) : (
+                            <>
+                              <RotateCcw className="h-4 w-4" />
+                              Restore Event
+                            </>
+                          )}
+                        </button>
+                      )}
                       <button
-                        onClick={handleRestore}
+                        onClick={onClose}
                         disabled={isRestoring || isPermanentDeleting}
-                        className="flex-1 px-6 py-2.5 text-sm bg-gradient-to-r from-green-500 to-emerald-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex-1 px-6 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isRestoring ? (
-                          <>
-                            <div className="h-4 w-4 animate-spin rounded-full border-2 border-solid border-white border-r-transparent"></div>
-                            Restoring...
-                          </>
-                        ) : (
-                          <>
-                            <RotateCcw className="h-4 w-4" />
-                            Restore Event
-                          </>
-                        )}
+                        Close
                       </button>
-                    )}
-                    <button
-                      onClick={onClose}
-                      disabled={isRestoring || isPermanentDeleting}
-                      className="flex-1 px-6 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      Close
-                    </button>
-                  </>
-                ) : (
-                  // Active event - show edit and delete buttons
-                  <>
-                    {onUpdate && (
+                    </>
+                  ) : (
+                    // Active event - show edit and delete buttons
+                    <>
+                      {onUpdate && (
+                        <button
+                          onClick={() => setIsEditMode(true)}
+                          className="flex-1 px-6 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                          Edit
+                        </button>
+                      )}
+
                       <button
-                        onClick={() => setIsEditMode(true)}
-                        className="flex-1 px-6 py-2.5 text-sm bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg font-semibold text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors flex items-center justify-center gap-2"
+                        onClick={onClose}
+                        className="flex-1 px-6 py-2.5 text-sm bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
                       >
-                        <Edit2 className="h-4 w-4" />
-                        Edit
+                        Close
                       </button>
-                    )}
-                   
-                    <button
-                      onClick={onClose}
-                      className="flex-1 px-6 py-2.5 text-sm bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-lg hover:shadow-lg transition-all"
-                    >
-                      Close
-                    </button>
-                  </>
-                )}
+                    </>
+                  )}
+                </div>
               </>
             )}
           </div>

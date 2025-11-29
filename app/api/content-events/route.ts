@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+
+// Prisma client alias for loosened typing in route handlers
+const pClient: any = prisma as any;
 
 // Helper function to convert Google Drive links to direct image URLs
 const convertGoogleDriveLink = (url: string | null): string | null => {
@@ -76,7 +80,7 @@ export async function GET(request: NextRequest) {
           },
         },
         {
-          creator: {
+          ClientModel: {
             clientName: {
               contains: searchLower,
               mode: 'insensitive',
@@ -127,17 +131,17 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const events = await prisma.contentEvent.findMany({
+  const events = await pClient.contentEvent.findMany({
       where,
       include: {
-        creator: {
+        ClientModel: {
           select: {
             clientName: true,
             profileLink: true,
             profilePicture: true,
           },
         },
-        createdBy: {
+        User: {
           select: {
             name: true,
             email: true,
@@ -150,12 +154,14 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform events to convert Google Drive links and use profileLink as primary source
-    const transformedEvents = events.map(event => ({
+    const transformedEvents = (events as any[]).map((event: any) => ({
       ...event,
-      creator: event.creator ? {
-        ...event.creator,
-        profilePicture: convertGoogleDriveLink(event.creator.profileLink) || convertGoogleDriveLink(event.creator.profilePicture) || null,
+      color: event.color ? event.color.toLowerCase() : event.color,
+      creator: event.ClientModel ? {
+        ...event.ClientModel,
+        profilePicture: convertGoogleDriveLink(event.ClientModel.profileLink) || convertGoogleDriveLink(event.ClientModel.profilePicture) || null,
       } : null,
+      createdBy: event.User || null,
     }));
 
     return NextResponse.json({ events: transformedEvents }, { status: 200 });
@@ -217,14 +223,17 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the event
-    const event = await prisma.contentEvent.create({
+    const event = await pClient.contentEvent.create({
       data: {
+        // Prisma schema requires id and updatedAt for ContentEvent
+        id: randomUUID(),
         title: title || `${type} - ${new Date(date).toLocaleDateString()}`,
         description,
         date: new Date(date),
         time,
         type,
-        status: status || "SCHEDULED",
+  // use valid EventStatus enum default (IN_QUEUE)
+  status: (status as any) || "IN_QUEUE",
         color: color || "PINK",
         creatorId,
         createdById: session.user.id,
@@ -237,16 +246,17 @@ export async function POST(request: NextRequest) {
         platform,
         notes,
         attachments,
+        updatedAt: new Date(),
       },
       include: {
-        creator: {
+        ClientModel: {
           select: {
             clientName: true,
             profileLink: true,
             profilePicture: true,
           },
         },
-        createdBy: {
+        User: {
           select: {
             name: true,
             email: true,
@@ -258,10 +268,12 @@ export async function POST(request: NextRequest) {
     // Transform event to convert Google Drive links
     const transformedEvent = {
       ...event,
-      creator: event.creator ? {
-        ...event.creator,
-        profilePicture: convertGoogleDriveLink(event.creator.profileLink) || convertGoogleDriveLink(event.creator.profilePicture) || null,
+      color: event.color ? event.color.toLowerCase() : event.color,
+      creator: event.ClientModel ? {
+        ...event.ClientModel,
+        profilePicture: convertGoogleDriveLink(event.ClientModel.profileLink) || convertGoogleDriveLink(event.ClientModel.profilePicture) || null,
       } : null,
+      createdBy: event.User || null,
     };
 
     return NextResponse.json({ event: transformedEvent }, { status: 201 });
