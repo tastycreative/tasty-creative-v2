@@ -106,25 +106,26 @@ export function AdminUsersClient({
   }, [debouncedSearchTerm, selectedRole]);
 
   // Query parameters for API
-  const queryParams = useMemo(() => ({
-    page,
-    limit: pageSize,
-    search: debouncedSearchTerm,
-    role: selectedRole,
-    activityPeriod,
-    // Pass client timezone and today's window to server so server calculates "today" in client TZ
-    timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined,
-    start: (() => {
-      const now = new Date();
-      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
-      return start.toISOString();
-    })(),
-    end: (() => {
-      const now = new Date();
-      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, 0, 0, 0, 0);
-      return end.toISOString();
-    })(),
-  }), [page, pageSize, debouncedSearchTerm, selectedRole, activityPeriod]);
+  const queryParams = useMemo(() => {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = now.getMonth();
+    const date = now.getDate();
+
+    return {
+      page,
+      limit: pageSize,
+      search: debouncedSearchTerm,
+      role: selectedRole,
+      activityPeriod,
+      // Pass client timezone and today's date components (not timestamps)
+      // Server will reconstruct "today" from these components
+      timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined,
+      year: year.toString(),
+      month: month.toString(),
+      date: date.toString(),
+    };
+  }, [page, pageSize, debouncedSearchTerm, selectedRole, activityPeriod]);
 
   // Use TanStack Query for data fetching
   const {

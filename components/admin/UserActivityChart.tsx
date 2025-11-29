@@ -29,52 +29,24 @@ const PERIOD_OPTIONS = [
 ];
 
 export function UserActivityChart({ data, period, onPeriodChange }: UserActivityChartProps) {
-  // Get user's timezone offset in milliseconds
-  const timezoneOffsetMs = new Date().getTimezoneOffset() * -60 * 1000; // negative because getTimezoneOffset returns UTC - local
-
-  // Convert UTC dates to local timezone dates
-  const processedData = data.reduce((acc, item) => {
-    // Parse as UTC date
-    const utcDate = new Date(item.date + 'T00:00:00Z');
-
-    // Add timezone offset to shift the date to local timezone
-    const localDate = new Date(utcDate.getTime() + timezoneOffsetMs);
-
-    // Extract local date components
-    const localDateStr = localDate.toISOString().split('T')[0];
-
-    // Find if we already have an entry for this local date
-    const existingIndex = acc.findIndex(d => d.date === localDateStr);
-
-    if (existingIndex >= 0) {
-      // If date exists, sum the counts
-      acc[existingIndex].count += item.count;
-    } else {
-      // New date, add it
-      acc.push({
-        date: localDateStr,
-        count: item.count,
-      });
-    }
-
-    return acc;
-  }, [] as DailyActivity[]);
-
+  // Display UTC dates as-is without timezone conversion
   // Sort by date ascending for chart
-  const sortedData = processedData.sort((a, b) =>
+  const sortedData = [...data].sort((a, b) =>
     new Date(a.date).getTime() - new Date(b.date).getTime()
   );
 
-  // Format date for display
+  // Format UTC date for display (e.g., "Nov 28")
   const formattedData = sortedData.map(item => {
     const [year, month, day] = item.date.split('-').map(Number);
-    const localDate = new Date(year, month - 1, day);
+    // Parse as UTC date for display
+    const utcDate = new Date(Date.UTC(year, month - 1, day));
 
     return {
       ...item,
-      displayDate: localDate.toLocaleDateString('en-US', {
+      displayDate: utcDate.toLocaleDateString('en-US', {
         month: 'short',
-        day: 'numeric'
+        day: 'numeric',
+        timeZone: 'UTC' // Force UTC formatting
       }),
     };
   });
@@ -102,7 +74,7 @@ export function UserActivityChart({ data, period, onPeriodChange }: UserActivity
                 Activity Overview
               </h3>
               <p className="text-sm text-gray-600 dark:text-gray-400">
-                User activity trend
+                User activity trend <span className="text-xs text-gray-500 dark:text-gray-500">(UTC)</span>
               </p>
             </div>
           </div>

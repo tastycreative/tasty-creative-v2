@@ -18,10 +18,11 @@ export async function GET(request: Request) {
     const roleFilter = searchParams.get("role") || "";
     const activityPeriod = searchParams.get("activityPeriod") || "monthly";
 
-    // Get client timezone parameters for accurate "today" calculation
+    // Get client's date components to reconstruct "today" in their timezone
     const clientTimezone = searchParams.get("timezone");
-    const clientStart = searchParams.get("start");
-    const clientEnd = searchParams.get("end");
+    const clientYear = searchParams.get("year");
+    const clientMonth = searchParams.get("month");
+    const clientDate = searchParams.get("date");
 
     // Validate pagination parameters
     const pageSize = limit === "all" ? undefined : parseInt(limit || "10");
@@ -85,10 +86,16 @@ export async function GET(request: Request) {
       }));
 
       // Calculate activity statistics
-      // Use client's "today" if provided, otherwise fallback to server UTC
+      // Use UTC "today" for consistency across all users
       const now = new Date();
-      const today = clientStart ? new Date(clientStart) : new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const tomorrow = clientEnd ? new Date(clientEnd) : new Date(today.getTime() + 24 * 60 * 60 * 1000);
+      const utcNow = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+
+      const today = utcNow;
+      const tomorrow = new Date(Date.UTC(
+        utcNow.getUTCFullYear(),
+        utcNow.getUTCMonth(),
+        utcNow.getUTCDate() + 1
+      ));
 
       // Calculate date range based on period
       let startDate = new Date(today);
@@ -132,18 +139,12 @@ export async function GET(request: Request) {
 
       // Get daily activity counts from DailyActivityStat table
       // Exclude today since we'll use real-time count instead
-      // Convert client's "today" to UTC to properly compare with database dates
-      const todayUTC = new Date(Date.UTC(
-        today.getFullYear(),
-        today.getMonth(),
-        today.getDate()
-      ));
-
+      // today is already UTC, so we can use it directly
       const dailyActivityStats = await prisma.dailyActivityStat.findMany({
         where: {
           date: {
             gte: startDate,
-            lt: todayUTC, // Get all historical data before today (UTC)
+            lt: today, // Get all historical data before today (UTC)
           },
         },
         select: {
@@ -214,17 +215,15 @@ export async function GET(request: Request) {
       const activeThisMonth = Number(activeMonthUsers[0]?.count || 0);
 
       // Format daily activity data
-      // Send all dates as UTC date strings for consistency
-      // Client will handle timezone conversion for display
+      // Send all dates as UTC date strings - no timezone conversion
       const formattedDailyActivity = dailyActivity.map(item => ({
         date: item.date.toISOString().split('T')[0], // UTC date string (YYYY-MM-DD)
         count: Number(item.count),
       }));
 
-      // Add real-time "today" count using UTC representation of client's today
-      // todayUTC already calculated above for the query
+      // Add real-time "today" count using UTC today
       formattedDailyActivity.unshift({
-        date: todayUTC.toISOString().split('T')[0], // UTC date string
+        date: today.toISOString().split('T')[0], // UTC date string
         count: activeToday,
       });
 
