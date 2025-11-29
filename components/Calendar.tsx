@@ -32,6 +32,8 @@ import {
   formatForDisplay,
 } from "@/lib/dateUtils";
 import { DateTime } from 'luxon';
+import EventDetailModal from "./pod-new/features/content-dates/EventDetailModal";
+import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
 
 const Calendar = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -42,9 +44,137 @@ const Calendar = () => {
     null
   );
   const [isEventDetailOpen, setIsEventDetailOpen] = useState(false);
+  const [selectedContentEvent, setSelectedContentEvent] = useState<ContentEvent | null>(null);
+  const [isContentEventDetailOpen, setIsContentEventDetailOpen] = useState(false);
   const [calendarError, setCalendarError] = useState("");
   const [isCalendarLoading, setIsCalendarLoading] = useState(false);
   const [userTimezone, setUserTimezone] = useState<string>("");
+
+  const handleUpdateEvent = async (eventId: string, eventData: Partial<ContentEvent>) => {
+    const response = await fetch(`/api/content-events/${eventId}`, {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(eventData),
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to update event");
+    }
+
+    // Refresh calendar events
+    loadCalendarEventsForMonth();
+    setIsContentEventDetailOpen(false);
+  };
+
+  const handleDeleteEvent = async (eventId: string) => {
+    const response = await fetch(`/api/content-events/${eventId}`, {
+      method: "DELETE",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to delete event");
+    }
+
+    // Refresh calendar events
+    loadCalendarEventsForMonth();
+    setIsContentEventDetailOpen(false);
+  };
+
+  const loadCalendarEventsForMonth = async () => {
+
+    // Clear events first to avoid stale data being displayed
+    setCalendarEvents([]);
+    setIsCalendarLoading(true);
+    setCalendarError("");
+
+    // Use Luxon for proper month calculation in user's timezone
+    const currentMonth = DateTime.fromJSDate(selectedDate).setZone(userTimezone);
+    const startDate = currentMonth.startOf('month').toJSDate();
+    const endDate = currentMonth.endOf('month').toJSDate();
+
+    try {
+      // Always use the public calendar API without checking authentication
+      const googleEvents = (await getPublicCalendarEvents(startDate, endDate)) || [];
+
+      // Filter out events that have "Call" in the title (applies to Google events)
+      const filteredGoogleEvents = googleEvents.filter(
+        (event) => !event.summary?.toLowerCase().includes("call")
+      );
+
+      // Fetch content-dates events from our API and transform to calendar-like shape
+      let contentEvents: any[] = [];
+      try {
+        const resp = await fetch(`/api/content-events?includeDeleted=true`);
+        if (resp.ok) {
+          const data = await resp.json();
+          const items = data.events || data || [];
+
+          // Keep only events that fall inside the requested month range
+          contentEvents = (items || [])
+            .map((ev: any) => {
+              if (!ev.date) return null;
+
+              // Normalize date using Luxon in the user's timezone to prevent day shifts
+              // If the event has a time field, treat it as a timed event; otherwise treat as all-day
+              const hasTime = !!ev.time;
+              try {
+                  if (hasTime) {
+                  // Combine date + time into an ISO string then convert to user's timezone
+                  // ev.date may already be an ISO datetime, but be defensive
+                  const combined = ev.time && ev.date && !ev.date.includes('T') ? `${ev.date}T${ev.time}` : ev.date;
+                  const dt = DateTime.fromISO(combined, { zone: userTimezone });
+                  return {
+                    id: `content-${ev.id}`,
+                    summary: ev.title || ev.summary || "(No title)",
+                    description: ev.description,
+                    location: ev.flyerLink || ev.location,
+                    start: { dateTime: dt.toISO() },
+                    end: { dateTime: dt.plus({ minutes: 60 }).toISO() },
+                    _raw: { ...ev, color: ev.color ? ev.color.toLowerCase() : ev.color },
+                    source: "content",
+                  };
+                } else {
+                  // All-day event: parse date in user's timezone and store date-only (YYYY-MM-DD)
+                  const dt = DateTime.fromISO(ev.date, { zone: userTimezone });
+                  const isoDateOnly = dt.toISODate(); // YYYY-MM-DD
+                  return {
+                    id: `content-${ev.id}`,
+                    summary: ev.title || ev.summary || "(No title)",
+                    description: ev.description,
+                    location: ev.flyerLink || ev.location,
+                    start: { date: isoDateOnly },
+                    end: { date: isoDateOnly },
+                    _raw: { ...ev, color: ev.color ? ev.color.toLowerCase() : ev.color },
+                    source: "content",
+                  };
+                }
+              } catch (err) {
+                console.warn('Failed to parse content event date', ev, err);
+                return null;
+              }
+            })
+            .filter(Boolean) as any[];
+        } else {
+          console.warn("Failed to fetch content events: ", resp.status);
+        }
+      } catch (err) {
+        console.error("Error fetching content events:", err);
+      }
+
+      // Merge Google events and content events so they coexist
+      const merged = [...filteredGoogleEvents, ...contentEvents];
+
+      // Update state with merged events
+      setCalendarEvents(merged);
+    } catch (error) {
+      console.error("Error loading calendar events:", error);
+      setCalendarError("Failed to load events from calendar.");
+    } finally {
+      setIsCalendarLoading(false);
+    }
+  };
 
   // Ensure we detect the browser timezone on the client (e.g., Asia/Manila)
   useEffect(() => {
@@ -56,6 +186,7 @@ const Calendar = () => {
       setUserTimezone(DateTime.local().zoneName || "UTC");
     }
   }, []);
+
 
   // Use a stable timezone value (fallback to Intl if state not set)
   const tz = userTimezone || (typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : DateTime.local().zoneName || 'UTC');
@@ -154,6 +285,34 @@ const Calendar = () => {
     return raw.creatorProfilePicture || raw.profilePicture || null;
   };
 
+  const handleViewContentEventDetails = (event: CalendarEvent) => {
+    if (!event._raw) return;
+    const raw = event._raw;
+    const contentEvent: ContentEvent = {
+      id: raw.id,
+      title: raw.title,
+      description: raw.description,
+      date: new Date(raw.date),
+      time: raw.time,
+      type: raw.type,
+      status: raw.status,
+      creator: getCreatorName(raw),
+      creatorProfilePicture: getCreatorProfilePicture(raw),
+      tags: raw.tags,
+      price: raw.price,
+      color: raw.color,
+      contentLink: raw.contentLink,
+      editedVideoLink: raw.editedVideoLink,
+      flyerLink: raw.flyerLink,
+      liveType: raw.liveType,
+      notes: raw.notes,
+      attachments: raw.attachments,
+      deletedAt: raw.deletedAt ? new Date(raw.deletedAt) : null,
+    };
+    setSelectedContentEvent(contentEvent);
+    setIsContentEventDetailOpen(true);
+  };
+
   const handleViewEventDetails = async (eventId: string) => {
     try {
       setIsLoadingEventDetail(true);
@@ -164,8 +323,12 @@ const Calendar = () => {
       );
 
       if (existingEvent) {
-        setSelectedEvent(existingEvent);
-        setIsEventDetailOpen(true);
+        if (existingEvent.source === "content") {
+          handleViewContentEventDetails(existingEvent);
+        } else {
+          setSelectedEvent(existingEvent);
+          setIsEventDetailOpen(true);
+        }
       } else {
         setCalendarError("Event not found");
       }
@@ -178,100 +341,6 @@ const Calendar = () => {
   };
 
   useEffect(() => {
-    const loadCalendarEventsForMonth = async () => {
-
-      // Clear events first to avoid stale data being displayed
-      setCalendarEvents([]);
-      setIsCalendarLoading(true);
-      setCalendarError("");
-
-      // Use Luxon for proper month calculation in user's timezone
-      const currentMonth = DateTime.fromJSDate(selectedDate).setZone(userTimezone);
-      const startDate = currentMonth.startOf('month').toJSDate();
-      const endDate = currentMonth.endOf('month').toJSDate();
-
-      try {
-        // Always use the public calendar API without checking authentication
-        const googleEvents = (await getPublicCalendarEvents(startDate, endDate)) || [];
-
-        // Filter out events that have "Call" in the title (applies to Google events)
-        const filteredGoogleEvents = googleEvents.filter(
-          (event) => !event.summary?.toLowerCase().includes("call")
-        );
-
-        // Fetch content-dates events from our API and transform to calendar-like shape
-        let contentEvents: any[] = [];
-        try {
-          const resp = await fetch(`/api/content-events?includeDeleted=true`);
-          if (resp.ok) {
-            const data = await resp.json();
-            const items = data.events || data || [];
-
-            // Keep only events that fall inside the requested month range
-            contentEvents = (items || [])
-              .map((ev: any) => {
-                if (!ev.date) return null;
-
-                // Normalize date using Luxon in the user's timezone to prevent day shifts
-                // If the event has a time field, treat it as a timed event; otherwise treat as all-day
-                const hasTime = !!ev.time;
-                try {
-                    if (hasTime) {
-                    // Combine date + time into an ISO string then convert to user's timezone
-                    // ev.date may already be an ISO datetime, but be defensive
-                    const combined = ev.time && ev.date && !ev.date.includes('T') ? `${ev.date}T${ev.time}` : ev.date;
-                    const dt = DateTime.fromISO(combined, { zone: userTimezone });
-                    return {
-                      id: `content-${ev.id}`,
-                      summary: ev.title || ev.summary || "(No title)",
-                      description: ev.description,
-                      location: ev.flyerLink || ev.location,
-                      start: { dateTime: dt.toISO() },
-                      end: { dateTime: dt.plus({ minutes: 60 }).toISO() },
-                      _raw: { ...ev, color: ev.color ? ev.color.toLowerCase() : ev.color },
-                      source: "content",
-                    };
-                  } else {
-                    // All-day event: parse date in user's timezone and store date-only (YYYY-MM-DD)
-                    const dt = DateTime.fromISO(ev.date, { zone: userTimezone });
-                    const isoDateOnly = dt.toISODate(); // YYYY-MM-DD
-                    return {
-                      id: `content-${ev.id}`,
-                      summary: ev.title || ev.summary || "(No title)",
-                      description: ev.description,
-                      location: ev.flyerLink || ev.location,
-                      start: { date: isoDateOnly },
-                      end: { date: isoDateOnly },
-                      _raw: { ...ev, color: ev.color ? ev.color.toLowerCase() : ev.color },
-                      source: "content",
-                    };
-                  }
-                } catch (err) {
-                  console.warn('Failed to parse content event date', ev, err);
-                  return null;
-                }
-              })
-              .filter(Boolean) as any[];
-          } else {
-            console.warn("Failed to fetch content events: ", resp.status);
-          }
-        } catch (err) {
-          console.error("Error fetching content events:", err);
-        }
-
-        // Merge Google events and content events so they coexist
-        const merged = [...filteredGoogleEvents, ...contentEvents];
-
-        // Update state with merged events
-        setCalendarEvents(merged);
-      } catch (error) {
-        console.error("Error loading calendar events:", error);
-        setCalendarError("Failed to load events from calendar.");
-      } finally {
-        setIsCalendarLoading(false);
-      }
-    };
-
     loadCalendarEventsForMonth();
   }, [selectedDate, userTimezone]);
 
@@ -1227,7 +1296,7 @@ const Calendar = () => {
                   Event details not available
                 </p>
                 <DialogClose asChild>
-                  <Button className="mt-6 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white border-0">
+                  <Button className="mt-6 bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-700 hover:to-rose-700 text-white border-0" onClick={() => setIsEventDetailOpen(false)}>
                     Close
                   </Button>
                 </DialogClose>
@@ -1236,6 +1305,13 @@ const Calendar = () => {
           </div>
         </DialogContent>
       </Dialog>
+      <EventDetailModal
+        event={selectedContentEvent}
+        isOpen={isContentEventDetailOpen}
+        onClose={() => setIsContentEventDetailOpen(false)}
+        onUpdate={handleUpdateEvent}
+        onDelete={handleDeleteEvent}
+      />
     </div>
   );
 };

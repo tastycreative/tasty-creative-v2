@@ -121,20 +121,20 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
 
   // Show sidebar on all main POD routes
   const allowedPaths = [
-    "/",
-    "/dashboard",
+    // "/",
+    // "/dashboard",
     "/board",
-    "/forms",
-    "/pod-admin",
-    "/pricing",
-    "/sheets",
-    "/my-models",
-    "/workspace",
-    "/schedule",
-    "/live-stream",
-    "/calendar",
-    "/team",
-    "/settings",
+    // "/forms",
+    // "/pod-admin",
+    // "/pricing",
+    // "/sheets",
+    // "/my-models",
+    // "/workspace",
+    // "/schedule",
+    // "/live-stream",
+    // "/calendar",
+    // "/team",
+    // "/settings",
   ];
   const shouldShowSidebar = allowedPaths.includes(pathname || "");
 

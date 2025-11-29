@@ -6,6 +6,8 @@ import { Calendar, Clock, ChevronRight, Loader2 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { getPublicCalendarEvents } from "@/app/services/google-calendar-implementation";
 import { DateTime } from "luxon";
+import EventDetailModal from "../content-dates/EventDetailModal";
+import { ContentEvent } from "@/app/(root)/(pod)/content-dates/page";
 
 interface CalendarEvent {
   id: string;
@@ -26,6 +28,40 @@ export default function TodayEventsCard() {
   const router = useRouter();
   const [userTimezone] = useState<string>(DateTime.local().zoneName);
   const [showAllEvents, setShowAllEvents] = useState(false);
+  const [selectedEvent, setSelectedEvent] = useState<ContentEvent | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleEventClick = (event: CalendarEvent) => {
+    if (event.source === "content") {
+      const raw = event._raw;
+      const contentEvent: ContentEvent = {
+        id: raw.id,
+        title: raw.title,
+        description: raw.description,
+        date: new Date(raw.date),
+        time: raw.time,
+        type: raw.type,
+        status: raw.status,
+        creator: getCreatorName(raw),
+        creatorProfilePicture: getCreatorProfilePicture(raw),
+        tags: raw.tags,
+        price: raw.price,
+        color: raw.color,
+        contentLink: raw.contentLink,
+        editedVideoLink: raw.editedVideoLink,
+        flyerLink: raw.flyerLink,
+        liveType: raw.liveType,
+        notes: raw.notes,
+        attachments: raw.attachments,
+        deletedAt: raw.deletedAt ? new Date(raw.deletedAt) : null,
+      };
+      setSelectedEvent(contentEvent);
+      setIsModalOpen(true);
+    } else {
+      router.push('/calendar');
+    }
+  };
+
 
   // Fetch today's events with TanStack Query
   const { data: todayEvents = [], isLoading } = useQuery({
@@ -180,7 +216,11 @@ export default function TodayEventsCard() {
       return (
         <div
           key={event.id}
-          className={`flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r ${gradientClass} text-white transition-all`}
+          className={`flex items-center gap-2 p-2 rounded-lg bg-gradient-to-r ${gradientClass} text-white transition-all cursor-pointer`}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleEventClick(event);
+          }}
         >
           {/* Profile Picture or Initials */}
           {getCreatorProfilePicture(raw) ? (
@@ -213,7 +253,8 @@ export default function TodayEventsCard() {
     return (
       <div
         key={event.id}
-        className="flex items-start gap-2 p-2 rounded-lg bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 hover:bg-white dark:hover:bg-gray-700 transition-colors"
+        className="flex items-start gap-2 p-2 rounded-lg bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 hover:bg-white dark:hover:bg-gray-700 transition-colors cursor-pointer"
+        onClick={() => handleEventClick(event)}
       >
         <Clock className="h-3 w-3 text-pink-500 mt-0.5 flex-shrink-0" />
         <div className="flex-1 min-w-0">
@@ -248,6 +289,7 @@ export default function TodayEventsCard() {
   const timezoneAbbr = getTimezoneAbbr();
 
   return (
+    <>
     <div
       className="relative overflow-hidden rounded-2xl border border-gray-200/50 dark:border-gray-700/50 bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-purple-900/20 dark:to-blue-900/20 shadow-lg hover:shadow-xl transition-all duration-300 cursor-pointer group"
       onClick={() => router.push('/calendar')}
@@ -326,5 +368,13 @@ export default function TodayEventsCard() {
         </div>
       </div>
     </div>
+    <EventDetailModal
+      event={selectedEvent}
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+      onUpdate={undefined}
+      onDelete={undefined}
+    />
+    </>
   );
 }

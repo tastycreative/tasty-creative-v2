@@ -122,17 +122,17 @@ export default function PodLayout({ children }: PodLayoutProps) {
   }
 
   // Determine if sidebars should be shown (show on most pages including board)
-  const shouldShowRightSidebar = pathname === "/" ||
-                                pathname === "/dashboard" ||
-                                pathname === "/forms" ||
-                                pathname === "/board" ||
-                                pathname === "/pod-admin";
-
   const shouldShowLeftSidebar = true; // Always show left sidebar
 
   // Calculate actual sidebar visibility based on store state
   const showLeftSidebar = shouldShowLeftSidebar && !leftSidebarCollapsed;
-  const showRightSidebar = shouldShowRightSidebar && !rightSidebarCollapsed;
+  const showRightSidebar = (
+    pathname === "/" ||
+    pathname === "/dashboard" ||
+    pathname === "/forms" ||
+    pathname === "/board" ||
+    pathname === "/pod-admin"
+  ) && !rightSidebarCollapsed;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
@@ -201,7 +201,8 @@ export default function PodLayout({ children }: PodLayoutProps) {
               )}
             </button>
 
-            {/* Right Sidebar Toggle */}
+            {/* Right Sidebar Toggle - Only on /board */}
+            {pathname === '/board' && (
             <button
               onClick={toggleRightSidebar}
               className="inline-flex items-center rounded-full border border-gray-200/50 dark:border-white/10 px-3 py-2 text-sm transition-colors hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white text-gray-600 dark:text-gray-300"
@@ -213,6 +214,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
                 <PanelRightClose className="w-4 h-4" />
               )}
             </button>
+            )}
 
             {/* Focus Mode Toggle */}
             <button
