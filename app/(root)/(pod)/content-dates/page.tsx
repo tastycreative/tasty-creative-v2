@@ -10,7 +10,7 @@ import CreateEventModal from "@/components/pod-new/features/content-dates/Create
 import EventDetailModal from "@/components/pod-new/features/content-dates/EventDetailModal";
 
 export type EventType = "PPV" | "LIVESTREAM";
-export type EventStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
+export type EventStatus = "QUEUING" | "QUEUED";
 
 export interface ContentEvent {
   id: string;
@@ -110,7 +110,7 @@ export default function ContentDatesPage() {
           date: eventData.date,
           time: eventData.time,
           type: eventData.type,
-          status: eventData.status || "SCHEDULED",
+          status: eventData.status || "QUEUING",
           creator: eventData.creator,
           tags: eventData.tags || [],
           price: eventData.price,

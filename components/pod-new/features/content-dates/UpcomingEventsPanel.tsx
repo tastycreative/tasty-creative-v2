@@ -42,9 +42,8 @@ export default function UpcomingEventsPanel({ events, onEventClick, isLoading = 
 
   const getStatusBadge = (status: ContentEvent["status"]) => {
     const badges = {
-      SCHEDULED: { text: "Scheduled", className: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30" },
-      COMPLETED: { text: "Completed", className: "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30" },
-      CANCELLED: { text: "Cancelled", className: "bg-red-500/20 text-red-600 dark:text-red-400 border-red-500/30" },
+      QUEUING: { text: "Queuing", className: "bg-blue-500/20 text-blue-600 dark:text-blue-400 border-blue-500/30" },
+      QUEUED: { text: "Queued", className: "bg-green-500/20 text-green-600 dark:text-green-400 border-green-500/30" },
     };
     return badges[status];
   };

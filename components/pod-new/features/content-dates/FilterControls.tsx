@@ -162,9 +162,8 @@ export default function FilterControls({
               className="w-full px-3 py-2 text-sm bg-white/50 dark:bg-gray-700/50 border border-gray-200/50 dark:border-gray-600/50 rounded-lg focus:outline-none focus:ring-2 focus:ring-pink-500 text-gray-900 dark:text-gray-100"
             >
               <option value="all">All Statuses</option>
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="QUEUING">Queuing</option>
+              <option value="QUEUED">Queued</option>
             </select>
           </div>
 

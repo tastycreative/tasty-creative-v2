@@ -75,9 +75,8 @@ export default function EventView({ mode, formData, setFormData, isDragging, han
             <div className="inline-flex items-center px-3 py-1.5 rounded-lg text-xs font-medium border bg-blue-100 text-blue-700">{formData?.status}</div>
           ) : (
             <select value={formData.status} onChange={(e) => setFormData?.({ ...formData, status: e.target.value })} className="w-full px-3 py-1.5 text-sm bg-white dark:bg-gray-700 border rounded-lg">
-              <option value="SCHEDULED">Scheduled</option>
-              <option value="COMPLETED">Completed</option>
-              <option value="CANCELLED">Cancelled</option>
+              <option value="QUEUING">Queuing</option>
+              <option value="QUEUED">Queued</option>
             </select>
           )}
         </div>
