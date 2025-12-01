@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, ReactNode, useCallback } from "react";
-import { signIn, useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
+import { signIn, useSession, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
+import { useCallback, useEffect, useState, ReactNode } from "react";
 
 interface PermissionGoogleProps {
   children: ReactNode;
@@ -15,11 +16,12 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
   apiEndpoint,
   onPermissionsLoaded,
 }) => {
+  const pathname = usePathname();
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasChecked, setHasChecked] = useState(false);
-  const { status: sessionStatus } = useSession();
+  const { data: session, status: sessionStatus, update } = useSession();
 
   const missingApiEndpointError = "API endpoint is not defined.";
 
@@ -138,7 +140,15 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
     setError(null);
     setHasChecked(false); // Reset check flag to allow re-checking after auth
     try {
-      await signIn("google");
+      // Sign out without redirecting, then sign in again with the new scopes
+      await signOut({ redirect: false });
+      await signIn("google", {
+        callbackUrl: pathname,
+      }, {
+        prompt: "consent",
+        access_type: "offline",
+        scope: "openid profile email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
+      });
     } catch (err) {
       console.error("Error during signIn:", err);
       setError("Failed to initiate sign-in. Please try again.");
@@ -245,7 +255,7 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
       
       <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300 text-center mb-6 sm:mb-8 leading-relaxed px-2">
         This feature requires specific Google permissions to function properly. 
-        Please sign in with your Google account to continue.
+        Please sign in with your Google account to grant permission.
       </p>
       
       <Button 

@@ -69,6 +69,25 @@ export async function GET(request: NextRequest) {
           { status: 403 }
         );
       }
+      
+      const tokenInfo = await testResponse.json();
+
+      const requiredScopes = [
+        "https://www.googleapis.com/auth/spreadsheets",
+        "https://www.googleapis.com/auth/drive"
+      ];
+      const grantedScopes = tokenInfo.scope.split(" ");
+      const hasRequiredScopes = requiredScopes.every(scope => grantedScopes.includes(scope));
+
+      if (!hasRequiredScopes) {
+        return NextResponse.json(
+          { 
+            error: "GooglePermissionDenied", 
+            message: "Missing required Google Drive or Sheets permissions. Please re-authenticate to grant access." 
+          },
+          { status: 403 }
+        );
+      }
     } catch (tokenTestError) {
       console.error('Token validation failed:', tokenTestError);
       return NextResponse.json(

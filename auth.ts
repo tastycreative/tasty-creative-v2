@@ -51,6 +51,7 @@ async function refreshAccessToken(token: any) {
         client_secret: process.env.AUTH_GOOGLE_SECRET!,
         refresh_token: account.refresh_token,
         grant_type: "refresh_token",
+        scope: account.scope || "openid profile email",
       }),
     });
 
@@ -96,6 +97,7 @@ async function refreshAccessToken(token: any) {
         expires_at: expiresAt,
         last_refreshed: now,
         last_accessed: now,
+        scope: refreshedTokens.scope,
       },
     });
 
@@ -133,7 +135,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           access_type: "offline",
           prompt: "consent", // Force consent screen to always get refresh token
           scope:
-            "openid profile email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
+            "openid profile email ",
         },
       },
       // Add profile callback to ensure we request the refresh token
@@ -283,9 +285,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
                 refresh_token: account.refresh_token,
                 access_token: account.access_token,
                 expires_at: account.expires_at,
+                scope: account.scope,
               },
             });
-            console.log("✅ Refresh token saved to database");
+            console.log("✅ Refresh token and scopes saved to database");
           } catch (error) {
             console.error("❌ Failed to save refresh token to database:", error);
           }
