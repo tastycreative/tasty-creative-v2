@@ -100,21 +100,21 @@ export function useMarkAsFinal({ teamId, teamName, session, onSuccess }: MarkAsF
         console.error('Failed to send notification (non-critical):', notifError)
       }
 
-      // Step 5: Trigger n8n webhook for Google Sheets sync (non-critical)
+      // Step 5: Trigger n8n webhooks for Google Sheets sync (non-critical)
       try {
         const workflow = task.ModularWorkflow
 
         // Format video title: {modelName}_{contentType}_{description}_{releaseDate}
         const videoTitle = `${workflow.modelName}_${workflow.contentType || 'CONTENT'}_${workflow.contentDescription || ''}_${workflow.releaseDate || 'TBD'}`.replace(/\s+/g, ' ').trim()
 
-        // Format creation date: "Month Day, Year"
-        const creationDate = new Date().toLocaleDateString('en-US', {
+        // Format dates: "Month Day, Year"
+        const formattedDate = new Date().toLocaleDateString('en-US', {
           month: 'long',
           day: 'numeric',
           year: 'numeric'
         })
 
-        // Prepare n8n payload
+        // === WEBHOOK 1: Existing Google Sheets sync ===
         const n8nPayload = {
           videoTitle: videoTitle,
           videoCategory: workflow.contentType || 'N/A',
@@ -125,9 +125,9 @@ export function useMarkAsFinal({ teamId, teamName, session, onSuccess }: MarkAsF
           priceSet: workflow.pricing || '',
           additionalNotes: workflow.notes || '',
           videoLink: workflow.driveLink || '',
-          creationDate: creationDate,
+          creationDate: formattedDate,
           creatorAt: workflow.modelName || 'N/A',
-          videoLength: '', // Not available in POD system
+          videoLength: '',
           results: ''
         }
 
@@ -137,9 +137,40 @@ export function useMarkAsFinal({ teamId, teamName, session, onSuccess }: MarkAsF
           body: JSON.stringify(n8nPayload)
         })
 
-        console.log('n8n Google Sheets sync triggered successfully')
+        // === WEBHOOK 2: Gallery Sheet sync (routes to 3 sheets in n8n) ===
+        // Format: "CONTENT DESCRIPTION - 7:30 mins"
+        const paywallContent = [
+          workflow.contentDescription || workflow.contentType || '',
+          workflow.contentLength || ''
+        ].filter(Boolean).join(' - ')
+
+        const gallerySheetPayload = {
+          bookmarks: '',
+          postOrigin: workflow.contentStyle || '',
+          model: workflow.modelName || '',
+          flyer: workflow.gifUrl || '',
+          paywallContent: paywallContent,
+          caption: workflow.caption || '',
+          pricing: workflow.pricing || '',
+          campaignOrUnlock: '',
+          labels: '',
+          datePosted: formattedDate,
+          postLink: workflow.driveLink || '',
+          netIncome: '',
+          name: '',
+          includeExclude: '',
+          dateSent: formattedDate
+        }
+
+        await fetch('/api/webhook/gallery-sheet', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(gallerySheetPayload)
+        })
+
+        console.log('Both n8n webhooks triggered successfully')
       } catch (webhookError) {
-        console.error('Failed to trigger n8n webhook (non-critical):', webhookError)
+        console.error('Failed to trigger n8n webhooks (non-critical):', webhookError)
       }
 
       // Success!
