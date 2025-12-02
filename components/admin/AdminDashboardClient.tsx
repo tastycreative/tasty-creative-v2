@@ -169,44 +169,44 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   const [isLoadingContentStats, setIsLoadingContentStats] = useState(true);
   const [recentActivities, setRecentActivities] = useState<any[]>([]);
 
-  const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
-  const [totalMassMessages, setTotalMassMessages] = useState(0);
-  const [massMessagingLeaderboard, setMassMessagingLeaderboard] = useState<
-    Array<{
-      name: string;
-      username: string;
-      totalMessages: number;
-      totalViews: number;
-      totalSent: number;
-      viewRate: number;
-      paidMessages: number;
-      freeMessages: number;
-      totalRevenue: number;
-      averagePrice: number;
-      totalPurchases: number;
-      avatar?: string;
-      rank: number;
-    }>
-  >([]);
-  const [topPerformingMessages, setTopPerformingMessages] = useState<
-    Array<{
-      id: number;
-      text: string;
-      textCropped: string;
-      viewedCount: number;
-      sentCount: number;
-      viewRate: number;
-      isFree: boolean;
-      price?: string;
-      purchasedCount?: number;
-      revenue: number;
-      date: string;
-      modelName: string;
-      modelUsername: string;
-      modelAvatar?: string;
-      rank: number;
-    }>
-  >([]);
+  // const [isLoadingMassMessages, setIsLoadingMassMessages] = useState(false);
+  // const [totalMassMessages, setTotalMassMessages] = useState(0);
+  // const [massMessagingLeaderboard, setMassMessagingLeaderboard] = useState<
+  //   Array<{
+  //     name: string;
+  //     username: string;
+  //     totalMessages: number;
+  //     totalViews: number;
+  //     totalSent: number;
+  //     viewRate: number;
+  //     paidMessages: number;
+  //     freeMessages: number;
+  //     totalRevenue: number;
+  //     averagePrice: number;
+  //     totalPurchases: number;
+  //     avatar?: string;
+  //     rank: number;
+  //   }>
+  // >([]);
+  // const [topPerformingMessages, setTopPerformingMessages] = useState<
+  //   Array<{
+  //     id: number;
+  //     text: string;
+  //     textCropped: string;
+  //     viewedCount: number;
+  //     sentCount: number;
+  //     viewRate: number;
+  //     isFree: boolean;
+  //     price?: string;
+  //     purchasedCount?: number;
+  //     revenue: number;
+  //     date: string;
+  //     modelName: string;
+  //     modelUsername: string;
+  //     modelAvatar?: string;
+  //     rank: number;
+  //   }>
+  // >([]);
 
   // State for SWD leaderboard data
   const [swdData, setSwdData] = useState<{
@@ -226,28 +226,28 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   });
   const [isLoadingSwdData, setIsLoadingSwdData] = useState(true);
 
-  // State for generated captions
-  const [generatedCaptions, setGeneratedCaptions] = useState<string[]>([]);
-  const [isGeneratingCaptions, setIsGeneratingCaptions] = useState(false);
-  const [showGeneratedCaptions, setShowGeneratedCaptions] = useState(false);
-  const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
+  // // State for generated captions
+  // const [generatedCaptions, setGeneratedCaptions] = useState<string[]>([]);
+  // const [isGeneratingCaptions, setIsGeneratingCaptions] = useState(false);
+  // const [showGeneratedCaptions, setShowGeneratedCaptions] = useState(false);
+  // const [copiedCaptionId, setCopiedCaptionId] = useState<string | null>(null);
 
-  // Date range state
-  const [dateRange, setDateRange] = useState<"30" | "60" | "90" | "custom">(
-    "30"
-  );
-  const [customStartDate, setCustomStartDate] = useState("");
-  const [customEndDate, setCustomEndDate] = useState("");
-  const [showCustomDateInputs, setShowCustomDateInputs] = useState(false);
+  // // Date range state
+  // const [dateRange, setDateRange] = useState<"30" | "60" | "90" | "custom">(
+  //   "30"
+  // );
+  // const [customStartDate, setCustomStartDate] = useState("");
+  // const [customEndDate, setCustomEndDate] = useState("");
+  // const [showCustomDateInputs, setShowCustomDateInputs] = useState(false);
 
-  // State for managing expanded messages in leaderboard
-  const [expandedMessages, setExpandedMessages] = useState<Set<number>>(
-    new Set()
-  );
+  // // State for managing expanded messages in leaderboard
+  // const [expandedMessages, setExpandedMessages] = useState<Set<number>>(
+  //   new Set()
+  // );
 
-  // State for managing loading messages transition
-  const [currentLoadingMessageIndex, setCurrentLoadingMessageIndex] =
-    useState(0);
+  // // State for managing loading messages transition
+  // const [currentLoadingMessageIndex, setCurrentLoadingMessageIndex] =
+  //   useState(0);
 
   // Helper function to calculate growth percentage
   const calculateGrowthPercentage = (current: number, previous: number) => {
@@ -261,12 +261,12 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   };
 
   // Helper function to calculate total loyalty points
-  const calculateTotalLoyaltyPoints = (salesByModel: any[]) => {
-    return salesByModel.reduce(
-      (total, model) => total + (model.loyaltyPoints || 0),
-      0
-    );
-  };
+  // const calculateTotalLoyaltyPoints = (salesByModel: any[]) => {
+  //   return salesByModel.reduce(
+  //     (total, model) => total + (model.loyaltyPoints || 0),
+  //     0
+  //   );
+  // };
 
   // CORRECTED: VN Sales data fetching function (only updates sales data, not voice generation stats)
   const fetchVnSalesData = async () => {
@@ -366,432 +366,432 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
   };
 
   // Loading messages for mass messaging campaigns
-  const loadingMessages = [
-    "Loading mass messaging data...",
-    "Fetching campaign analytics...",
-    "Processing message statistics...",
-    "Analyzing performance metrics...",
-    "Gathering revenue data...",
-    "Collecting view statistics...",
-    "Compiling results...",
-    "Preparing dashboard...",
-  ];
+  // const loadingMessages = [
+  //   "Loading mass messaging data...",
+  //   "Fetching campaign analytics...",
+  //   "Processing message statistics...",
+  //   "Analyzing performance metrics...",
+  //   "Gathering revenue data...",
+  //   "Collecting view statistics...",
+  //   "Compiling results...",
+  //   "Preparing dashboard...",
+  // ];
 
   // Function to toggle message expansion
-  const toggleMessageExpansion = (messageId: number) => {
-    setExpandedMessages((prev) => {
-      const newSet = new Set(prev);
-      if (newSet.has(messageId)) {
-        newSet.delete(messageId);
-      } else {
-        newSet.add(messageId);
-      }
-      return newSet;
-    });
-  };
+  // const toggleMessageExpansion = (messageId: number) => {
+  //   setExpandedMessages((prev) => {
+  //     const newSet = new Set(prev);
+  //     if (newSet.has(messageId)) {
+  //       newSet.delete(messageId);
+  //     } else {
+  //       newSet.add(messageId);
+  //     }
+  //     return newSet;
+  //   });
+  // };
 
   // Function to generate captions based on top performing messages
-  const generateCaptions = async () => {
-    if (topPerformingMessages.length === 0) {
-      console.error("No top messages available for caption generation");
-      return;
-    }
+  // const generateCaptions = async () => {
+  //   if (topPerformingMessages.length === 0) {
+  //     console.error("No top messages available for caption generation");
+  //     return;
+  //   }
 
-    setIsGeneratingCaptions(true);
-    setShowGeneratedCaptions(false);
+  //   setIsGeneratingCaptions(true);
+  //   setShowGeneratedCaptions(false);
 
-    try {
-      const response = await fetch("/api/generate-captions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          topMessages: topPerformingMessages.slice(0, 5), // Use top 5 messages
-        }),
-      });
+  //   try {
+  //     const response = await fetch("/api/generate-captions", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         topMessages: topPerformingMessages.slice(0, 5), // Use top 5 messages
+  //       }),
+  //     });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate captions");
-      }
+  //     if (!response.ok) {
+  //       throw new Error("Failed to generate captions");
+  //     }
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      if (data.success && data.captions) {
-        setGeneratedCaptions(data.captions);
-        setShowGeneratedCaptions(true);
-      } else {
-        throw new Error(data.message || "Failed to generate captions");
-      }
-    } catch (error) {
-      console.error("Error generating captions:", error);
-    } finally {
-      setIsGeneratingCaptions(false);
-    }
-  };
+  //     if (data.success && data.captions) {
+  //       setGeneratedCaptions(data.captions);
+  //       setShowGeneratedCaptions(true);
+  //     } else {
+  //       throw new Error(data.message || "Failed to generate captions");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error generating captions:", error);
+  //   } finally {
+  //     setIsGeneratingCaptions(false);
+  //   }
+  // };
 
   // Function to generate captions based on top performing leaderboard models
-  const generateLeaderboardCaptions = async () => {
-    if (massMessagingLeaderboard.length === 0) {
-      console.error("No leaderboard data available for caption generation");
-      return;
-    }
+  // const generateLeaderboardCaptions = async () => {
+  //   if (massMessagingLeaderboard.length === 0) {
+  //     console.error("No leaderboard data available for caption generation");
+  //     return;
+  //   }
 
-    setIsGeneratingCaptions(true);
-    setShowGeneratedCaptions(false);
+  //   setIsGeneratingCaptions(true);
+  //   setShowGeneratedCaptions(false);
 
-    try {
-      const response = await fetch("/api/generate-captions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          topLeaderboard: massMessagingLeaderboard.slice(0, 5), // Use top 5 from leaderboard
-          topMessages: topPerformingMessages.slice(0, 5), // Also include top messages for context
-        }),
-      });
+  //   try {
+  //     const response = await fetch("/api/generate-captions", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         topLeaderboard: massMessagingLeaderboard.slice(0, 5), // Use top 5 from leaderboard
+  //         topMessages: topPerformingMessages.slice(0, 5), // Also include top messages for context
+  //       }),
+  //     });
 
-      if (!response.ok) {
-        throw new Error("Failed to generate captions");
-      }
+  //     if (!response.ok) {
+  //       throw new Error("Failed to generate captions");
+  //     }
 
-      const data = await response.json();
+  //     const data = await response.json();
 
-      if (data.success && data.captions) {
-        setGeneratedCaptions(data.captions);
-        setShowGeneratedCaptions(true);
-      } else {
-        throw new Error(data.message || "Failed to generate captions");
-      }
-    } catch (error) {
-      console.error("Error generating captions:", error);
-    } finally {
-      setIsGeneratingCaptions(false);
-    }
-  };
+  //     if (data.success && data.captions) {
+  //       setGeneratedCaptions(data.captions);
+  //       setShowGeneratedCaptions(true);
+  //     } else {
+  //       throw new Error(data.message || "Failed to generate captions");
+  //     }
+  //   } catch (error) {
+  //     console.error("Error generating captions:", error);
+  //   } finally {
+  //     setIsGeneratingCaptions(false);
+  //   }
+  // };
 
   // Enhanced copy function
-  const copyToClipboard = async (caption: string, captionId: string) => {
-    try {
-      await navigator.clipboard.writeText(caption);
-      setCopiedCaptionId(captionId);
+  // const copyToClipboard = async (caption: string, captionId: string) => {
+  //   try {
+  //     await navigator.clipboard.writeText(caption);
+  //     setCopiedCaptionId(captionId);
 
-      // Reset the copied state after 2 seconds
-      setTimeout(() => {
-        setCopiedCaptionId(null);
-      }, 2000);
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = caption;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
+  //     // Reset the copied state after 2 seconds
+  //     setTimeout(() => {
+  //       setCopiedCaptionId(null);
+  //     }, 2000);
+  //   } catch (err) {
+  //     // Fallback for older browsers
+  //     const textArea = document.createElement("textarea");
+  //     textArea.value = caption;
+  //     document.body.appendChild(textArea);
+  //     textArea.select();
+  //     document.execCommand("copy");
+  //     document.body.removeChild(textArea);
 
-      setCopiedCaptionId(captionId);
-      setTimeout(() => {
-        setCopiedCaptionId(null);
-      }, 2000);
-    }
-  };
+  //     setCopiedCaptionId(captionId);
+  //     setTimeout(() => {
+  //       setCopiedCaptionId(null);
+  //     }, 2000);
+  //   }
+  // };
 
-  // Helper functions (moved outside useEffect to avoid dependency issues)
-  const getCurrentDateRange = React.useCallback(() => {
-    const now = DateTime.now();
-    let startDate: DateTime;
-    let endDate = now;
+  // // Helper functions (moved outside useEffect to avoid dependency issues)
+  // const getCurrentDateRange = React.useCallback(() => {
+  //   const now = DateTime.now();
+  //   let startDate: DateTime;
+  //   let endDate = now;
 
-    if (dateRange === "custom") {
-      if (customStartDate && customEndDate) {
-        const customStart = DateTime.fromISO(customStartDate);
-        const customEnd = DateTime.fromISO(customEndDate);
-        if (customStart.isValid && customEnd.isValid) {
-          startDate = customStart;
-          endDate = customEnd;
-        } else {
-          startDate = now.minus({ days: 30 });
-        }
-      } else {
-        startDate = now.minus({ days: 30 });
-      }
-    } else {
-      const days = parseInt(dateRange);
-      startDate = now.minus({ days });
-    }
+  //   if (dateRange === "custom") {
+  //     if (customStartDate && customEndDate) {
+  //       const customStart = DateTime.fromISO(customStartDate);
+  //       const customEnd = DateTime.fromISO(customEndDate);
+  //       if (customStart.isValid && customEnd.isValid) {
+  //         startDate = customStart;
+  //         endDate = customEnd;
+  //       } else {
+  //         startDate = now.minus({ days: 30 });
+  //       }
+  //     } else {
+  //       startDate = now.minus({ days: 30 });
+  //     }
+  //   } else {
+  //     const days = parseInt(dateRange);
+  //     startDate = now.minus({ days });
+  //   }
 
-    return { startDate, endDate };
-  }, [dateRange, customStartDate, customEndDate]);
+  //   return { startDate, endDate };
+  // }, [dateRange, customStartDate, customEndDate]);
 
   // Helper function for paginated mass messaging fetch
-  const fetchMassMessagesWithPagination = React.useCallback(
-    async (accountId: string, startDate: DateTime, endDate: DateTime) => {
-      const allMessages: any[] = [];
-      let offset = 0;
-      const limit = 100;
-      let hasMoreData = true;
+  // const fetchMassMessagesWithPagination = React.useCallback(
+  //   async (accountId: string, startDate: DateTime, endDate: DateTime) => {
+  //     const allMessages: any[] = [];
+  //     let offset = 0;
+  //     const limit = 100;
+  //     let hasMoreData = true;
 
-      while (hasMoreData) {
-        try {
-          const messagesResponse = await fetch(
-            `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging&limit=${limit}&offset=${offset}`
-          );
+  //     while (hasMoreData) {
+  //       try {
+  //         const messagesResponse = await fetch(
+  //           `/api/onlyfans/models?accountId=${encodeURIComponent(accountId)}&endpoint=mass-messaging&limit=${limit}&offset=${offset}`
+  //         );
 
-          if (messagesResponse.ok) {
-            const messagesData = await messagesResponse.json();
-            const messages =
-              messagesData.data?.list ||
-              messagesData.list ||
-              messagesData.data ||
-              [];
+  //         if (messagesResponse.ok) {
+  //           const messagesData = await messagesResponse.json();
+  //           const messages =
+  //             messagesData.data?.list ||
+  //             messagesData.list ||
+  //             messagesData.data ||
+  //             [];
 
-            if (!Array.isArray(messages) || messages.length === 0) {
-              hasMoreData = false;
-              break;
-            }
+  //           if (!Array.isArray(messages) || messages.length === 0) {
+  //             hasMoreData = false;
+  //             break;
+  //           }
 
-            // Filter messages by date range on the client side
-            const filteredMessages = messages.filter((msg: any) => {
-              if (!msg.date) return false;
-              const messageDate =
-                DateTime.fromISO(msg.date) ||
-                DateTime.fromJSDate(new Date(msg.date));
-              return messageDate >= startDate && messageDate <= endDate;
-            });
+  //           // Filter messages by date range on the client side
+  //           const filteredMessages = messages.filter((msg: any) => {
+  //             if (!msg.date) return false;
+  //             const messageDate =
+  //               DateTime.fromISO(msg.date) ||
+  //               DateTime.fromJSDate(new Date(msg.date));
+  //             return messageDate >= startDate && messageDate <= endDate;
+  //           });
 
-            allMessages.push(...filteredMessages);
+  //           allMessages.push(...filteredMessages);
 
-            // If we got fewer messages than the limit, we've reached the end
-            if (messages.length < limit) {
-              hasMoreData = false;
-            } else {
-              offset += limit;
-            }
+  //           // If we got fewer messages than the limit, we've reached the end
+  //           if (messages.length < limit) {
+  //             hasMoreData = false;
+  //           } else {
+  //             offset += limit;
+  //           }
 
-            // If all messages in this batch are outside our date range and we're getting older data,
-            // we can stop fetching (assuming messages are sorted by date desc)
-            if (filteredMessages.length === 0 && messages.length > 0) {
-              const oldestMessageInBatch = messages[messages.length - 1];
-              if (oldestMessageInBatch.date) {
-                const oldestDate =
-                  DateTime.fromISO(oldestMessageInBatch.date) ||
-                  DateTime.fromJSDate(new Date(oldestMessageInBatch.date));
-                if (oldestDate < startDate) {
-                  hasMoreData = false;
-                }
-              }
-            }
-          } else {
-            hasMoreData = false;
-          }
-        } catch (error) {
-          console.error(
-            `Error fetching mass messages for account ${accountId} at offset ${offset}:`,
-            error
-          );
-          hasMoreData = false;
-        }
-      }
+  //           // If all messages in this batch are outside our date range and we're getting older data,
+  //           // we can stop fetching (assuming messages are sorted by date desc)
+  //           if (filteredMessages.length === 0 && messages.length > 0) {
+  //             const oldestMessageInBatch = messages[messages.length - 1];
+  //             if (oldestMessageInBatch.date) {
+  //               const oldestDate =
+  //                 DateTime.fromISO(oldestMessageInBatch.date) ||
+  //                 DateTime.fromJSDate(new Date(oldestMessageInBatch.date));
+  //               if (oldestDate < startDate) {
+  //                 hasMoreData = false;
+  //               }
+  //             }
+  //           }
+  //         } else {
+  //           hasMoreData = false;
+  //         }
+  //       } catch (error) {
+  //         console.error(
+  //           `Error fetching mass messages for account ${accountId} at offset ${offset}:`,
+  //           error
+  //         );
+  //         hasMoreData = false;
+  //       }
+  //     }
 
-      return allMessages;
-    },
-    []
-  );
+  //     return allMessages;
+  //   },
+  //   []
+  // );
 
-  const fetchTotalMassMessages = React.useCallback(async () => {
-    setIsLoadingMassMessages(true);
-    try {
-      // Get current date range
-      const { startDate, endDate } = getCurrentDateRange();
+  // const fetchTotalMassMessages = React.useCallback(async () => {
+  //   setIsLoadingMassMessages(true);
+  //   try {
+  //     // Get current date range
+  //     const { startDate, endDate } = getCurrentDateRange();
 
-      // First get all OnlyFans accounts
-      const accountsResponse = await fetch(
-        "/api/onlyfans/models?endpoint=accounts"
-      );
-      if (accountsResponse.ok) {
-        const accountsData = await accountsResponse.json();
-        const accounts = accountsData.accounts || accountsData || [];
+  //     // First get all OnlyFans accounts
+  //     const accountsResponse = await fetch(
+  //       "/api/onlyfans/models?endpoint=accounts"
+  //     );
+  //     if (accountsResponse.ok) {
+  //       const accountsData = await accountsResponse.json();
+  //       const accounts = accountsData.accounts || accountsData || [];
 
-        let totalMessages = 0;
-        const leaderboardData: Array<{
-          name: string;
-          username: string;
-          totalMessages: number;
-          totalViews: number;
-          totalSent: number;
-          viewRate: number;
-          paidMessages: number;
-          freeMessages: number;
-          totalRevenue: number;
-          averagePrice: number;
-          totalPurchases: number;
-          avatar?: string;
-          rank: number;
-        }> = [];
+  //       let totalMessages = 0;
+  //       const leaderboardData: Array<{
+  //         name: string;
+  //         username: string;
+  //         totalMessages: number;
+  //         totalViews: number;
+  //         totalSent: number;
+  //         viewRate: number;
+  //         paidMessages: number;
+  //         freeMessages: number;
+  //         totalRevenue: number;
+  //         averagePrice: number;
+  //         totalPurchases: number;
+  //         avatar?: string;
+  //         rank: number;
+  //       }> = [];
 
-        // Fetch mass messages for each account with pagination and date filtering
-        const allMessages: Array<{
-          id: number;
-          text: string;
-          textCropped: string;
-          viewedCount: number;
-          sentCount: number;
-          viewRate: number;
-          isFree: boolean;
-          price?: string;
-          purchasedCount?: number;
-          revenue: number;
-          date: string;
-          modelName: string;
-          modelUsername: string;
-          modelAvatar?: string;
-          rank: number;
-        }> = [];
+  //       // Fetch mass messages for each account with pagination and date filtering
+  //       const allMessages: Array<{
+  //         id: number;
+  //         text: string;
+  //         textCropped: string;
+  //         viewedCount: number;
+  //         sentCount: number;
+  //         viewRate: number;
+  //         isFree: boolean;
+  //         price?: string;
+  //         purchasedCount?: number;
+  //         revenue: number;
+  //         date: string;
+  //         modelName: string;
+  //         modelUsername: string;
+  //         modelAvatar?: string;
+  //         rank: number;
+  //       }> = [];
 
-        for (const account of accounts) {
-          const accountId = account.id || account.onlyfans_user_data?.id;
-          if (accountId) {
-            const accountMessages = await fetchMassMessagesWithPagination(
-              accountId,
-              startDate,
-              endDate
-            );
+  //       for (const account of accounts) {
+  //         const accountId = account.id || account.onlyfans_user_data?.id;
+  //         if (accountId) {
+  //           const accountMessages = await fetchMassMessagesWithPagination(
+  //             accountId,
+  //             startDate,
+  //             endDate
+  //           );
 
-            totalMessages += accountMessages.length;
+  //           totalMessages += accountMessages.length;
 
-            // Add individual messages to the global list
-            accountMessages.forEach((msg) => {
-              const viewRate =
-                msg.sentCount > 0 ? (msg.viewedCount / msg.sentCount) * 100 : 0;
-              const revenue =
-                !msg.isFree && msg.price
-                  ? parseFloat(msg.price) * (msg.purchasedCount || 0)
-                  : 0;
+  //           // Add individual messages to the global list
+  //           accountMessages.forEach((msg) => {
+  //             const viewRate =
+  //               msg.sentCount > 0 ? (msg.viewedCount / msg.sentCount) * 100 : 0;
+  //             const revenue =
+  //               !msg.isFree && msg.price
+  //                 ? parseFloat(msg.price) * (msg.purchasedCount || 0)
+  //                 : 0;
 
-              allMessages.push({
-                id: msg.id,
-                text: msg.text,
-                textCropped: msg.textCropped,
-                viewedCount: msg.viewedCount || 0,
-                sentCount: msg.sentCount || 0,
-                viewRate,
-                isFree: msg.isFree,
-                price: msg.price,
-                purchasedCount: msg.purchasedCount || 0,
-                revenue,
-                date: msg.date,
-                modelName:
-                  account.onlyfans_user_data?.name || account.name || "Unknown",
-                modelUsername:
-                  account.onlyfans_user_data?.username ||
-                  account.username ||
-                  "N/A",
-                modelAvatar:
-                  account.onlyfans_user_data?.avatar || account.avatar,
-                rank: 0, // Will be set after sorting
-              });
-            });
+  //             allMessages.push({
+  //               id: msg.id,
+  //               text: msg.text,
+  //               textCropped: msg.textCropped,
+  //               viewedCount: msg.viewedCount || 0,
+  //               sentCount: msg.sentCount || 0,
+  //               viewRate,
+  //               isFree: msg.isFree,
+  //               price: msg.price,
+  //               purchasedCount: msg.purchasedCount || 0,
+  //               revenue,
+  //               date: msg.date,
+  //               modelName:
+  //                 account.onlyfans_user_data?.name || account.name || "Unknown",
+  //               modelUsername:
+  //                 account.onlyfans_user_data?.username ||
+  //                 account.username ||
+  //                 "N/A",
+  //               modelAvatar:
+  //                 account.onlyfans_user_data?.avatar || account.avatar,
+  //               rank: 0, // Will be set after sorting
+  //             });
+  //           });
 
-            // Calculate detailed metrics for this account
-            let totalViews = 0;
-            let totalSent = 0;
-            let paidMessages = 0;
-            let freeMessages = 0;
-            let totalRevenue = 0;
-            let totalPurchases = 0;
-            let priceSum = 0;
-            let paidMessageCount = 0;
+  //           // Calculate detailed metrics for this account
+  //           let totalViews = 0;
+  //           let totalSent = 0;
+  //           let paidMessages = 0;
+  //           let freeMessages = 0;
+  //           let totalRevenue = 0;
+  //           let totalPurchases = 0;
+  //           let priceSum = 0;
+  //           let paidMessageCount = 0;
 
-            accountMessages.forEach((msg) => {
-              totalViews += msg.viewedCount || 0;
-              totalSent += msg.sentCount || 0;
-              totalPurchases += msg.purchasedCount || 0;
+  //           accountMessages.forEach((msg) => {
+  //             totalViews += msg.viewedCount || 0;
+  //             totalSent += msg.sentCount || 0;
+  //             totalPurchases += msg.purchasedCount || 0;
 
-              if (msg.isFree) {
-                freeMessages++;
-              } else {
-                paidMessages++;
-                if (msg.price) {
-                  const price = parseFloat(msg.price);
-                  if (!isNaN(price)) {
-                    priceSum += price;
-                    paidMessageCount++;
-                    totalRevenue += price * (msg.purchasedCount || 0);
-                  }
-                }
-              }
-            });
+  //             if (msg.isFree) {
+  //               freeMessages++;
+  //             } else {
+  //               paidMessages++;
+  //               if (msg.price) {
+  //                 const price = parseFloat(msg.price);
+  //                 if (!isNaN(price)) {
+  //                   priceSum += price;
+  //                   paidMessageCount++;
+  //                   totalRevenue += price * (msg.purchasedCount || 0);
+  //                 }
+  //               }
+  //             }
+  //           });
 
-            const viewRate = totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
-            const averagePrice =
-              paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
+  //           const viewRate = totalSent > 0 ? (totalViews / totalSent) * 100 : 0;
+  //           const averagePrice =
+  //             paidMessageCount > 0 ? priceSum / paidMessageCount : 0;
 
-            // Add to leaderboard data if there are messages
-            if (accountMessages.length > 0) {
-              leaderboardData.push({
-                name:
-                  account.onlyfans_user_data?.name || account.name || "Unknown",
-                username:
-                  account.onlyfans_user_data?.username ||
-                  account.username ||
-                  "N/A",
-                totalMessages: accountMessages.length,
-                totalViews,
-                totalSent,
-                viewRate,
-                paidMessages,
-                freeMessages,
-                totalRevenue,
-                averagePrice,
-                totalPurchases,
-                avatar: account.onlyfans_user_data?.avatar || account.avatar,
-                rank: 0, // Will be set after sorting
-              });
-            }
-          }
-        }
+  //           // Add to leaderboard data if there are messages
+  //           if (accountMessages.length > 0) {
+  //             leaderboardData.push({
+  //               name:
+  //                 account.onlyfans_user_data?.name || account.name || "Unknown",
+  //               username:
+  //                 account.onlyfans_user_data?.username ||
+  //                 account.username ||
+  //                 "N/A",
+  //               totalMessages: accountMessages.length,
+  //               totalViews,
+  //               totalSent,
+  //               viewRate,
+  //               paidMessages,
+  //               freeMessages,
+  //               totalRevenue,
+  //               averagePrice,
+  //               totalPurchases,
+  //               avatar: account.onlyfans_user_data?.avatar || account.avatar,
+  //               rank: 0, // Will be set after sorting
+  //             });
+  //           }
+  //         }
+  //       }
 
-        // Sort messages by revenue (primary), then by views (secondary), then by view rate (tertiary)
-        allMessages.sort((a, b) => {
-          if (b.revenue !== a.revenue) {
-            return b.revenue - a.revenue;
-          }
-          if (b.viewedCount !== a.viewedCount) {
-            return b.viewedCount - a.viewedCount;
-          }
-          return b.viewRate - a.viewRate;
-        });
-        allMessages.forEach((msg, index) => {
-          msg.rank = index + 1;
-        });
+  //       // Sort messages by revenue (primary), then by views (secondary), then by view rate (tertiary)
+  //       allMessages.sort((a, b) => {
+  //         if (b.revenue !== a.revenue) {
+  //           return b.revenue - a.revenue;
+  //         }
+  //         if (b.viewedCount !== a.viewedCount) {
+  //           return b.viewedCount - a.viewedCount;
+  //         }
+  //         return b.viewRate - a.viewRate;
+  //       });
+  //       allMessages.forEach((msg, index) => {
+  //         msg.rank = index + 1;
+  //       });
 
-        // Set top performing messages
-        setTopPerformingMessages(allMessages.slice(0, 10));
+  //       // Set top performing messages
+  //       setTopPerformingMessages(allMessages.slice(0, 10));
 
-        // Sort leaderboard by total revenue (primary), then view count (secondary), then view rate (tertiary)
-        leaderboardData.sort((a, b) => {
-          if (b.totalRevenue !== a.totalRevenue) {
-            return b.totalRevenue - a.totalRevenue;
-          }
-          if (b.totalViews !== a.totalViews) {
-            return b.totalViews - a.totalViews;
-          }
-          return b.viewRate - a.viewRate;
-        });
-        leaderboardData.forEach((item, index) => {
-          item.rank = index + 1;
-        });
+  //       // Sort leaderboard by total revenue (primary), then view count (secondary), then view rate (tertiary)
+  //       leaderboardData.sort((a, b) => {
+  //         if (b.totalRevenue !== a.totalRevenue) {
+  //           return b.totalRevenue - a.totalRevenue;
+  //         }
+  //         if (b.totalViews !== a.totalViews) {
+  //           return b.totalViews - a.totalViews;
+  //         }
+  //         return b.viewRate - a.viewRate;
+  //       });
+  //       leaderboardData.forEach((item, index) => {
+  //         item.rank = index + 1;
+  //       });
 
-        setTotalMassMessages(totalMessages);
-        setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
-      }
-    } catch (error) {
-      console.error("Error fetching total mass messages:", error);
-    } finally {
-      setIsLoadingMassMessages(false);
-    }
-  }, [getCurrentDateRange, fetchMassMessagesWithPagination]);
+  //       setTotalMassMessages(totalMessages);
+  //       setMassMessagingLeaderboard(leaderboardData.slice(0, 5)); // Top 5
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching total mass messages:", error);
+  //   } finally {
+  //     setIsLoadingMassMessages(false);
+  //   }
+  // }, [getCurrentDateRange, fetchMassMessagesWithPagination]);
 
   // CORRECTED: Fetch all data once (proper separation of voice stats and sales stats)
   useEffect(() => {
@@ -954,45 +954,45 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
     };
   }, []);
 
-  // Fetch mass messages when component mounts or date range changes
-  useEffect(() => {
-    // Reset expanded messages when date range changes
-    setExpandedMessages(new Set());
-    fetchTotalMassMessages();
-  }, [fetchTotalMassMessages]); // Re-fetch when date range changes
+  // // Fetch mass messages when component mounts or date range changes
+  // useEffect(() => {
+  //   // Reset expanded messages when date range changes
+  //   setExpandedMessages(new Set());
+  //   fetchTotalMassMessages();
+  // }, [fetchTotalMassMessages]); // Re-fetch when date range changes
 
-  // Loading message cycling effect for mass messaging
-  useEffect(() => {
-    if (!isLoadingMassMessages) {
-      setCurrentLoadingMessageIndex(0);
-      return;
-    }
+  // // Loading message cycling effect for mass messaging
+  // useEffect(() => {
+  //   if (!isLoadingMassMessages) {
+  //     setCurrentLoadingMessageIndex(0);
+  //     return;
+  //   }
 
-    const scheduleNextMessage = () => {
-      // Random interval between 5-10 seconds (5000-10000ms)
-      const randomInterval = Math.floor(Math.random() * 5000) + 5000;
+  //   const scheduleNextMessage = () => {
+  //     // Random interval between 5-10 seconds (5000-10000ms)
+  //     const randomInterval = Math.floor(Math.random() * 5000) + 5000;
 
-      const timeout = setTimeout(() => {
-        setCurrentLoadingMessageIndex(
-          (prevIndex) => (prevIndex + 1) % loadingMessages.length
-        );
-        scheduleNextMessage(); // Schedule the next message change
-      }, randomInterval);
+  //     const timeout = setTimeout(() => {
+  //       setCurrentLoadingMessageIndex(
+  //         (prevIndex) => (prevIndex + 1) % loadingMessages.length
+  //       );
+  //       scheduleNextMessage(); // Schedule the next message change
+  //     }, randomInterval);
 
-      return timeout;
-    };
+  //     return timeout;
+  //   };
 
-    // Initial delay before first message change (3-7 seconds)
-    const initialDelay = Math.floor(Math.random() * 4000) + 3000;
-    const initialTimeout = setTimeout(() => {
-      setCurrentLoadingMessageIndex(
-        (prevIndex) => (prevIndex + 1) % loadingMessages.length
-      );
-      scheduleNextMessage(); // Start the recurring schedule
-    }, initialDelay);
+  //   // Initial delay before first message change (3-7 seconds)
+  //   const initialDelay = Math.floor(Math.random() * 4000) + 3000;
+  //   const initialTimeout = setTimeout(() => {
+  //     setCurrentLoadingMessageIndex(
+  //       (prevIndex) => (prevIndex + 1) % loadingMessages.length
+  //     );
+  //     scheduleNextMessage(); // Start the recurring schedule
+  //   }, initialDelay);
 
-    return () => clearTimeout(initialTimeout);
-  }, [isLoadingMassMessages, loadingMessages.length]);
+  //   return () => clearTimeout(initialTimeout);
+  // }, [isLoadingMassMessages, loadingMessages.length]);
 
   const vnSales = vnSalesData;
 
@@ -1006,18 +1006,37 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
 
   // CORRECTED: Updated statCards with proper loading states
   const statCards = [
+    // {
+    //   title: "Total Revenue",
+    //   value: vnSales.totalRevenue,
+    //   formattedValue: `$${vnSales.totalRevenue.toLocaleString()}`,
+    //   icon: TrendingUp,
+    //   description: `+${analytics.revenueGrowth}% from last week`,
+    //   color: "text-green-600",
+    //   bgColor: "bg-green-50",
+    //   iconBgColor: "bg-green-100",
+    //   prefix: "$",
+    //   suffix: "",
+    //   isLoading: isLoadingVnSales, // Sales loading state
+    // },
     {
-      title: "Total Revenue",
-      value: vnSales.totalRevenue,
-      formattedValue: `$${vnSales.totalRevenue.toLocaleString()}`,
-      icon: TrendingUp,
-      description: `+${analytics.revenueGrowth}% from last week`,
+      title: "SWD Total Revenue",
+      value: isLoadingSwdData ? 0 : swdData.totalRevenue,
+      formattedValue: isLoadingSwdData
+        ? "Loading..."
+        : `$${swdData.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
+      icon: DollarSign,
+      description: isLoadingSwdData
+        ? "Fetching from Google Sheets..."
+        : `Total revenue from all script creators`,
       color: "text-green-600",
       bgColor: "bg-green-50",
       iconBgColor: "bg-green-100",
       prefix: "$",
       suffix: "",
-      isLoading: isLoadingVnSales, // Sales loading state
+      isLoading: isLoadingSwdData,
+      // Add decimals property for CountUp to show cents
+      decimals: 2,
     },
     {
       title: "Total Users",
@@ -1055,7 +1074,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         "Fetching from ElevenLabs..."
       ) : (
         <div className="flex items-center space-x-3 text-sm">
-          <span className="text-gray-500 dark:text-gray-400">{vnSales.newVnToday} new today</span>
+          <span className="text-gray-500 dark:text-gray-400">
+            {vnSales.newVnToday} new today
+          </span>
           <div className="flex items-center space-x-1">
             <div className="w-2 h-2 bg-pink-500 rounded-full animate-pulse"></div>
             <span className="text-pink-600 font-medium">
@@ -1085,21 +1106,21 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       suffix: "",
       isLoading: false,
     },
-    {
-      title: "Total Mass Messages",
-      value: totalMassMessages,
-      formattedValue: isLoadingMassMessages
-        ? "Loading..."
-        : totalMassMessages.toLocaleString(),
-      icon: MessageCircle,
-      description: "Total number of mass messages sent",
-      color: "text-pink-600",
-      bgColor: "bg-pink-50",
-      iconBgColor: "bg-pink-100",
-      prefix: "",
-      suffix: "",
-      isLoading: isLoadingMassMessages,
-    },
+    // {
+    //   title: "Total Mass Messages",
+    //   value: totalMassMessages,
+    //   formattedValue: isLoadingMassMessages
+    //     ? "Loading..."
+    //     : totalMassMessages.toLocaleString(),
+    //   icon: MessageCircle,
+    //   description: "Total number of mass messages sent",
+    //   color: "text-pink-600",
+    //   bgColor: "bg-pink-50",
+    //   iconBgColor: "bg-pink-100",
+    //   prefix: "",
+    //   suffix: "",
+    //   isLoading: isLoadingMassMessages,
+    // },
     {
       title: "Total Scripts",
       value: swdData.totalScripts,
@@ -1116,25 +1137,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       prefix: "",
       suffix: "",
       isLoading: isLoadingSwdData,
-    },
-    {
-      title: "SWD Total Revenue",
-      value: isLoadingSwdData ? 0 : swdData.totalRevenue,
-      formattedValue: isLoadingSwdData
-        ? "Loading..."
-        : `$${swdData.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-      icon: DollarSign,
-      description: isLoadingSwdData
-        ? "Fetching from Google Sheets..."
-        : `Total revenue from all script creators`,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
-      iconBgColor: "bg-green-100",
-      prefix: "$",
-      suffix: "",
-      isLoading: isLoadingSwdData,
-      // Add decimals property for CountUp to show cents
-      decimals: 2,
     },
   ];
   return (
@@ -1403,8 +1405,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               </button>
             </div>
           </CardHeader>
-          <CardContent className="p-6 bg-white dark:bg-gray-800">
-            <div className="space-y-4">
+          <CardContent className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1 min-h-0">
+            <div className="space-y-4 flex-1 overflow-auto min-h-0">
               {isLoadingMassMessages ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <div className="flex items-center space-x-3">
@@ -1765,8 +1767,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               <span>MM Campaign Champion Leaderboards</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 bg-white dark:bg-gray-800">
-            <div className="space-y-4">
+          <CardContent className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1 min-h-0">
+            <div className="space-y-4 flex-1 overflow-auto min-h-0">
               {isLoadingMassMessages ? (
                 <div className="flex flex-col items-center justify-center py-12 space-y-4">
                   <div className="flex items-center space-x-3">
@@ -2034,7 +2036,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       </div> */}
 
       {/* SWD Leaderboards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
@@ -2045,8 +2047,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               <span>SWD Total Send Leaderboard</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 bg-white dark:bg-gray-800">
-            <div className="space-y-4">
+          <CardContent className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1 min-h-0">
+            <div className="space-y-4 flex-1 overflow-auto min-h-0">
               {isLoadingSwdData ? (
                 <div className="flex justify-center py-8">
                   <div className="flex items-center text-gray-500 dark:text-gray-400">
@@ -2062,7 +2064,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         case 0:
                           return <Trophy className="h-6 w-6 text-yellow-500" />;
                         case 1:
-                          return <Medal className="h-6 w-6 text-gray-400 dark:text-gray-500" />;
+                          return (
+                            <Medal className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                          );
                         case 2:
                           return <Award className="h-6 w-6 text-amber-600" />;
                         default:
@@ -2135,8 +2139,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               <span>SWD Total Buy Leaderboard</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 bg-white dark:bg-gray-800">
-            <div className="space-y-4">
+          <CardContent className="p-6 bg-white dark:bg-gray-800 flex flex-col flex-1 min-h-0">
+            <div className="space-y-4 flex-1 overflow-auto min-h-0">
               {isLoadingSwdData ? (
                 <div className="flex justify-center py-8">
                   <div className="flex items-center text-gray-500 dark:text-gray-400">
@@ -2152,7 +2156,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         case 0:
                           return <Trophy className="h-6 w-6 text-yellow-500" />;
                         case 1:
-                          return <Medal className="h-6 w-6 text-gray-400 dark:text-gray-500" />;
+                          return (
+                            <Medal className="h-6 w-6 text-gray-400 dark:text-gray-500" />
+                          );
                         case 2:
                           return <Award className="h-6 w-6 text-amber-600" />;
                         default:
@@ -2220,7 +2226,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
+        <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden flex flex-col h-full">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -2357,7 +2363,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </div>
           </CardContent>
         </Card>
-        <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
+        <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden flex flex-col h-full">
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -2426,9 +2432,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
       </div>
       {/* Tables Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
         {/* Recent Users Table */}
-        <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
+        <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden flex flex-col h-full">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
@@ -2439,8 +2445,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
               <span>Recent Users</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 bg-white dark:bg-gray-800">
-            <div className="overflow-x-auto">
+          <CardContent className="p-6 bg-white dark:bg-gray-800 flex-1 min-h-0">
+            <div className="overflow-x-auto min-h-0">
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-pink-200 dark:border-pink-500/30">
@@ -2484,7 +2490,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                           </span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">{user.email}</td>
+                      <td className="py-3 px-4 text-gray-700 dark:text-gray-300">
+                        {user.email}
+                      </td>
                       <td className="py-3 px-4">
                         <Badge
                           variant="secondary"
@@ -2499,7 +2507,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         </Badge>
                       </td>
                       <td className="py-3 px-4 text-gray-500 dark:text-gray-400">
-                        {formatForDisplay(user.createdAt, 'date')}
+                        {formatForDisplay(user.createdAt, "date")}
                       </td>
                     </tr>
                   ))}
@@ -2510,18 +2518,18 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
 
         {/* Recent Activity Table */}
-        <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
+        <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden flex flex-col h-full">
           {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
-          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-gray-200 dark:border-gray-600">
+          <CardHeader className="bg-gradient-to-r from-gray-50 to-pink-50 dark:from-gray-700 dark:to-gray-600 border-b border-pink-200 dark:border-pink-500/30">
             <CardTitle className="flex items-center space-x-2 text-gray-900 dark:text-gray-100">
-              <Activity className="h-5 w-5 text-green-500" />
+              <Activity className="h-5 w-5 text-purple-500" />
               <span>Recent Content Generation</span>
             </CardTitle>
           </CardHeader>
-          <CardContent className="p-6 bg-white dark:bg-gray-800">
+          <CardContent className="p-6 bg-white dark:bg-gray-800 flex-1 min-h-0">
             {isLoadingContentStats ? (
               <div className="flex justify-center py-8">
                 <div className="flex items-center text-gray-500 dark:text-gray-400">
@@ -2530,25 +2538,24 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </div>
               </div>
             ) : recentActivities.length > 0 ? (
-              <div className="overflow-x-auto">
+              <div className="overflow-x-auto min-h-0">
                 <table className="w-full">
                   <thead>
-                    <tr className="border-b border-gray-200 dark:border-gray-600">
+                    <tr className="border-b border-pink-200 dark:border-pink-500/30">
                       <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
                         User
                       </th>
                       <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
                         Model
                       </th>
-                     
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="">
                     {recentActivities.slice(0, 5).map((activity, index) => {
                       return (
                         <tr
                           key={index}
-                          className="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors duration-300"
+                          className=" h-full border-b border-pink-200 dark:border-pink-500/30 hover:bg-pink-50 dark:hover:bg-gray-700/50 transition-colors duration-300"
                         >
                           <td className="py-2 px-4">
                             <div className="flex items-center space-x-3">
@@ -2585,7 +2592,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                   {activity.name}
                                 </p>
                                 <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
-                                  {formatForDisplay(activity.createdAt, 'relative')}
+                                  {formatForDisplay(
+                                    activity.createdAt,
+                                    "relative"
+                                  )}
                                 </p>
                               </div>
                               <div className="text-xs text-gray-500 dark:text-gray-400">
@@ -2598,8 +2608,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               {activity.model || "N/A"}
                             </div>
                           </td>
-                         
-                         
                         </tr>
                       );
                     })}
