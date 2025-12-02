@@ -1,10 +1,128 @@
 import { NextResponse } from "next/server";
-import { google } from "googleapis";
-import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
 export async function GET() {
   try {
+    // New database-driven implementation
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // AI Gen Tracker
+    const aiGenTotalSum = await prisma.aIGenMonitoring.aggregate({
+      _sum: {
+        files: true,
+      },
+    });
+    const aiGenCount = aiGenTotalSum._sum.files ?? 0;
+
+    const aiGenTodaySum = await prisma.aIGenMonitoring.aggregate({
+      where: {
+        createdAt: {
+          gte: today,
+        },
+      },
+      _sum: {
+        files: true,
+      },
+    });
+    const aiGenTodayCount = aiGenTodaySum._sum.files ?? 0;
+
+    // Live Gen Tracker
+    const liveGenRecords = await prisma.liveFlyerGallery.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    const liveGenCount = liveGenRecords.length;
+    const liveGenTodayCount = liveGenRecords.filter(
+      (r) => new Date(r.createdAt) >= today
+    ).length;
+
+    const totalContentGenerated = aiGenCount + liveGenCount;
+    const contentGeneratedToday = aiGenTodayCount + liveGenTodayCount;
+
+    const contentByTracker = [
+      { tracker: "AI Gen Tracker", count: aiGenCount },
+      { tracker: "Live Gen Tracker", count: liveGenCount },
+    ];
+
+    // Fetch recent activities
+    const recentAiGen = await prisma.aIGenMonitoring.findMany({
+      take: 10,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        // We need to fetch the user separately based on email
+      },
+    });
+
+    const recentLiveGen = await prisma.liveFlyerGallery.findMany({
+      take: 10,
+      orderBy: {
+        createdAt: "desc",
+      },
+      include: {
+        createdBy: {
+          select: { name: true, email: true, image: true },
+        },
+        clientModel: {
+          select: { clientName: true },
+        },
+      },
+    });
+
+    const recentActivitiesPromises = recentAiGen.map(async (activity) => {
+      const user = activity.createdByEmail
+        ? await prisma.user.findUnique({
+            where: { email: activity.createdByEmail },
+            select: { name: true, image: true },
+          })
+        : null;
+      return {
+        tracker: "AI Gen Tracker",
+        name: user?.name || activity.createdByEmail?.split("@")[0] || "Unknown",
+        email: activity.createdByEmail || "Unknown",
+        image: user?.image || null,
+        createdAt: activity.createdAt.toISOString(),
+        model: activity.folderName || "N/A",
+        activity: "Generated content in AI Gen Tracker",
+      };
+    });
+
+    const recentLiveActivities = recentLiveGen.map((activity) => ({
+      tracker: "Live Gen Tracker",
+      name: activity.createdBy.name || "Unknown",
+      email: activity.createdBy.email,
+      image: activity.createdBy.image || null,
+      createdAt: activity.createdAt.toISOString(),
+      model: activity.clientModel?.clientName || "N/A",
+      activity: "Generated content in Live Gen Tracker",
+    }));
+
+    const recentActivities = (
+      await Promise.all(recentActivitiesPromises)
+    ).concat(recentLiveActivities);
+
+    // Sort by most recent and limit to 10
+    const sortedActivities = recentActivities
+      .sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      )
+      .slice(0, 10);
+
+    return NextResponse.json({
+      totalContentGenerated,
+      contentGeneratedToday,
+      contentGrowth: Math.floor(Math.random() * 20) + 5, // Mock growth percentage
+      contentByTracker,
+      recentActivities: sortedActivities,
+    });
+
+    /*
+    // OLD GOOGLE SHEETS IMPLEMENTATION
     const session = await auth();
 
     if (!session || !session.user) {
@@ -249,19 +367,9 @@ export async function GET() {
       ),
       recentActivities: sortedActivities,
     });
+    */
   } catch (error: any) {
     console.error("Error fetching content generation stats:", error);
-
-    // Handle Google API permission errors specifically
-    if (error.code === 403 && error.errors && error.errors.length > 0) {
-      return NextResponse.json(
-        {
-          error: "GooglePermissionDenied",
-          message: `Google API Error: ${error.errors[0].message || "The authenticated Google account does not have permission for the Google Sheet."}`,
-        },
-        { status: 403 }
-      );
-    }
 
     return NextResponse.json(
       {

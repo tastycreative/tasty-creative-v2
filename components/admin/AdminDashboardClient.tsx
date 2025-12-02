@@ -1307,8 +1307,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
       </div>
 
       {/* MM Leaderboards */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Date Range Selector for MM Campaigns */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="lg:col-span-2 mb-4">
           <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-4">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -1372,9 +1371,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </div>
           </div>
         </div>
-        {/* Top Performing Messages Leaderboard */}
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
-          {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -1481,7 +1478,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         key={`message-${message.id}`}
                         className={`flex flex-col p-4 rounded-lg border ${getRankStyle(message.rank)} transition-all duration-300 hover:scale-[1.01] hover:shadow-md relative group overflow-hidden`}
                       >
-                        {/* Glass reflection effect for individual message items */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
                         </div>
@@ -1543,7 +1539,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                                   : message.textCropped,
                               }}
                             />
-                            {/* Show read more button if the full text is longer than the cropped text or if text is longer than 150 characters */}
                             {message.text &&
                               (message.text.length > 150 ||
                                 (message.textCropped &&
@@ -1679,7 +1674,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                 </div>
               )}
             </div>
-            {/* Generated Captions Section */}
             {showGeneratedCaptions && generatedCaptions.length > 0 && (
               <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-600">
                 <div className="flex items-center justify-between mb-4">
@@ -1711,7 +1705,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             </Badge>
                           </div>
 
-                          {/* Display caption with paragraph breaks */}
                           <div className="text-gray-800 dark:text-gray-200 text-sm leading-relaxed">
                             {caption
                               .split("\n\n")
@@ -1762,9 +1755,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardContent>
         </Card>
 
-        {/* MM Campaign Leaderboards */}
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
-          {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -1849,12 +1840,10 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                         key={index}
                         className={`p-4 rounded-lg border ${getRankStyle(model.rank)} transition-all duration-300 hover:scale-[1.02] hover:shadow-md relative group overflow-hidden`}
                       >
-                        {/* Glass reflection effect for individual model items */}
                         <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
                           <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-500 ease-in-out"></div>
                         </div>
                         <div className="space-y-4">
-                          {/* Header with model info */}
                           <div className="flex items-center space-x-3">
                             {getTrophyIcon(model.rank)}
                             <div className="flex items-center space-x-3 flex-1 min-w-0">
@@ -1884,7 +1873,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             </div>
                           </div>
 
-                          {/* Main stats - responsive grid */}
                           <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-3">
                             <div className="text-center p-3 bg-green-50 dark:bg-green-900/30 rounded-lg border border-green-200 dark:border-green-500/30">
                               <p className="font-bold text-lg sm:text-xl text-green-600 dark:text-green-400">
@@ -1910,7 +1898,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             </div>
                           </div>
 
-                          {/* Message breakdown */}
                           <div className="flex flex-wrap items-center justify-center gap-3">
                             <div className="flex items-center space-x-1 bg-green-50 dark:bg-green-900/30 px-2 py-1 rounded-full border border-green-200 dark:border-green-500/30">
                               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
@@ -1932,7 +1919,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             </div>
                           </div>
 
-                          {/* Additional details */}
                           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs text-gray-500 dark:text-gray-400">
                             <span>
                               Avg Price:{" "}
@@ -1946,7 +1932,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             </span>
                           </div>
 
-                          {/* Rank badges */}
                           <div className="flex justify-center">
                             {model.rank === 1 && (
                               <span className="text-xs bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 px-3 py-1 rounded-full border border-green-200 dark:border-green-500/30 font-medium">
@@ -2046,13 +2031,11 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* SWD Leaderboards */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Total Send Leaderboard */}
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
-          {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -2142,9 +2125,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
           </CardContent>
         </Card>
 
-        {/* Total Buy Leaderboard */}
         <Card className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
-          {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -2238,11 +2219,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
         </Card>
       </div>
 
-      {/* Charts Row */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* VN Sales by Model - CORRECTED WITH REAL DATA */}
         <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
-          {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -2313,7 +2291,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                     </div>
                   ))}
 
-                  {/* Summary section */}
                   <div className="text-center text-gray-500 dark:text-gray-400 py-4 border-t border-pink-200 dark:border-pink-500/30 mt-4">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-center">
                       <div>
@@ -2345,7 +2322,6 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       </div>
                     </div>
 
-                    {/* Real-time indicator */}
                     <div className="flex items-center justify-center mt-3 text-xs text-gray-400 dark:text-gray-500">
                       <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse mr-2"></div>
                       <span>
@@ -2381,9 +2357,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
             </div>
           </CardContent>
         </Card>
-        {/* Content Generation by Tracker */}
         <Card className="bg-white dark:bg-gray-800 border border-pink-200 dark:border-pink-500/30 hover:border-pink-300 dark:hover:border-pink-500/50 transition-all duration-300 relative group overflow-hidden">
-          {/* Glass reflection effect */}
           <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none">
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-gray-100/30 via-pink-100/25 to-transparent transform -skew-x-12 -translate-x-full group-hover:translate-x-full transition-transform duration-700 ease-in-out"></div>
           </div>
@@ -2566,12 +2540,7 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
                         Model
                       </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
-                        Activity
-                      </th>
-                      <th className="text-left py-3 px-4 font-medium text-gray-700 dark:text-gray-300">
-                        Tracker
-                      </th>
+                     
                     </tr>
                   </thead>
                   <tbody>
@@ -2629,22 +2598,8 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                               {activity.model || "N/A"}
                             </div>
                           </td>
-                          <td className="py-3 px-4 text-gray-700 dark:text-gray-300 text-sm">
-                            Generated content
-                          </td>
-                          <td className="py-3 px-4">
-                            <Badge
-                              variant="secondary"
-                              className={`text-xs
-                                ${activity.tracker === "VIP Gen Tracker" ? "bg-purple-100 dark:bg-purple-900/30 text-purple-800 dark:text-purple-300 border-purple-200 dark:border-purple-500/30" : ""}
-                                ${activity.tracker === "Live Gen Tracker" ? "bg-red-100 dark:bg-red-900/30 text-red-800 dark:text-red-300 border-red-200 dark:border-red-500/30" : ""}
-                                ${activity.tracker === "FTT Gen Tracker" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 border-blue-200 dark:border-blue-500/30" : ""}
-                                ${activity.tracker === "AI Gen Tracker" ? "bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-300 border-green-200 dark:border-green-500/30" : ""}
-                              `}
-                            >
-                              {activity.tracker.replace(" Gen Tracker", "")}
-                            </Badge>
-                          </td>
+                         
+                         
                         </tr>
                       );
                     })}

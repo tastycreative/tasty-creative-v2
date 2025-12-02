@@ -1169,6 +1169,21 @@ model ContentEvent {
   @@index([type])
 }
 
+model AIGenMonitoring {
+  id                     String    @id @default(cuid())
+  updatedAt              DateTime  @updatedAt
+  folderName             String?
+  folderLink             String?
+  files                  Int?
+  latestImageThumbnail   String?
+  latestImageLink        String?
+  createdByEmail         String?
+  createdAt              DateTime  @default(now())
+
+  @@index([folderName])
+  @@index([createdByEmail])
+}
+
 enum Role {
   USER
   ADMIN
