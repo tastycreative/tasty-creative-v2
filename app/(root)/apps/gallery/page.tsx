@@ -1,7 +1,9 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import ContentCard from "@/components/gallery/ContentCard";
+import ListCard from "@/components/gallery/ContentCard/ListCard";
+import CompactCard from "@/components/gallery/ContentCard/CompactCard";
 import BulkActionsToolbar from "@/components/gallery/BulkActionsToolbar";
 import KeyboardShortcutsModal from "@/components/gallery/KeyboardShortcutsModal";
 import {
@@ -12,8 +14,12 @@ import {
 import { StatsCards } from "@/components/gallery/Stats";
 import Pagination from "@/components/gallery/Pagination";
 import GallerySkeleton from "@/components/gallery/GallerySkeleton";
+import ViewModeSwitcher, { ViewMode, getGridConfig } from "@/components/gallery/ViewModeSwitcher";
+import VirtualizedGalleryGrid from "@/components/gallery/VirtualizedGalleryGrid";
+import FilterPresets from "@/components/gallery/FilterPresets";
+import SmartCollections from "@/components/gallery/SmartCollections";
 import { GalleryItem, FilterState } from "@/types/gallery";
-import { Grid3X3, SlidersHorizontal, RotateCcw, CheckSquare, Table2, Kanban, FolderOpen } from "lucide-react";
+import { Grid3X3, SlidersHorizontal, RotateCcw, CheckSquare, Table2, Kanban, FolderOpen, PanelLeftClose, PanelLeft, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -26,6 +32,7 @@ import {
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
 import { useDebounce } from "@/hooks/useDebounce";
+import { cn } from "@/lib/utils";
 
 // Error Boundary Component for robust error handling
 class ErrorBoundary extends React.Component<
@@ -102,6 +109,14 @@ const GalleryContent = () => {
   // Keyboard shortcuts state
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
+
+  // New UI/UX states
+  const [viewMode, setViewMode] = useState<ViewMode>("grid");
+  const [useVirtualScrolling, setUseVirtualScrolling] = useState(false);
+  const [showCollectionsSidebar, setShowCollectionsSidebar] = useState(false);
+  const [activeCollection, setActiveCollection] = useState<string | null>(null);
+  const [focusedIndex, setFocusedIndex] = useState<number>(-1);
+  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
 
   // React Query hooks for data management
   const { data: galleryData, isLoading, error } = useGalleryData();
@@ -255,7 +270,7 @@ const GalleryContent = () => {
   }, [allFilteredItems, filters.sortBy]);
 
   // Filter items based on active tab
-  const filteredContent = useMemo(() => {
+  const tabFilteredItems = useMemo(() => {
     switch (activeTab) {
       case "favorites":
         return sortedItems.filter((item) => item.isFavorite);
@@ -265,6 +280,57 @@ const GalleryContent = () => {
         return sortedItems;
     }
   }, [sortedItems, activeTab]);
+
+  // Apply smart collection filter
+  const filteredContent = useMemo(() => {
+    if (!activeCollection) return tabFilteredItems;
+
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    switch (activeCollection) {
+      case "high-performers":
+        return tabFilteredItems.filter((item) => item.totalRevenue >= 100);
+      case "best-roi":
+        return tabFilteredItems.filter(
+          (item) =>
+            item.outcome?.toLowerCase().includes("good") ||
+            item.outcome?.toLowerCase().includes("success")
+        );
+      case "top-sellers":
+        return tabFilteredItems.filter((item) => item.totalBuys >= 20);
+      case "favorites":
+        return tabFilteredItems.filter((item) => item.isFavorite === true);
+      case "ptr-queue":
+        return tabFilteredItems.filter((item) => item.isPTR === true && !item.ptrSent);
+      case "ptr-sent":
+        return tabFilteredItems.filter((item) => item.ptrSent === true);
+      case "ready-rotation":
+        return tabFilteredItems.filter((item) => item.isReadyForRotation === true);
+      case "recent-7d":
+        return tabFilteredItems.filter((item) => {
+          const added = new Date(item.dateAdded);
+          return added >= sevenDaysAgo;
+        });
+      case "recent-30d":
+        return tabFilteredItems.filter((item) => {
+          const added = new Date(item.dateAdded);
+          return added >= thirtyDaysAgo;
+        });
+      case "needs-attention":
+        return tabFilteredItems.filter(
+          (item) =>
+            item.outcome?.toLowerCase().includes("bad") ||
+            item.outcome?.toLowerCase().includes("poor")
+        );
+      default:
+        return tabFilteredItems;
+    }
+  }, [tabFilteredItems, activeCollection]);
+
+  // Get grid config based on view mode
+  const gridConfig = useMemo(() => getGridConfig(viewMode), [viewMode]);
 
   // Calculate total revenue from all gallery items
   const totalRevenue = useMemo(() => {
@@ -330,6 +396,47 @@ const GalleryContent = () => {
   // Get selected items
   const selectedItems = paginatedContent.filter(item => selectedIds.has(item.id));
 
+  // Smart collection handlers
+  const handleSelectCollection = useCallback((collectionId: string, collectionFilters?: Partial<FilterState>) => {
+    setActiveCollection(collectionId);
+    if (collectionFilters) {
+      setFilters(prev => ({ ...prev, ...collectionFilters }));
+    }
+    setCurrentPage(1);
+  }, []);
+
+  const handleClearCollection = useCallback(() => {
+    setActiveCollection(null);
+  }, []);
+
+  // Range selection handler for shift+click
+  const handleRangeSelection = useCallback((clickedIndex: number) => {
+    if (lastSelectedIndex === -1) {
+      setLastSelectedIndex(clickedIndex);
+      return;
+    }
+
+    const start = Math.min(lastSelectedIndex, clickedIndex);
+    const end = Math.max(lastSelectedIndex, clickedIndex);
+    const itemsInRange = paginatedContent.slice(start, end + 1);
+
+    setSelectedIds(prev => {
+      const newSet = new Set(prev);
+      itemsInRange.forEach(item => newSet.add(item.id));
+      return newSet;
+    });
+  }, [lastSelectedIndex, paginatedContent]);
+
+  // Enhanced toggle selection with shift support
+  const handleToggleSelectionWithShift = useCallback((id: string, index: number, shiftKey: boolean) => {
+    if (shiftKey && selectionMode && lastSelectedIndex !== -1) {
+      handleRangeSelection(index);
+    } else {
+      toggleSelection(id);
+      setLastSelectedIndex(index);
+    }
+  }, [selectionMode, lastSelectedIndex, handleRangeSelection, toggleSelection]);
+
   // Keyboard shortcuts handler
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -340,6 +447,8 @@ const GalleryContent = () => {
       ) {
         return;
       }
+
+      const columnCount = viewMode === "list" ? 1 : viewMode === "compact" ? 6 : 4;
 
       switch (e.key.toLowerCase()) {
         case 's':
@@ -364,6 +473,7 @@ const GalleryContent = () => {
           if (showShortcutsHelp) {
             setShowShortcutsHelp(false);
           }
+          setFocusedIndex(-1);
           break;
 
         case 'a':
@@ -391,12 +501,105 @@ const GalleryContent = () => {
           setShowShortcutsHelp(prev => !prev);
           e.preventDefault();
           break;
+
+        // View mode shortcuts
+        case 'g':
+          if (!e.metaKey && !e.ctrlKey) {
+            setViewMode("grid");
+            e.preventDefault();
+          }
+          break;
+
+        case 'l':
+          if (!e.metaKey && !e.ctrlKey) {
+            setViewMode("list");
+            e.preventDefault();
+          }
+          break;
+
+        case 'c':
+          if (!e.metaKey && !e.ctrlKey) {
+            setViewMode("compact");
+            e.preventDefault();
+          }
+          break;
+
+        case 'v':
+          if (!e.metaKey && !e.ctrlKey) {
+            setUseVirtualScrolling(prev => !prev);
+            toast.info(useVirtualScrolling ? "Virtual scrolling disabled" : "Virtual scrolling enabled");
+            e.preventDefault();
+          }
+          break;
+
+        case 'r':
+          if (!e.metaKey && !e.ctrlKey) {
+            handleClearCache();
+            e.preventDefault();
+          }
+          break;
+
+        // Arrow key navigation
+        case 'arrowleft':
+          if (focusedIndex > 0) {
+            setFocusedIndex(prev => prev - 1);
+            e.preventDefault();
+          }
+          break;
+
+        case 'arrowright':
+          if (focusedIndex < paginatedContent.length - 1) {
+            setFocusedIndex(prev => prev + 1);
+            e.preventDefault();
+          }
+          break;
+
+        case 'arrowup':
+          if (focusedIndex >= columnCount) {
+            setFocusedIndex(prev => prev - columnCount);
+            e.preventDefault();
+          }
+          break;
+
+        case 'arrowdown':
+          if (focusedIndex < paginatedContent.length - columnCount) {
+            setFocusedIndex(prev => prev + columnCount);
+            e.preventDefault();
+          } else if (focusedIndex === -1 && paginatedContent.length > 0) {
+            setFocusedIndex(0);
+            e.preventDefault();
+          }
+          break;
+
+        case ' ':
+          // Space to toggle selection when focused
+          if (selectionMode && focusedIndex >= 0 && focusedIndex < paginatedContent.length) {
+            toggleSelection(paginatedContent[focusedIndex].id);
+            e.preventDefault();
+          }
+          break;
+
+        case 'h':
+          // Toggle favorite for focused item
+          if (focusedIndex >= 0 && focusedIndex < paginatedContent.length) {
+            handleToggleFavorite(paginatedContent[focusedIndex]);
+            e.preventDefault();
+          }
+          break;
+
+        case 'p':
+          // Toggle PTR for focused item
+          if (!e.metaKey && !e.ctrlKey && focusedIndex >= 0 && focusedIndex < paginatedContent.length) {
+            handleTogglePTR(paginatedContent[focusedIndex]);
+            e.preventDefault();
+          }
+          break;
       }
     };
 
     window.addEventListener('keydown', handleKeyPress);
     return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [selectionMode, showShortcutsHelp]);
+  }, [selectionMode, showShortcutsHelp, viewMode, focusedIndex, paginatedContent, useVirtualScrolling]);
 
   // Bulk operations
   const handleBulkFavorite = async () => {
@@ -561,6 +764,12 @@ const GalleryContent = () => {
 
               {/* Enhanced Action Buttons */}
               <div className="flex items-center gap-3">
+                {/* View Mode Switcher */}
+                <ViewModeSwitcher
+                  currentView={viewMode}
+                  onViewChange={setViewMode}
+                />
+
                 <Button
                   variant="ghost"
                   size="sm"
@@ -586,6 +795,20 @@ const GalleryContent = () => {
                 </Button>
 
                 <Button
+                  variant={showCollectionsSidebar ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowCollectionsSidebar(!showCollectionsSidebar)}
+                  className={
+                    showCollectionsSidebar
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-white shadow-lg shadow-purple-500/25"
+                      : "border-gray-200 dark:border-gray-700 hover:border-purple-200 dark:hover:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-900/10"
+                  }
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Collections
+                </Button>
+
+                <Button
                   variant={showFilters ? "default" : "outline"}
                   size="sm"
                   onClick={() => setShowFilters(!showFilters)}
@@ -604,7 +827,7 @@ const GalleryContent = () => {
         </div>
 
         {/* Search Bar */}
-        <div className="mb-6">
+        <div className="mb-4">
           <SearchBar
             ref={searchInputRef}
             searchQuery={filters.search}
@@ -612,6 +835,18 @@ const GalleryContent = () => {
               setFilters((prev) => ({ ...prev, search: value }))
             }
             placeholder="Search content, captions, creators..."
+          />
+        </div>
+
+        {/* Filter Presets */}
+        <div className="mb-6">
+          <FilterPresets
+            onApplyPreset={(presetFilters) => {
+              setFilters((prev) => ({ ...prev, ...presetFilters }));
+              setActiveCollection(null);
+              setCurrentPage(1);
+            }}
+            currentFilters={filters}
           />
         </div>
 
@@ -713,72 +948,175 @@ const GalleryContent = () => {
           totalRevenue={totalRevenue}
         />
 
-        {/* Content Grid */}
-        {paginatedContent.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-            {paginatedContent.map((content, index) => (
-              <ErrorBoundary
-                key={`${content.tableName || "default"}-${content.id}-${content.sheetRowId || index}`}
-                fallback={
-                  <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                    <div className="text-red-600 dark:text-red-400 text-sm">
-                      Error loading content: {content.title || content.id}
-                    </div>
-                  </div>
-                }
-              >
-                <ContentCard
-                  content={content}
+        {/* Main Content Area with Optional Sidebar */}
+        <div className={cn("flex gap-6", showCollectionsSidebar ? "flex-row" : "flex-col")}>
+          {/* Smart Collections Sidebar */}
+          {showCollectionsSidebar && (
+            <div className="w-72 flex-shrink-0">
+              <div className="sticky top-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden">
+                <SmartCollections
+                  items={galleryItems}
+                  activeCollection={activeCollection || undefined}
+                  onSelectCollection={handleSelectCollection}
+                  onClearCollection={handleClearCollection}
+                  className="h-[calc(100vh-300px)] max-h-[700px]"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Content Grid Area */}
+          <div className="flex-1 min-w-0">
+            {/* Active Collection Indicator */}
+            {activeCollection && (
+              <div className="mb-4 flex items-center gap-2 px-4 py-2 bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-xl">
+                <Sparkles className="w-4 h-4 text-pink-500" />
+                <span className="text-sm text-pink-700 dark:text-pink-300">
+                  Viewing: <span className="font-semibold capitalize">{activeCollection.replace(/-/g, " ")}</span>
+                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={handleClearCollection}
+                  className="ml-auto h-6 px-2 text-pink-600 hover:text-pink-700 hover:bg-pink-100 dark:hover:bg-pink-900/30"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+
+            {/* Content Grid */}
+            {paginatedContent.length > 0 ? (
+              useVirtualScrolling ? (
+                <VirtualizedGalleryGrid
+                  items={filteredContent}
+                  viewMode={viewMode}
                   onToggleFavorite={handleToggleFavorite}
                   onTogglePTR={handleTogglePTR}
                   onMarkPTRAsSent={handleMarkPTRAsSent}
                   selectionMode={selectionMode}
-                  isSelected={selectedIds.has(content.id)}
+                  selectedIds={selectedIds}
                   onToggleSelection={toggleSelection}
+                  className="mb-8"
                 />
-              </ErrorBoundary>
-            ))}
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-20 mb-8">
-            <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-6">
-              {filters.dataSource === "BOARD" ? (
-                <Kanban className="w-10 h-10 text-blue-500" />
               ) : (
-                <Table2 className="w-10 h-10 text-green-500" />
-              )}
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-              No {filters.dataSource === "BOARD" ? "Board" : "Sheet"} Content
-            </h3>
-            <p className="text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
-              {filters.dataSource === "BOARD"
-                ? "No content has been marked as final from the Board yet. Mark tasks as final in the Board to see them here."
-                : "No content from the Sheet data source matches your current filters."
-              }
-            </p>
-            <Button
-              variant="outline"
-              onClick={() => setFilters(prev => ({
-                ...prev,
-                dataSource: filters.dataSource === "BOARD" ? "SHEET" : "BOARD"
-              }))}
-              className="rounded-xl"
-            >
-              {filters.dataSource === "BOARD" ? (
-                <>
-                  <Table2 className="w-4 h-4 mr-2" />
-                  View Sheet Content
-                </>
-              ) : (
-                <>
-                  <Kanban className="w-4 h-4 mr-2" />
-                  View Board Content
-                </>
-              )}
-            </Button>
+                <div
+                  className={cn(
+                    "grid mb-8",
+                    gridConfig.gap,
+                    gridConfig.columns
+                  )}
+                >
+                  {paginatedContent.map((content, index) => {
+                    const isFocused = index === focusedIndex;
+
+                    return (
+                      <ErrorBoundary
+                        key={`${content.tableName || "default"}-${content.id}-${content.sheetRowId || index}`}
+                        fallback={
+                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                            <div className="text-red-600 dark:text-red-400 text-sm">
+                              Error loading content: {content.title || content.id}
+                            </div>
+                          </div>
+                        }
+                      >
+                        <div className={cn(isFocused && "ring-2 ring-pink-500 ring-offset-2 rounded-xl")}>
+                          {viewMode === "list" ? (
+                            <ListCard
+                              content={content}
+                              onToggleFavorite={handleToggleFavorite}
+                              onTogglePTR={handleTogglePTR}
+                              onMarkPTRAsSent={handleMarkPTRAsSent}
+                              selectionMode={selectionMode}
+                              isSelected={selectedIds.has(content.id)}
+                              onToggleSelection={toggleSelection}
+                              cardHeight={gridConfig.cardHeight}
+                            />
+                          ) : viewMode === "compact" ? (
+                            <CompactCard
+                              content={content}
+                              onToggleFavorite={handleToggleFavorite}
+                              onTogglePTR={handleTogglePTR}
+                              onMarkPTRAsSent={handleMarkPTRAsSent}
+                              selectionMode={selectionMode}
+                              isSelected={selectedIds.has(content.id)}
+                              onToggleSelection={toggleSelection}
+                              cardHeight={gridConfig.cardHeight}
+                              imageHeight={gridConfig.imageHeight}
+                            />
+                          ) : (
+                            <ContentCard
+                              content={content}
+                              onToggleFavorite={handleToggleFavorite}
+                              onTogglePTR={handleTogglePTR}
+                              onMarkPTRAsSent={handleMarkPTRAsSent}
+                              selectionMode={selectionMode}
+                              isSelected={selectedIds.has(content.id)}
+                              onToggleSelection={toggleSelection}
+                            />
+                          )}
+                        </div>
+                      </ErrorBoundary>
+                    );
+                  })}
+                </div>
+              )
+            ) : (
+              <div className="flex flex-col items-center justify-center py-20 mb-8">
+                <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-6">
+                  {filters.dataSource === "BOARD" ? (
+                    <Kanban className="w-10 h-10 text-blue-500" />
+                  ) : (
+                    <Table2 className="w-10 h-10 text-green-500" />
+                  )}
+                </div>
+                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
+                  No {filters.dataSource === "BOARD" ? "Board" : "Sheet"} Content
+                </h3>
+                <p className="text-gray-500 dark:text-gray-400 text-center max-w-md mb-6">
+                  {activeCollection
+                    ? `No content matches the "${activeCollection.replace(/-/g, " ")}" collection criteria.`
+                    : filters.dataSource === "BOARD"
+                    ? "No content has been marked as final from the Board yet. Mark tasks as final in the Board to see them here."
+                    : "No content from the Sheet data source matches your current filters."
+                  }
+                </p>
+                {activeCollection ? (
+                  <Button
+                    variant="outline"
+                    onClick={handleClearCollection}
+                    className="rounded-xl"
+                  >
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Clear Collection Filter
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setFilters(prev => ({
+                      ...prev,
+                      dataSource: filters.dataSource === "BOARD" ? "SHEET" : "BOARD"
+                    }))}
+                    className="rounded-xl"
+                  >
+                    {filters.dataSource === "BOARD" ? (
+                      <>
+                        <Table2 className="w-4 h-4 mr-2" />
+                        View Sheet Content
+                      </>
+                    ) : (
+                      <>
+                        <Kanban className="w-4 h-4 mr-2" />
+                        View Board Content
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         {/* Pagination */}
         {totalPages > 1 && (

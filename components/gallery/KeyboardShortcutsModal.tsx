@@ -25,11 +25,28 @@ const shortcuts: Shortcut[] = [
   // Navigation
   { key: "F or /", description: "Focus search bar", category: "Navigation" },
   { key: "Esc", description: "Clear selection / Close modals", category: "Navigation" },
+  { key: "←  →", description: "Navigate between items", category: "Navigation" },
+  { key: "↑  ↓", description: "Navigate between rows", category: "Navigation" },
+  { key: "Enter", description: "Open item details", category: "Navigation" },
+  { key: "Tab", description: "Move through focusable elements", category: "Navigation" },
 
   // Selection
   { key: "S", description: "Toggle selection mode", category: "Selection" },
+  { key: "Space", description: "Toggle item selection (in selection mode)", category: "Selection" },
   { key: "Cmd/Ctrl + A", description: "Select all visible items", category: "Selection" },
   { key: "Cmd/Ctrl + D", description: "Deselect all", category: "Selection" },
+  { key: "Shift + Click", description: "Range select items", category: "Selection" },
+
+  // View
+  { key: "G", description: "Switch to Grid view", category: "View" },
+  { key: "L", description: "Switch to List view", category: "View" },
+  { key: "C", description: "Switch to Compact view", category: "View" },
+  { key: "V", description: "Toggle virtual scrolling", category: "View" },
+
+  // Actions
+  { key: "H", description: "Toggle favorite (when item focused)", category: "Actions" },
+  { key: "P", description: "Toggle PTR (when item focused)", category: "Actions" },
+  { key: "R", description: "Refresh gallery data", category: "Actions" },
 
   // Help
   { key: "?", description: "Show/hide keyboard shortcuts", category: "Help" },
