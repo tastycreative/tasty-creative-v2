@@ -7,8 +7,6 @@ import {
   ContextMenuItem,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import Picker from "@emoji-mart/react";
-import EmojiData from "@emoji-mart/data/sets/15/apple.json";
 
 const GifMakerTextOverlay = ({
   gifUrl,
@@ -595,11 +593,11 @@ const GifMakerTextOverlay = ({
               ref={emojiPickerRef}
               className="absolute top-full mt-2 z-50 bg-gray-800 rounded-lg shadow-xl p-4"
             >
-              <Picker
+              {/* <Picker
                 data={EmojiData}
                 onEmojiSelect={handleEmojiSelect}
                 set="apple"
-              />
+              /> */}
             </div>
           )}
         </div>
