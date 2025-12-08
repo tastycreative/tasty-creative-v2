@@ -45,7 +45,7 @@ export function useColumnsQuery(teamId: string) {
 
 // Attachment URL queries (presigned URLs)
 export function useAttachmentUrlQuery(s3Key?: string, expiresInSec: number = 3600) {
-  return useQuery<{ url: string } | null>({
+  return useQuery<{ url: string; expiresAt: number } | null>({
     queryKey: s3Key ? boardQueryKeys.attachmentUrl(s3Key) : ["attachment-url", "disabled"],
     queryFn: async () => {
       if (!s3Key) return null;
@@ -55,11 +55,44 @@ export function useAttachmentUrlQuery(s3Key?: string, expiresInSec: number = 360
         body: JSON.stringify({ s3Key, expiresIn: expiresInSec }),
       });
       if (!res.ok) throw new Error(`Failed to get presigned URL: ${res.statusText}`);
-      return res.json();
+      const data = await res.json();
+
+      // Add client-side expiry timestamp (5 minutes before actual expiry for safety margin)
+      return {
+        url: data.url,
+        expiresAt: Date.now() + ((expiresInSec - 300) * 1000)
+      };
     },
     enabled: !!s3Key,
-    staleTime: 30 * 60_000, // 30 minutes
-    gcTime: 60 * 60_000, // 1 hour
+    // Custom stale check - consider stale if expired
+    staleTime: (query: any) => {
+      const data = query.state.data;
+      if (!data?.expiresAt) return 0; // No data = immediately stale
+
+      const now = Date.now();
+      const timeUntilExpiry = data.expiresAt - now;
+
+      // If expired, mark as stale immediately
+      if (timeUntilExpiry <= 0) return 0;
+
+      // Otherwise, keep fresh until expiry
+      return timeUntilExpiry;
+    },
+    gcTime: expiresInSec * 1000,
+    // Custom refetch condition - refetch if expired
+    refetchInterval: (query: any) => {
+      const data = query.state.data;
+      if (!data?.expiresAt) return false;
+
+      const now = Date.now();
+      const timeUntilExpiry = data.expiresAt - now;
+
+      // If already expired, refetch immediately
+      if (timeUntilExpiry <= 0) return 1000;
+
+      // Otherwise, refetch just before expiry
+      return timeUntilExpiry;
+    },
   });
 }
 
@@ -75,11 +108,44 @@ export function useAttachmentUrlsQueries(attachments: TaskAttachment[], expiresI
           body: JSON.stringify({ s3Key: a.s3Key, expiresIn: expiresInSec }),
         });
         if (!res.ok) throw new Error(`Failed to get presigned URL: ${res.statusText}`);
-        return res.json() as Promise<{ url: string }>;
+        const data = await res.json();
+
+        // Add client-side expiry timestamp (5 minutes before actual expiry for safety margin)
+        return {
+          url: data.url,
+          expiresAt: Date.now() + ((expiresInSec - 300) * 1000)
+        };
       },
       enabled: !!a.s3Key && !a.url,
-      staleTime: 30 * 60_000,
-      gcTime: 60 * 60_000,
+      // Custom stale check - consider stale if expired
+      staleTime: (query: any) => {
+        const data = query.state.data as { url: string; expiresAt: number } | undefined;
+        if (!data?.expiresAt) return 0; // No data = immediately stale
+
+        const now = Date.now();
+        const timeUntilExpiry = data.expiresAt - now;
+
+        // If expired, mark as stale immediately
+        if (timeUntilExpiry <= 0) return 0;
+
+        // Otherwise, keep fresh until expiry
+        return timeUntilExpiry;
+      },
+      gcTime: expiresInSec * 1000,
+      // Custom refetch condition - refetch if expired
+      refetchInterval: (query: any) => {
+        const data = query.state.data as { url: string; expiresAt: number } | undefined;
+        if (!data?.expiresAt) return false;
+
+        const now = Date.now();
+        const timeUntilExpiry = data.expiresAt - now;
+
+        // If already expired, refetch immediately
+        if (timeUntilExpiry <= 0) return 1000;
+
+        // Otherwise, refetch just before expiry
+        return timeUntilExpiry;
+      },
     }))
   });
 
@@ -90,7 +156,7 @@ export function useAttachmentUrlsQueries(attachments: TaskAttachment[], expiresI
   }
   // Map fetched URLs to attachment ids
   needs.forEach((att, idx) => {
-    const data = queries[idx]?.data as { url: string } | undefined;
+    const data = queries[idx]?.data as { url: string; expiresAt: number } | undefined;
     if (data?.url) urlMap.set(att.id, data.url);
   });
 

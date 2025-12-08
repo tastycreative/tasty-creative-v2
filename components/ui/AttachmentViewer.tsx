@@ -28,8 +28,15 @@ export default function AttachmentViewer({
     setMounted(true);
   }, []);
 
+  // Strip out old URLs to force fresh presigned URL fetching
+  // This ensures expired URLs from database are replaced with fresh ones
+  const cleanedAttachments = attachments.map(att => ({
+    ...att,
+    url: undefined, // Remove potentially expired URLs
+  }));
+
   // Resolve URLs via TanStack Query
-  const { urlMap: attachmentUrls, isLoading: isLoadingUrls } = useAttachmentUrlsQueries(attachments, 3600);
+  const { urlMap: attachmentUrls, isLoading: isLoadingUrls } = useAttachmentUrlsQueries(cleanedAttachments, 3600);
 
   // Handle fullscreen modal keyboard navigation
   useEffect(() => {
