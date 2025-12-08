@@ -47,6 +47,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+
+    let jobAssignedTo = assignedTo;
+
     const task = await prisma.task.create({
       data: {
         title: title.trim(),
@@ -317,10 +320,46 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+
     const updateData: any = {
       updatedBy: session.user.email // Always set updatedBy to current user's email
     };
-    if (status !== undefined) updateData.status = status;
+    // Automatic transition: Flyer Completed -> QA
+    if (status === 'CUSTOM_FLYER_COMPLETED_1761147678038') {
+      updateData.status = 'CUSTOM_QA__1761147691672';
+    }
+
+    const effectiveStatus = updateData.status || status;
+
+    // Automatic QA assignment when moving to QA column
+    // Only if:
+    // 1. Status is changing to 'QA' (using ID)
+    // 2. No specific assignee is being set in this update
+    // 3. Task is currently unassigned
+    // 4. Task is in OTP-PTR team (verified via DB fetch)
+    // 5. Task title has 'PTR'
+    if (effectiveStatus === 'CUSTOM_QA__1761147691672') {
+      const taskInDb = currentTask as any;
+      const isUnassigned = !taskInDb.assignedTo && !assignedTo;
+      
+      if (isUnassigned && taskInDb.podTeamId) {
+        try {
+           const team = await prisma.podTeam.findUnique({
+             where: { id: taskInDb.podTeamId },
+             select: { name: true }
+           });
+           
+           if (team?.name === 'OTP-PTR' && typeof taskInDb.title === 'string' && taskInDb.title.toUpperCase().includes('PTR')) {
+              const qaEmails = ['maryjoeopon.tastymedia@gmail.com', 'condrei.pineda122@gmail.com'];
+              // Assign one randomly
+              updateData.assignedTo = qaEmails[Math.floor(Math.random() * qaEmails.length)];
+           }
+        } catch (err) {
+           console.error('Error during auto-QA assignment in PUT:', err);
+        }
+      }
+    }
+
     if (assignedTo !== undefined) updateData.assignedTo = assignedTo;
     if (priority !== undefined) updateData.priority = priority;
     if (title !== undefined) updateData.title = title;
