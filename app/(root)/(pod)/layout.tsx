@@ -126,13 +126,8 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   // Calculate actual sidebar visibility based on store state
   const showLeftSidebar = shouldShowLeftSidebar && !leftSidebarCollapsed;
-  const showRightSidebar = (
-    pathname === "/" ||
-    pathname === "/dashboard" ||
-    pathname === "/forms" ||
-    pathname === "/board" ||
-    pathname === "/pod-admin"
-  ) && !rightSidebarCollapsed;
+  // Right sidebar only shows on board page
+  const showRightSidebar = pathname === '/board' && !rightSidebarCollapsed;
 
   return (
     <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-200">
