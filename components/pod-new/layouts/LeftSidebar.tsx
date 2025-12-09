@@ -237,8 +237,8 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
     router.push(`/board?team=${teamId}`);
   };
 
-  const handleAddNewTeam = (e: React.MouseEvent) => {
-    e.stopPropagation(); // Prevent accordion from toggling
+  const handleAddNewTeam = (e?: React.MouseEvent) => {
+    e?.stopPropagation(); // Prevent accordion from toggling
     setShowCreateTeamModal(true);
   };
 

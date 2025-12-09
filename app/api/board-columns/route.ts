@@ -346,14 +346,8 @@ export async function DELETE(request: NextRequest) {
       },
     });
 
-    // Soft delete by setting isActive to false
-    await prisma.boardColumn.update({
-      where: { id },
-      data: { isActive: false }
-    });
-
-    // Reorder remaining columns to fill the gap
-    await prisma.boardColumn.updateMany({
+    // Get columns that need reordering (after the deleted column)
+    const columnsToReorder = await prisma.boardColumn.findMany({
       where: {
         teamId: column.teamId,
         position: {
@@ -361,10 +355,31 @@ export async function DELETE(request: NextRequest) {
         },
         isActive: true,
       },
-      data: {
-        position: {
-          decrement: 1
-        }
+      orderBy: { position: 'asc' }
+    });
+
+    // Use transaction with two-phase update to avoid unique constraint violation
+    await prisma.$transaction(async (tx) => {
+      // Step 1: Soft delete by setting isActive to false
+      await tx.boardColumn.update({
+        where: { id },
+        data: { isActive: false }
+      });
+
+      // Step 2: Move columns to temporary negative positions (no conflicts)
+      for (let i = 0; i < columnsToReorder.length; i++) {
+        await tx.boardColumn.update({
+          where: { id: columnsToReorder[i].id },
+          data: { position: -1000 - i } // Temporary negative position
+        });
+      }
+
+      // Step 3: Move columns to their final positions (position - 1)
+      for (let i = 0; i < columnsToReorder.length; i++) {
+        await tx.boardColumn.update({
+          where: { id: columnsToReorder[i].id },
+          data: { position: columnsToReorder[i].position - 1 }
+        });
       }
     });
 

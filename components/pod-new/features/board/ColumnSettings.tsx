@@ -11,6 +11,7 @@ import {
   Check,
   RotateCcw,
   Palette,
+  Loader2,
 } from 'lucide-react';
 import { useBoardColumns } from '@/lib/stores/boardStore';
 import type { BoardColumn } from '@/lib/stores/boardStore';
@@ -70,6 +71,7 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
   const [draggedColumn, setDraggedColumn] = useState<BoardColumn | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [localColumns, setLocalColumns] = useState<BoardColumn[]>([]);
+  const [deletingColumnId, setDeletingColumnId] = useState<string | null>(null);
 
   // Keep local columns in sync with store (only when not dragging)
   React.useEffect(() => {
@@ -110,7 +112,12 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
 
   const handleDeleteColumn = async (columnId: string) => {
     if (window.confirm('Delete this column? All tasks in it will be moved to a nearby column.')) {
-      await deleteColumnMutation.mutateAsync({ id: columnId });
+      setDeletingColumnId(columnId);
+      try {
+        await deleteColumnMutation.mutateAsync({ id: columnId });
+      } finally {
+        setDeletingColumnId(null);
+      }
     }
   };
 
@@ -171,31 +178,51 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
     const sourceColumns = [...columns];
     const draggedIndex = sourceColumns.findIndex(c => c.id === draggedColumn.id);
     const targetIndex = sourceColumns.findIndex(c => c.id === targetColumn.id);
-    
+
     if (draggedIndex !== -1 && targetIndex !== -1) {
       // Remove dragged item and insert at target position
       const [removed] = sourceColumns.splice(draggedIndex, 1);
       sourceColumns.splice(targetIndex, 0, removed);
-      
+
       // Update positions
       const updatedColumns = sourceColumns.map((col, index) => ({
         ...col,
         position: index
       }));
 
-  // Apply reorder via mutation (backend will persist and cache will invalidate)
-  await reorderColumnsMutation.mutateAsync({ columnIds: updatedColumns.map(c => c.id) });
+      // Apply reorder via mutation (backend will persist and cache will invalidate)
+      try {
+        await reorderColumnsMutation.mutateAsync({ columnIds: updatedColumns.map(c => c.id) });
+      } catch (error) {
+        console.error('Failed to reorder columns:', error);
+      }
     }
-    
+
     setDraggedColumn(null);
     setDragOverColumn(null);
   };
 
   if (!showColumnSettings) return null;
 
+  const isAnyOperationPending =
+    createColumnMutation.isPending ||
+    updateColumnMutation.isPending ||
+    deleteColumnMutation.isPending ||
+    reorderColumnsMutation.isPending ||
+    resetColumnsMutation.isPending;
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[80vh] overflow-hidden relative">
+        {/* Loading Overlay for reorder operations */}
+        {reorderColumnsMutation.isPending && (
+          <div className="absolute inset-0 bg-black bg-opacity-30 flex items-center justify-center z-10 rounded-lg">
+            <div className="bg-white dark:bg-gray-800 rounded-lg px-6 py-4 flex items-center space-x-3 shadow-xl">
+              <Loader2 className="h-5 w-5 animate-spin text-purple-600 dark:text-purple-400" />
+              <span className="text-sm font-medium text-gray-900 dark:text-gray-100">Reordering columns...</span>
+            </div>
+          </div>
+        )}
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center space-x-2">
@@ -207,10 +234,15 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
           <div className="flex items-center space-x-2">
             <button
               onClick={handleResetColumns}
-              className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors flex items-center space-x-1"
+              disabled={resetColumnsMutation.isPending}
+              className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md transition-colors flex items-center space-x-1 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RotateCcw className="h-4 w-4" />
-              <span>Reset</span>
+              {resetColumnsMutation.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="h-4 w-4" />
+              )}
+              <span>{resetColumnsMutation.isPending ? 'Resetting...' : 'Reset'}</span>
             </button>
             <button
               onClick={() => setShowColumnSettings(false)}
@@ -304,13 +336,19 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
                         <>
                           <button
                             onClick={handleSaveEdit}
-                            className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded"
+                            disabled={updateColumnMutation.isPending}
+                            className="p-1 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Check className="h-4 w-4" />
+                            {updateColumnMutation.isPending ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Check className="h-4 w-4" />
+                            )}
                           </button>
                           <button
                             onClick={handleCancelEdit}
-                            className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                            disabled={updateColumnMutation.isPending}
+                            className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <X className="h-4 w-4" />
                           </button>
@@ -323,15 +361,21 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
                               label: column.label,
                               color: column.color
                             })}
-                            className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded"
+                            disabled={deletingColumnId === column.id}
+                            className="p-1 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             <Edit3 className="h-4 w-4" />
                           </button>
                           <button
                             onClick={() => handleDeleteColumn(column.id)}
-                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded"
+                            disabled={deletingColumnId === column.id}
+                            className="p-1 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded disabled:opacity-50 disabled:cursor-not-allowed"
                           >
-                            <Trash2 className="h-4 w-4" />
+                            {deletingColumnId === column.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
                           </button>
                         </>
                       )}
@@ -370,10 +414,13 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={handleCreateColumn}
-                        disabled={!newColumnLabel.trim()}
-                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 text-white rounded-md text-sm transition-colors"
+                        disabled={!newColumnLabel.trim() || createColumnMutation.isPending}
+                        className="px-3 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-white rounded-md text-sm transition-colors flex items-center space-x-2"
                       >
-                        Create Column
+                        {createColumnMutation.isPending && (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        )}
+                        <span>{createColumnMutation.isPending ? 'Creating...' : 'Create Column'}</span>
                       </button>
                       <button
                         onClick={() => {
@@ -381,7 +428,8 @@ const ColumnSettings = React.memo<ColumnSettingsProps>(({ currentTeamId }) => {
                           setNewColumnLabel('');
                           setNewColumnColor('#6B7280');
                         }}
-                        className="px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm transition-colors"
+                        disabled={createColumnMutation.isPending}
+                        className="px-3 py-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-md text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Cancel
                       </button>
