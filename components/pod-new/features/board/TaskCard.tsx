@@ -86,6 +86,21 @@ const getWorkflowTypeIndicator = (task: Task) => {
     );
   }
 
+  // Check if task has Wall Post submission
+  if (task.wallPostSubmission) {
+    const photoCount = task.wallPostSubmission.photos.length;
+
+    return (
+      <div className="flex items-center space-x-2 mb-3">
+        <div className="flex items-center space-x-1.5 bg-gradient-to-r from-pink-50 to-purple-100 dark:from-pink-900/30 dark:to-purple-800/30 text-pink-700 dark:text-pink-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-pink-200/50 dark:border-pink-700/50">
+          <Upload className="w-3.5 h-3.5" />
+          <span>Wall Post Bulk</span>
+          {photoCount > 0 && <span className="ml-1">({photoCount} photos)</span>}
+        </div>
+      </div>
+    );
+  }
+
   // Regular task (no workflow association)
   return null;
 };

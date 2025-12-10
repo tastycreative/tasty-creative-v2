@@ -28,6 +28,8 @@ import BoardList from './BoardList';
 import EnhancedTaskDetailModal from './EnhancedTaskDetailModal';
 import NewTaskModal from './NewTaskModal';
 import OFTVTaskModal, { OFTVTaskData } from './OFTVTaskModal';
+import WallPostTaskModal from './WallPostTaskModal';
+import BulkSubmissionModal, { BulkSubmissionData } from './BulkSubmissionModal';
 import OnboardingTaskModal from '@/components/pod/OnboardingTaskModal';
 import NoTeamSelected from '@/components/pod/NoTeamSelected';
 import TeamSettings from './TeamSettings';
@@ -151,6 +153,10 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     dueDate: '',
     specialInstructions: '',
   });
+
+  // Bulk Submission Modal state (for Wall Post team)
+  const [showBulkSubmissionModal, setShowBulkSubmissionModal] = useState(false);
+  const [bulkSubmissionColumnStatus, setBulkSubmissionColumnStatus] = useState<string | null>(null);
 
   // Mark as Final hook
   const { markAsFinal, loadingTaskId } = useMarkAsFinal({
@@ -661,6 +667,13 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
   // New task modal functions
   const openNewTaskModal = (status: string) => {
+    // For Wall Post team, open Bulk Submission Modal instead
+    if (teamName === "Wall Post") {
+      setBulkSubmissionColumnStatus(status);
+      setShowBulkSubmissionModal(true);
+      return;
+    }
+
     setNewTaskStatus(status as Task['status']);
     setShowNewTaskModal(true);
   };
@@ -690,6 +703,109 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       dueDate: '',
       specialInstructions: '',
     });
+  };
+
+  // Bulk Submission Modal handlers (Wall Post team)
+  const closeBulkSubmissionModal = () => {
+    setShowBulkSubmissionModal(false);
+    setBulkSubmissionColumnStatus(null);
+  };
+
+  const handleBulkSubmission = async (data: BulkSubmissionData, onProgress?: (step: any, current?: number, total?: number) => void) => {
+    if (!hasTeamAccess) {
+      console.error('Unauthorized: User cannot create bulk submissions for this team');
+      throw new Error('Unauthorized access');
+    }
+
+    console.log('handleBulkSubmission - Received data:', {
+      teamId,
+      modelName: data.modelName,
+      driveLink: data.driveLink,
+      hasUploadedFiles: !!data.uploadedFiles && data.uploadedFiles.length > 0,
+      filesCount: data.uploadedFiles?.length || 0,
+      captionsCount: data.captions?.length || 0,
+      columnStatus: data.columnStatus,
+    });
+
+    try {
+      // Step 1: Validating
+      onProgress?.('validating');
+      await new Promise(resolve => setTimeout(resolve, 300)); // Brief delay for UX
+
+      // Step 2: Upload files to S3 if needed
+      let uploadedPhotos: Array<{ s3Key: string; url: string; caption: string }> = [];
+
+      if (data.uploadedFiles && data.uploadedFiles.length > 0) {
+        onProgress?.('uploading', 0, data.uploadedFiles.length);
+        console.log('Uploading files to S3...');
+
+        // Upload each file sequentially to track progress
+        for (let index = 0; index < data.uploadedFiles.length; index++) {
+          const file = data.uploadedFiles[index];
+          const formData = new FormData();
+          formData.append('file', file);
+          formData.append('folder', 'wall_post'); // Organize wall post photos in dedicated folder
+
+          const uploadResponse = await fetch('/api/upload/s3', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error(`Failed to upload ${file.name}`);
+          }
+
+          const uploadData = await uploadResponse.json();
+          uploadedPhotos.push({
+            s3Key: uploadData.attachment.s3Key,
+            url: uploadData.attachment.url,
+            caption: data.captions?.[index] || '',
+          });
+
+          // Update progress
+          onProgress?.('uploading', index + 1, data.uploadedFiles.length);
+        }
+
+        console.log('Files uploaded to S3:', uploadedPhotos.length);
+      } else {
+        // Skip upload step if using Drive link
+        onProgress?.('uploading', 1, 1);
+      }
+
+      // Step 3: Create the bulk submission
+      onProgress?.('creating');
+      const response = await fetch('/api/wall-post-bulk', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          teamId: teamId,
+          modelName: data.modelName,
+          driveLink: data.driveLink,
+          uploadedPhotos: uploadedPhotos.length > 0 ? uploadedPhotos : undefined,
+          columnStatus: data.columnStatus,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create bulk submission');
+      }
+
+      const result = await response.json();
+      console.log('Bulk submission created:', result);
+
+      // Step 4: Finalizing
+      onProgress?.('finalizing');
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      await queryClient.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+
+      return result;
+    } catch (error) {
+      console.error('Error creating bulk submission:', error);
+      throw error;
+    }
   };
 
   const createOFTVTaskFromModal = async () => {
@@ -1310,6 +1426,11 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
       // Workflow filtering
       if (workflowFilter !== 'ALL') {
+        // Wall Post tasks should always pass through workflow filters since they're a separate workflow type
+        if ((task as any).wallPostSubmission) {
+          return true;
+        }
+
         switch (workflowFilter) {
           case 'NORMAL':
             if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'NORMAL') return false;
@@ -1365,10 +1486,30 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   };
 
   // Memoize filtered and sorted tasks to prevent recalculation on every render
-  const filteredAndSortedTasks = useMemo(
-    () => sortTasks(filterTasks(qTasks)),
-    [qTasks, searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder]
-  );
+  const filteredAndSortedTasks = useMemo(() => {
+    console.log('Board - Processing tasks:', {
+      totalTasks: qTasks.length,
+      teamId,
+      teamName,
+      workflowFilter,
+      tasks: qTasks.map(t => ({
+        id: t.id,
+        title: t.title,
+        status: t.status,
+        hasWallPost: !!(t as any).wallPostSubmission,
+        hasModularWorkflow: !!t.ModularWorkflow,
+        hasContentSubmission: !!t.ContentSubmission
+      }))
+    });
+
+    const filtered = filterTasks(qTasks);
+    console.log('Board - After filtering:', {
+      filteredCount: filtered.length,
+      filtered: filtered.map(t => ({ id: t.id, title: t.title, status: t.status }))
+    });
+
+    return sortTasks(filtered);
+  }, [qTasks, searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder]);
 
   // OFTV-specific filtering
   const applyOFTVFilters = (tasks: Task[]) => {
@@ -1635,8 +1776,8 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         getGridStyles={getGridStyles}
       />
 
-      {/* Task Detail Modal */}
-      {selectedTask && teamName !== "Onboarding" && (
+      {/* Task Detail Modal - Default */}
+      {selectedTask && teamName !== "Onboarding" && teamName !== "Wall Post" && (
         <EnhancedTaskDetailModal
           selectedTask={selectedTask}
           isEditingTask={isEditingTask}
@@ -1673,6 +1814,20 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         />
       )}
 
+      {/* Wall Post Task Modal */}
+      {selectedTask && teamName === "Wall Post" && (
+        <WallPostTaskModal
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          session={session}
+          columns={qColumns}
+          onClose={closeTaskDetail}
+          onRefresh={async () => {
+            await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
+          }}
+        />
+      )}
+
       {/* New Task Modal - OFTV or Standard */}
       {teamName === "OFTV" ? (
         <OFTVTaskModal
@@ -1696,6 +1851,17 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
           onClose={closeNewTaskModal}
           onSetNewTaskData={setNewTaskData}
           onCreateTask={createTaskFromModal}
+        />
+      )}
+
+      {/* Bulk Submission Modal - Wall Post Team */}
+      {teamName === "Wall Post" && (
+        <BulkSubmissionModal
+          isOpen={showBulkSubmissionModal}
+          teamId={teamId}
+          columnStatus={bulkSubmissionColumnStatus || ''}
+          onClose={closeBulkSubmissionModal}
+          onSubmit={handleBulkSubmission}
         />
       )}
 

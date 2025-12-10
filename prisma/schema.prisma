@@ -244,6 +244,7 @@ model Task {
   ModularWorkflow     ModularWorkflow?      @relation("ModularWorkflowTask")
   notifications       Notification[]
   oftvTask            OFTVTask?
+  wallPostSubmission  WallPostSubmission?
   ContentSubmission   ContentSubmission?    @relation(fields: [contentSubmissionId], references: [id])
   createdBy           User                  @relation("TaskCreator", fields: [createdById], references: [id])
   podTeam             PodTeam?              @relation(fields: [podTeamId], references: [id])
@@ -1411,4 +1412,54 @@ enum EventStatus {
 enum EventType {
   PPV
   LIVESTREAM
+}
+
+model WallPostSubmission {
+  id              String          @id @default(cuid())
+  taskId          String          @unique
+  modelName       String
+  driveLink       String
+  podTeamId       String
+  createdById     String
+  status          String          @default("PENDING_REVIEW")
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  processedAt     DateTime?
+  notes           String?
+  photos          WallPostPhoto[]
+  task            Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+
+  @@index([taskId])
+  @@index([podTeamId])
+  @@index([createdById])
+  @@index([modelName])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model WallPostPhoto {
+  id                    String              @id @default(cuid())
+  wallPostSubmissionId  String
+  s3Key                 String
+  url                   String?
+  caption               String?
+  status                String              @default("PENDING_REVIEW")
+  position              Int
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  postedAt              DateTime?
+  publishedToGalleryAt  DateTime?
+  wallPostSubmission    WallPostSubmission  @relation(fields: [wallPostSubmissionId], references: [id], onDelete: Cascade)
+
+  @@index([wallPostSubmissionId])
+  @@index([status])
+  @@index([position])
+  @@index([createdAt])
+}
+
+enum WallPostPhotoStatus {
+  PENDING_REVIEW
+  READY_TO_POST
+  POSTED
+  REJECTED
 }

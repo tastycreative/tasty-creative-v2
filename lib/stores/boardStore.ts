@@ -106,6 +106,27 @@ export interface Task {
     releaseTime?: string | null;
     minimumPrice?: string | null;
   } | null;
+  // Wall Post Submission information
+  wallPostSubmission?: {
+    id: string;
+    modelName: string;
+    driveLink: string;
+    status: string;
+    createdAt: string;
+    processedAt: string | null;
+    notes: string | null;
+    photos: Array<{
+      id: string;
+      s3Key: string;
+      url: string | null;
+      caption: string | null;
+      status: string;
+      position: number;
+      createdAt: string;
+      postedAt: string | null;
+      publishedToGalleryAt: string | null;
+    }>;
+  } | null;
 }
 
 // Cache configuration

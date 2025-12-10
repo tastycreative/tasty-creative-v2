@@ -100,6 +100,15 @@ export async function POST(request: NextRequest) {
             }
           }
         },
+        wallPostSubmission: {
+          include: {
+            photos: {
+              orderBy: {
+                position: 'asc',
+              }
+            }
+          }
+        },
       },
     });
 
@@ -227,6 +236,15 @@ export async function GET(request: NextRequest) {
                 email: true,
                 name: true,
                 image: true,
+              }
+            }
+          }
+        },
+        wallPostSubmission: {
+          include: {
+            photos: {
+              orderBy: {
+                position: 'asc',
               }
             }
           }

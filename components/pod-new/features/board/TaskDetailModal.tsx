@@ -11,6 +11,7 @@ import AttachmentViewer from "@/components/ui/AttachmentViewer";
 import TaskCardHistory from "./TaskCardHistory";
 import TaskComments from "./TaskComments";
 import UserProfile from "@/components/ui/UserProfile";
+import WallPostDetailSection from "./WallPostDetailSection";
 
 // Utility function to make links clickable
 const linkifyText = (text: string) => {
@@ -573,6 +574,12 @@ export default function TaskDetailModal({
                         </div>
                       )}
                     </div>
+                  ) : selectedTask.wallPostSubmission ? (
+                    <WallPostDetailSection
+                      task={selectedTask}
+                      isEditing={isEditingTask}
+                      onRefresh={() => window.location.reload()}
+                    />
                   ) : selectedTask.ContentSubmission ? (
                     <div className="space-y-4">
                       {/* Legacy Content Submission */}
