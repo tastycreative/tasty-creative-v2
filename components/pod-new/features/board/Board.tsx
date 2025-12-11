@@ -731,10 +731,11 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       onProgress?.('validating');
       await new Promise(resolve => setTimeout(resolve, 300)); // Brief delay for UX
 
-      // Step 2: Upload files to S3 if needed
+      // Step 2: Upload files to S3 if needed (Option 1) OR indicate fetching from Drive (Option 2)
       let uploadedPhotos: Array<{ s3Key: string; url: string; caption: string }> = [];
 
       if (data.uploadedFiles && data.uploadedFiles.length > 0) {
+        // Option 1: Upload files to S3
         onProgress?.('uploading', 0, data.uploadedFiles.length);
         console.log('Uploading files to S3...');
 
@@ -766,9 +767,11 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         }
 
         console.log('Files uploaded to S3:', uploadedPhotos.length);
-      } else {
-        // Skip upload step if using Drive link
-        onProgress?.('uploading', 1, 1);
+      } else if (data.driveLink) {
+        // Option 2: Using Drive link (no upload, fetching happens on backend)
+        onProgress?.('uploading'); // Show fetching step in progress
+        console.log('Using Google Drive link - images will be fetched on backend');
+        await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay for UX
       }
 
       // Step 3: Create the bulk submission

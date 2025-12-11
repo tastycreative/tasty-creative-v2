@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Calendar, Clock, History, Edit3, Save, FileText, Image as ImageIcon, Check } from "lucide-react";
+import { X, Calendar, Clock, History, Edit3, Save, FileText, Image as ImageIcon, Check, ExternalLink } from "lucide-react";
 import { Task, BoardColumn } from "@/lib/stores/boardStore";
 import { Session } from "next-auth";
 import WallPostDetailSection from "./WallPostDetailSection";
@@ -9,6 +9,7 @@ import TaskComments from "./TaskComments";
 import TaskCardHistory from "./TaskCardHistory";
 import UserProfile from "@/components/ui/UserProfile";
 import { formatForTaskDetail, formatDueDate } from "@/lib/dateUtils";
+import { getGoogleDriveImageUrl, extractGoogleDriveFileId, isGoogleDriveUrl } from "@/lib/utils/googleDriveImageUrl";
 
 type TabType = 'description' | 'photos';
 
@@ -467,13 +468,38 @@ export default function WallPostTaskModal({
             {/* Left Section - Photo Viewer and Comments */}
             <div className="flex-1 flex flex-col">
               {/* Main Photo Viewer */}
-              <div className="bg-black flex items-center justify-center p-4 sm:p-8" style={{ height: '60%' }}>
+              <div className="bg-black flex items-center justify-center p-4 sm:p-8 relative" style={{ height: '60%' }}>
                 {selectedPhoto && selectedPhoto.url ? (
-                  <img
-                    src={selectedPhoto.url}
-                    alt={`Photo ${selectedPhotoIndex + 1}`}
-                    className="max-w-full max-h-full object-contain"
-                  />
+                  <>
+                    <img
+                      src={getGoogleDriveImageUrl(selectedPhoto.url) || selectedPhoto.url}
+                      alt={`Photo ${selectedPhotoIndex + 1}`}
+                      className="max-w-full max-h-full object-contain"
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        console.error('Failed to load image:', selectedPhoto.url);
+                        // Fallback: try original URL if conversion fails
+                        if (selectedPhoto.url && e.currentTarget.src !== selectedPhoto.url) {
+                          e.currentTarget.src = selectedPhoto.url;
+                        }
+                      }}
+                    />
+                    {/* Quick External Link Button (for Google Drive photos) */}
+                    {isGoogleDriveUrl(selectedPhoto.url) && (
+                      <a
+                        href={(() => {
+                          const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
+                          return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
+                        })()}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg transition-all hover:scale-105"
+                        title="Open in Google Drive"
+                      >
+                        <ExternalLink className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                      </a>
+                    )}
+                  </>
                 ) : (
                   <div className="text-gray-400 text-center">
                     <ImageIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
@@ -601,6 +627,24 @@ export default function WallPostTaskModal({
                       )}
                     </div>
 
+                    {/* External Link for Google Drive Photos */}
+                    {selectedPhoto.url && isGoogleDriveUrl(selectedPhoto.url) && (
+                      <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <a
+                          href={(() => {
+                            const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
+                            return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
+                          })()}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-2 px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span>Open in Google Drive</span>
+                        </a>
+                      </div>
+                    )}
+
                     {/* Photo Metadata */}
                     {selectedPhoto.postedAt && (
                       <p className="text-xs text-green-600 dark:text-green-400">
@@ -629,9 +673,16 @@ export default function WallPostTaskModal({
                       <div className="flex-shrink-0">
                         {photo.url ? (
                           <img
-                            src={photo.url}
+                            src={getGoogleDriveImageUrl(photo.url) || photo.url}
                             alt={`Photo ${index + 1}`}
                             className="w-20 h-20 object-cover rounded"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                              // Fallback to original URL if conversion fails
+                              if (photo.url && e.currentTarget.src !== photo.url) {
+                                e.currentTarget.src = photo.url;
+                              }
+                            }}
                           />
                         ) : (
                           <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">

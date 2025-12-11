@@ -43,12 +43,7 @@ export default function BulkSubmissionModal({
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([
-    { id: 'validating', label: 'Validating submission', status: 'pending' },
-    { id: 'uploading', label: 'Uploading photos to S3', status: 'pending' },
-    { id: 'creating', label: 'Creating task and photo records', status: 'pending' },
-    { id: 'finalizing', label: 'Finalizing bulk submission', status: 'pending' },
-  ]);
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>([]);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
   const [drivePermissionChecked, setDrivePermissionChecked] = useState(false);
   const [isCheckingDrivePermission, setIsCheckingDrivePermission] = useState(false);
@@ -102,13 +97,25 @@ export default function BulkSubmissionModal({
       }
     }
 
-    // Reset progress
-    setProgressSteps([
+    // Reset progress - dynamically set steps based on submission type
+    const steps: ProgressStep[] = [
       { id: 'validating', label: 'Validating submission', status: 'pending' },
-      { id: 'uploading', label: 'Uploading photos to S3', status: 'pending' },
+    ];
+
+    // Only show upload step if files are being uploaded (Option 1)
+    if (hasUploadedFiles) {
+      steps.push({ id: 'uploading', label: 'Uploading photos to S3', status: 'pending' });
+    } else if (hasDriveLink) {
+      // For Drive link, show fetching step instead
+      steps.push({ id: 'uploading', label: 'Fetching images from Google Drive', status: 'pending' });
+    }
+
+    steps.push(
       { id: 'creating', label: 'Creating task and photo records', status: 'pending' },
-      { id: 'finalizing', label: 'Finalizing bulk submission', status: 'pending' },
-    ]);
+      { id: 'finalizing', label: 'Finalizing bulk submission', status: 'pending' }
+    );
+
+    setProgressSteps(steps);
     setUploadProgress({ current: 0, total: 0 });
 
     setIsSubmitting(true);
