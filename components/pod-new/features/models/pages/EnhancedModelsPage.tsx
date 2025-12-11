@@ -309,41 +309,27 @@ const EnhancedModelsPage = ({
     }
 
     if (quickFilter === "high-revenue") {
-      console.log("🔍 Applying high-revenue filter to", rawModels.length, "models");
+      // Filter for models with guaranteed > $10,000
       const filtered = rawModels.filter((model) => {
         const guaranteedStr = (model as any).guaranteed;
         if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
           return false;
         }
-        
         const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
         const guaranteed = parseFloat(cleanValue);
-        const qualifies = !isNaN(guaranteed) && guaranteed > 10000;
-        
-        if (qualifies) {
-          console.log("✅ Top performer:", model.name, "guaranteed:", guaranteedStr, "→", guaranteed);
-        }
-        
-        return qualifies;
+        return !isNaN(guaranteed) && guaranteed > 10000;
       });
-      
+
       // Sort by guaranteed amount (highest to lowest)
-      const sorted = filtered.sort((a, b) => {
-        const getGuaranteedValue = (model: any) => {
-          const guaranteedStr = model.guaranteed;
-          if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
-            return 0;
-          }
-          const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
-          const guaranteed = parseFloat(cleanValue);
-          return !isNaN(guaranteed) ? guaranteed : 0;
+      return filtered.sort((a, b) => {
+        const getGuaranteed = (m: any) => {
+          const str = m.guaranteed;
+          if (!str || str.trim() === "" || str.trim() === "-") return 0;
+          const val = parseFloat(str.replace(/[^0-9.-]/g, ""));
+          return isNaN(val) ? 0 : val;
         };
-        
-        return getGuaranteedValue(b) - getGuaranteedValue(a); // Descending order
+        return getGuaranteed(b) - getGuaranteed(a);
       });
-      
-      console.log("🎯 High-revenue filter result:", sorted.length, "models, sorted by guaranteed amount");
-      return sorted;
     }
 
     return rawModels;
@@ -420,13 +406,10 @@ const EnhancedModelsPage = ({
       if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
         return false;
       }
-      
       const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
       const guaranteed = parseFloat(cleanValue);
-      
       return !isNaN(guaranteed) && guaranteed > 10000;
     }).length;
-    console.log("📊 High-revenue count for filter badge:", highRevenue);
     const recent = rawModels.filter((m) => {
       if (!m.launchDate) return false;
       const launchDate = new Date(m.launchDate);

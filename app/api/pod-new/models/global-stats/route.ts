@@ -2,6 +2,20 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
+// Cache for global stats - refreshes every 2 minutes
+let cachedStats: {
+  data: {
+    totalModels: number;
+    activeModels: number;
+    droppedModels: number;
+    totalRevenue: number;
+    activePercentage: number;
+  };
+  timestamp: number;
+} | null = null;
+
+const CACHE_TTL = 2 * 60 * 1000; // 2 minutes
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -14,53 +28,76 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Get global stats - no user filtering applied
-    const [totalModels, activeModels] = await Promise.all([
-      // Total count of all models
+    // Return cached data if still valid
+    const now = Date.now();
+    if (cachedStats && (now - cachedStats.timestamp) < CACHE_TTL) {
+      return NextResponse.json(cachedStats.data, {
+        headers: {
+          'Cache-Control': 'private, max-age=120',
+          'X-Cache': 'HIT',
+        }
+      });
+    }
+
+    // Fetch counts and guaranteed values in parallel
+    // Using a single query with groupBy for active/dropped would be ideal,
+    // but Prisma doesn't support conditional aggregation well on string fields
+    const [totalModels, activeModels, guaranteedValues] = await Promise.all([
       prisma.clientModel.count(),
-      
-      // Count of active models
+
+      // Use exact matching with OR for case variations (more efficient than contains)
       prisma.clientModel.count({
         where: {
-          status: { contains: "active", mode: "insensitive" }
+          OR: [
+            { status: "active" },
+            { status: "Active" },
+            { status: "ACTIVE" },
+          ]
+        }
+      }),
+
+      // Only fetch the guaranteed column for revenue calculation
+      prisma.clientModel.findMany({
+        select: { guaranteed: true },
+        where: {
+          guaranteed: { not: null },
         }
       })
     ]);
 
-    // Calculate total revenue (if you have revenue data in your schema)
-    // For now, using a placeholder calculation
-    const allModels = await prisma.clientModel.findMany({
-      select: {
-        percentTaken: true,
-        guaranteed: true,
-      }
-    });
-
-    // Calculate total guaranteed revenue from all models
-    const totalGuaranteedRevenue = allModels.reduce((sum, model) => {
+    // Calculate total guaranteed revenue
+    let totalRevenue = 0;
+    for (const model of guaranteedValues) {
       const guaranteedStr = model.guaranteed;
       if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
-        return sum;
+        continue;
       }
-      
-      // Remove $ symbol and any other non-numeric characters except decimal point
       const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
       const guaranteed = parseFloat(cleanValue);
-      
-      // Only add if it's a valid positive number
       if (!isNaN(guaranteed) && guaranteed > 0) {
-        return sum + guaranteed;
+        totalRevenue += guaranteed;
       }
-      
-      return sum;
-    }, 0);
+    }
 
-    return NextResponse.json({
+    const statsData = {
       totalModels,
       activeModels,
       droppedModels: totalModels - activeModels,
-      totalRevenue: totalGuaranteedRevenue,
+      totalRevenue,
       activePercentage: totalModels > 0 ? (activeModels / totalModels) * 100 : 0,
+    };
+
+    // Update cache
+    cachedStats = {
+      data: statsData,
+      timestamp: now,
+    };
+
+    return NextResponse.json(statsData, {
+      headers: {
+        'Cache-Control': 'private, max-age=120',
+        'X-Cache': 'MISS',
+      }
     });
   } catch (error) {
     console.error("Error fetching global stats:", error);

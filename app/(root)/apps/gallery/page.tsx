@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import ContentCard from "@/components/gallery/ContentCard";
 import ListCard from "@/components/gallery/ContentCard/ListCard";
 import CompactCard from "@/components/gallery/ContentCard/CompactCard";
@@ -15,11 +15,11 @@ import { StatsCards } from "@/components/gallery/Stats";
 import Pagination from "@/components/gallery/Pagination";
 import GallerySkeleton from "@/components/gallery/GallerySkeleton";
 import ViewModeSwitcher, { ViewMode, getGridConfig } from "@/components/gallery/ViewModeSwitcher";
-import VirtualizedGalleryGrid from "@/components/gallery/VirtualizedGalleryGrid";
+
 import FilterPresets from "@/components/gallery/FilterPresets";
 import SmartCollections from "@/components/gallery/SmartCollections";
 import { GalleryItem, FilterState } from "@/types/gallery";
-import { Grid3X3, SlidersHorizontal, RotateCcw, CheckSquare, Table2, Kanban, FolderOpen, PanelLeftClose, PanelLeft, Sparkles } from "lucide-react";
+import { Grid3X3, SlidersHorizontal, RotateCcw, CheckSquare, Table2, Kanban, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import {
@@ -31,8 +31,12 @@ import {
 } from "@/hooks/useGalleryQuery";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSession } from "next-auth/react";
-import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
+
+// Custom Hooks
+import { useGalleryFilters } from "@/hooks/gallery/useGalleryFilters";
+import { useGallerySelection } from "@/hooks/gallery/useGallerySelection";
+import { useGalleryShortcuts } from "@/hooks/gallery/useGalleryShortcuts";
 
 // Error Boundary Component for robust error handling
 class ErrorBoundary extends React.Component<
@@ -82,41 +86,16 @@ class ErrorBoundary extends React.Component<
 }
 
 const GalleryContent = () => {
-  const [activeTab, setActiveTab] = useState<"all" | "favorites" | "releases">(
-    "all"
-  );
+  // UI State
   const [showFilters, setShowFilters] = useState(false);
-
-  // Consolidated filter state (default dataSource to SHEET)
-  const [filters, setFilters] = useState<FilterState>({
-    search: "",
-    category: "all",
-    creator: "all",
-    messageType: "all",
-    outcome: "all",
-    sortBy: "revenue",
-    revenue: "",
-    dataSource: "SHEET",
-    postOrigin: "all",
-  });
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
-
-  // Bulk selection state (Set-based for O(1) lookups)
-  const [selectionMode, setSelectionMode] = useState(false);
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
-  // Keyboard shortcuts state
   const [showShortcutsHelp, setShowShortcutsHelp] = useState(false);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  // New UI/UX states
   const [viewMode, setViewMode] = useState<ViewMode>("grid");
-  const [useVirtualScrolling, setUseVirtualScrolling] = useState(false);
+
   const [showCollectionsSidebar, setShowCollectionsSidebar] = useState(false);
-  const [activeCollection, setActiveCollection] = useState<string | null>(null);
   const [focusedIndex, setFocusedIndex] = useState<number>(-1);
-  const [lastSelectedIndex, setLastSelectedIndex] = useState<number>(-1);
 
   // React Query hooks for data management
   const { data: galleryData, isLoading, error } = useGalleryData();
@@ -139,471 +118,84 @@ const GalleryContent = () => {
     library: 0,
   };
 
-  // Pure client-side filtering function
-  const applyFiltersToItems = (items: GalleryItem[]): GalleryItem[] => {
-    let filteredItems = [...items];
+  // --- Filtering Logic ---
+  const {
+    filters,
+    setFilters,
+    activeTab,
+    setActiveTab,
+    activeCollection,
+    setActiveCollection,
+    debouncedSearch,
+    filteredContent,
+  } = useGalleryFilters({ items: galleryItems });
 
-    // Apply category filter
-    if (filters.category && filters.category !== "all") {
-      filteredItems = filteredItems.filter(
-        (item) => item.category.toLowerCase() === filters.category.toLowerCase()
-      );
-    }
+  // Reset page when filters change (implicit dependency on filteredContent length changing)
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [filters, activeTab, activeCollection]);
 
-    // Apply creator filter
-    if (filters.creator && filters.creator !== "all") {
-      filteredItems = filteredItems.filter(
-        (item) =>
-          item.creatorName &&
-          item.creatorName.toLowerCase().includes(filters.creator.toLowerCase())
-      );
-    }
-
-    // Apply revenue filter
-    if (filters.revenue) {
-      const min = parseFloat(filters.revenue);
-      filteredItems = filteredItems.filter((item) => item.totalRevenue >= min);
-    }
-
-    // Apply message type filter
-    if (filters.messageType && filters.messageType !== "all") {
-      filteredItems = filteredItems.filter(
-        (item) =>
-          item.messageType &&
-          item.messageType.toLowerCase() === filters.messageType.toLowerCase()
-      );
-    }
-
-    // Apply outcome filter
-    if (filters.outcome && filters.outcome !== "all") {
-      filteredItems = filteredItems.filter(
-        (item) =>
-          item.outcome &&
-          item.outcome.toLowerCase() === filters.outcome.toLowerCase()
-      );
-    }
-
-    // Apply data source filter
-    if (filters.dataSource && filters.dataSource !== "all") {
-      filteredItems = filteredItems.filter(
-        (item) => item.dataSource === filters.dataSource
-      );
-    }
-
-    // Apply post origin filter (only for SHEET items by their messageType)
-    if (filters.postOrigin && filters.postOrigin !== "all") {
-      filteredItems = filteredItems.filter(
-        (item) =>
-          (item.dataSource === "SHEET" || !item.dataSource) &&
-          item.messageType === filters.postOrigin
-      );
-    }
-
-    // Apply search filter (using debounced search)
-    if (debouncedSearch) {
-      filteredItems = filteredItems.filter(
-        (item) =>
-          item.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          item.captionText
-            .toLowerCase()
-            .includes(debouncedSearch.toLowerCase()) ||
-          item.category.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-          (item.contentStyle || "")
-            .toLowerCase()
-            .includes(debouncedSearch.toLowerCase())
-      );
-    }
-
-    return filteredItems;
-  };
-
-  // Debounce search query to reduce filtering operations
-  const debouncedSearch = useDebounce(filters.search, 300);
-
-  // Apply filters to gallery data using useMemo for performance
-  const allFilteredItems = useMemo(() => {
-    const filtered = applyFiltersToItems(galleryItems);
-    return filtered;
-  }, [
-    galleryItems,
-    debouncedSearch, // Use debounced search instead of direct search
-    filters.category,
-    filters.creator,
-    filters.revenue,
-    filters.messageType,
-    filters.outcome,
-    filters.dataSource,
-    filters.postOrigin,
-  ]);
-
-  // Apply client-side sorting using useMemo for performance
-  const sortedItems = useMemo(() => {
-    return [...allFilteredItems].sort((a, b) => {
-      switch (filters.sortBy) {
-        case "revenue":
-          return b.totalRevenue - a.totalRevenue;
-        case "popularity":
-          return b.totalBuys - a.totalBuys;
-        case "success-rate":
-          const outcomeValue = (outcome: string | undefined) => {
-            if (!outcome) return 0;
-            const lower = outcome.toLowerCase();
-            if (lower.includes("good") || lower.includes("success")) return 3;
-            if (lower.includes("ok") || lower.includes("decent")) return 2;
-            if (lower.includes("bad") || lower.includes("poor")) return 1;
-            return 0;
-          };
-          const outcomeValueDiff =
-            outcomeValue(b.outcome) - outcomeValue(a.outcome);
-          if (outcomeValueDiff !== 0) return outcomeValueDiff;
-          return b.totalRevenue - a.totalRevenue;
-        case "recent":
-          return (
-            new Date(b.dateAdded).getTime() - new Date(a.dateAdded).getTime()
-          );
-        case "alphabetical":
-          return a.title.localeCompare(b.title);
-        default:
-          return 0;
-      }
-    });
-  }, [allFilteredItems, filters.sortBy]);
-
-  // Filter items based on active tab
-  const tabFilteredItems = useMemo(() => {
-    switch (activeTab) {
-      case "favorites":
-        return sortedItems.filter((item) => item.isFavorite);
-      case "releases":
-        return sortedItems.filter((item) => item.isPTR);
-      default:
-        return sortedItems;
-    }
-  }, [sortedItems, activeTab]);
-
-  // Apply smart collection filter
-  const filteredContent = useMemo(() => {
-    if (!activeCollection) return tabFilteredItems;
-
-    const now = new Date();
-    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
-
-    switch (activeCollection) {
-      case "high-performers":
-        return tabFilteredItems.filter((item) => item.totalRevenue >= 100);
-      case "best-roi":
-        return tabFilteredItems.filter(
-          (item) =>
-            item.outcome?.toLowerCase().includes("good") ||
-            item.outcome?.toLowerCase().includes("success")
-        );
-      case "top-sellers":
-        return tabFilteredItems.filter((item) => item.totalBuys >= 20);
-      case "favorites":
-        return tabFilteredItems.filter((item) => item.isFavorite === true);
-      case "ptr-queue":
-        return tabFilteredItems.filter((item) => item.isPTR === true && !item.ptrSent);
-      case "ptr-sent":
-        return tabFilteredItems.filter((item) => item.ptrSent === true);
-      case "ready-rotation":
-        return tabFilteredItems.filter((item) => item.isReadyForRotation === true);
-      case "recent-7d":
-        return tabFilteredItems.filter((item) => {
-          const added = new Date(item.dateAdded);
-          return added >= sevenDaysAgo;
-        });
-      case "recent-30d":
-        return tabFilteredItems.filter((item) => {
-          const added = new Date(item.dateAdded);
-          return added >= thirtyDaysAgo;
-        });
-      case "needs-attention":
-        return tabFilteredItems.filter(
-          (item) =>
-            item.outcome?.toLowerCase().includes("bad") ||
-            item.outcome?.toLowerCase().includes("poor")
-        );
-      default:
-        return tabFilteredItems;
-    }
-  }, [tabFilteredItems, activeCollection]);
-
-  // Get grid config based on view mode
-  const gridConfig = useMemo(() => getGridConfig(viewMode), [viewMode]);
-
-  // Calculate total revenue from all gallery items
-  const totalRevenue = useMemo(() => {
+  // Calculate total revenue from all gallery items (for stats)
+  const totalRevenue = React.useMemo(() => {
     return galleryItems.reduce((sum, item) => sum + (item.totalRevenue || 0), 0);
   }, [galleryItems]);
 
-  // Pagination logic
+  // --- Pagination Logic ---
   const totalItems = filteredContent.length;
+
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedContent = filteredContent.slice(startIndex, endIndex);
 
-  // Handle favorite toggle with React Query
+  const selectionContextItems = paginatedContent;
+
+  const {
+    selectionMode,
+    setSelectionMode,
+    selectedIds,
+    toggleSelection,
+    selectAll,
+    clearSelection,
+    toggleSelectionMode,
+    selectedItems,
+  } = useGallerySelection({ items: selectionContextItems });
+
+  // --- Actions ---
   const handleToggleFavorite = (item: GalleryItem) => {
     const action = item.isFavorite ? "remove" : "add";
-    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    const userId = session?.user?.id || session?.user?.email || "current-user";
     toggleFavoriteMutation.mutate({ item, action, userId });
   };
 
-  // Handle PTR toggle with React Query
   const handleTogglePTR = (item: GalleryItem) => {
     const action = item.isPTR ? "remove" : "add";
-    const userId = session?.user?.id || session?.user?.email || 'current-user';
-    togglePTRMutation.mutate({ item, action, userId });
+    const userId = session?.user?.id || session?.user?.email || "current-user";
+    toggleTogglePTRMutation(item, action, userId);
   };
+  // Correction: used mutation directly
+  const toggleTogglePTRMutation = (item: GalleryItem, action: 'add' | 'remove', userId: string) => {
+      togglePTRMutation.mutate({ item, action, userId });
+  }
 
-  // Handle mark PTR as sent
+
   const handleMarkPTRAsSent = (item: GalleryItem) => {
-    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    const userId = session?.user?.id || session?.user?.email || "current-user";
     markPTRAsSentMutation.mutate({ item, userId });
   };
 
-  // Bulk selection handlers
-  const toggleSelection = (id: string) => {
-    setSelectedIds(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(id)) {
-        newSet.delete(id);
-      } else {
-        newSet.add(id);
-      }
-      return newSet;
-    });
-  };
-
-  const selectAll = () => {
-    const allIds = new Set(paginatedContent.map(item => item.id));
-    setSelectedIds(allIds);
-  };
-
-  const clearSelection = () => {
-    setSelectedIds(new Set());
-  };
-
-  const toggleSelectionMode = () => {
-    setSelectionMode(prev => !prev);
-    if (selectionMode) {
-      clearSelection();
+  const handleClearCache = async () => {
+    try {
+      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gallery });
+      toast.success("Cache cleared successfully");
+    } catch (error) {
+      toast.error("Failed to clear cache");
     }
   };
 
-  // Get selected items
-  const selectedItems = paginatedContent.filter(item => selectedIds.has(item.id));
-
-  // Smart collection handlers
-  const handleSelectCollection = useCallback((collectionId: string, collectionFilters?: Partial<FilterState>) => {
-    setActiveCollection(collectionId);
-    if (collectionFilters) {
-      setFilters(prev => ({ ...prev, ...collectionFilters }));
-    }
-    setCurrentPage(1);
-  }, []);
-
-  const handleClearCollection = useCallback(() => {
-    setActiveCollection(null);
-  }, []);
-
-  // Range selection handler for shift+click
-  const handleRangeSelection = useCallback((clickedIndex: number) => {
-    if (lastSelectedIndex === -1) {
-      setLastSelectedIndex(clickedIndex);
-      return;
-    }
-
-    const start = Math.min(lastSelectedIndex, clickedIndex);
-    const end = Math.max(lastSelectedIndex, clickedIndex);
-    const itemsInRange = paginatedContent.slice(start, end + 1);
-
-    setSelectedIds(prev => {
-      const newSet = new Set(prev);
-      itemsInRange.forEach(item => newSet.add(item.id));
-      return newSet;
-    });
-  }, [lastSelectedIndex, paginatedContent]);
-
-  // Enhanced toggle selection with shift support
-  const handleToggleSelectionWithShift = useCallback((id: string, index: number, shiftKey: boolean) => {
-    if (shiftKey && selectionMode && lastSelectedIndex !== -1) {
-      handleRangeSelection(index);
-    } else {
-      toggleSelection(id);
-      setLastSelectedIndex(index);
-    }
-  }, [selectionMode, lastSelectedIndex, handleRangeSelection, toggleSelection]);
-
-  // Keyboard shortcuts handler
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      // Don't trigger if user is typing in input/textarea
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement
-      ) {
-        return;
-      }
-
-      const columnCount = viewMode === "list" ? 1 : viewMode === "compact" ? 6 : 4;
-
-      switch (e.key.toLowerCase()) {
-        case 's':
-          // Toggle selection mode
-          toggleSelectionMode();
-          e.preventDefault();
-          break;
-
-        case 'f':
-        case '/':
-          // Focus search bar
-          searchInputRef.current?.focus();
-          e.preventDefault();
-          break;
-
-        case 'escape':
-          // Clear selection / Close modals
-          if (selectionMode) {
-            clearSelection();
-            setSelectionMode(false);
-          }
-          if (showShortcutsHelp) {
-            setShowShortcutsHelp(false);
-          }
-          setFocusedIndex(-1);
-          break;
-
-        case 'a':
-          // Select all visible items (Cmd/Ctrl + A)
-          if (e.metaKey || e.ctrlKey) {
-            if (selectionMode) {
-              selectAll();
-              e.preventDefault();
-            }
-          }
-          break;
-
-        case 'd':
-          // Deselect all (Cmd/Ctrl + D)
-          if (e.metaKey || e.ctrlKey) {
-            if (selectionMode) {
-              clearSelection();
-              e.preventDefault();
-            }
-          }
-          break;
-
-        case '?':
-          // Show keyboard shortcuts help
-          setShowShortcutsHelp(prev => !prev);
-          e.preventDefault();
-          break;
-
-        // View mode shortcuts
-        case 'g':
-          if (!e.metaKey && !e.ctrlKey) {
-            setViewMode("grid");
-            e.preventDefault();
-          }
-          break;
-
-        case 'l':
-          if (!e.metaKey && !e.ctrlKey) {
-            setViewMode("list");
-            e.preventDefault();
-          }
-          break;
-
-        case 'c':
-          if (!e.metaKey && !e.ctrlKey) {
-            setViewMode("compact");
-            e.preventDefault();
-          }
-          break;
-
-        case 'v':
-          if (!e.metaKey && !e.ctrlKey) {
-            setUseVirtualScrolling(prev => !prev);
-            toast.info(useVirtualScrolling ? "Virtual scrolling disabled" : "Virtual scrolling enabled");
-            e.preventDefault();
-          }
-          break;
-
-        case 'r':
-          if (!e.metaKey && !e.ctrlKey) {
-            handleClearCache();
-            e.preventDefault();
-          }
-          break;
-
-        // Arrow key navigation
-        case 'arrowleft':
-          if (focusedIndex > 0) {
-            setFocusedIndex(prev => prev - 1);
-            e.preventDefault();
-          }
-          break;
-
-        case 'arrowright':
-          if (focusedIndex < paginatedContent.length - 1) {
-            setFocusedIndex(prev => prev + 1);
-            e.preventDefault();
-          }
-          break;
-
-        case 'arrowup':
-          if (focusedIndex >= columnCount) {
-            setFocusedIndex(prev => prev - columnCount);
-            e.preventDefault();
-          }
-          break;
-
-        case 'arrowdown':
-          if (focusedIndex < paginatedContent.length - columnCount) {
-            setFocusedIndex(prev => prev + columnCount);
-            e.preventDefault();
-          } else if (focusedIndex === -1 && paginatedContent.length > 0) {
-            setFocusedIndex(0);
-            e.preventDefault();
-          }
-          break;
-
-        case ' ':
-          // Space to toggle selection when focused
-          if (selectionMode && focusedIndex >= 0 && focusedIndex < paginatedContent.length) {
-            toggleSelection(paginatedContent[focusedIndex].id);
-            e.preventDefault();
-          }
-          break;
-
-        case 'h':
-          // Toggle favorite for focused item
-          if (focusedIndex >= 0 && focusedIndex < paginatedContent.length) {
-            handleToggleFavorite(paginatedContent[focusedIndex]);
-            e.preventDefault();
-          }
-          break;
-
-        case 'p':
-          // Toggle PTR for focused item
-          if (!e.metaKey && !e.ctrlKey && focusedIndex >= 0 && focusedIndex < paginatedContent.length) {
-            handleTogglePTR(paginatedContent[focusedIndex]);
-            e.preventDefault();
-          }
-          break;
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [selectionMode, showShortcutsHelp, viewMode, focusedIndex, paginatedContent, useVirtualScrolling]);
-
-  // Bulk operations
+  // --- Bulk Actions ---
   const handleBulkFavorite = async () => {
-    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    const userId = session?.user?.id || session?.user?.email || "current-user";
     let successCount = 0;
     let errorCount = 0;
 
@@ -629,7 +221,7 @@ const GalleryContent = () => {
   };
 
   const handleBulkPTR = async () => {
-    const userId = session?.user?.id || session?.user?.email || 'current-user';
+    const userId = session?.user?.id || session?.user?.email || "current-user";
     let successCount = 0;
     let errorCount = 0;
 
@@ -655,29 +247,28 @@ const GalleryContent = () => {
   };
 
   const handleBulkExport = () => {
-    // Export selected items to CSV
-    const headers = ['ID', 'Title', 'Category', 'Creator', 'Revenue', 'Buys', 'Outcome', 'Date Added'];
-    const rows = selectedItems.map(item => [
+    const headers = ["ID", "Title", "Category", "Creator", "Revenue", "Buys", "Outcome", "Date Added"];
+    const rows = selectedItems.map((item) => [
       item.id,
       item.title,
       item.category,
-      item.creatorName || '',
+      item.creatorName || "",
       item.totalRevenue,
       item.totalBuys,
-      item.outcome || '',
-      item.dateAdded
+      item.outcome || "",
+      item.dateAdded,
     ]);
 
     const csv = [
-      headers.join(','),
-      ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rows.map((row) => row.map((cell) => `"${cell}"`).join(",")),
+    ].join("\n");
 
-    const blob = new Blob([csv], { type: 'text/csv' });
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `gallery-export-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `gallery-export-${new Date().toISOString().split("T")[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -687,16 +278,42 @@ const GalleryContent = () => {
     clearSelection();
   };
 
-  // Handle clear cache
-  const handleClearCache = async () => {
-    try {
-      // Clear React Query cache
-      await queryClient.invalidateQueries({ queryKey: QUERY_KEYS.gallery });
-      toast.success("Cache cleared successfully");
-    } catch (error) {
-      toast.error("Failed to clear cache");
-    }
-  };
+   // --- Shortcuts ---
+  useGalleryShortcuts({
+    searchInputRef,
+    selectionMode,
+    setSelectionMode,
+    clearSelection,
+    selectAll,
+    toggleSelectionMode,
+    setShowShortcutsHelp,
+    showShortcutsHelp,
+    setViewMode,
+    viewMode,
+    focusedIndex,
+    setFocusedIndex,
+    paginatedContent: selectionContextItems,
+    toggleSelection,
+    handleToggleFavorite,
+    handleTogglePTR,
+    handleClearCache,
+  });
+
+  // --- Smart Collections Helpers ---
+  const handleSelectCollection = useCallback(
+    (collectionId: string, collectionFilters?: Partial<FilterState>) => {
+      setActiveCollection(collectionId);
+      if (collectionFilters) {
+        setFilters((prev) => ({ ...prev, ...collectionFilters }));
+      }
+      setCurrentPage(1);
+    },
+    [setActiveCollection, setFilters]
+  );
+
+  const handleClearCollection = useCallback(() => {
+    setActiveCollection(null);
+  }, [setActiveCollection]);
 
   // Handle loading state
   if (isLoading) {
@@ -723,10 +340,12 @@ const GalleryContent = () => {
     );
   }
 
+  const gridConfig = getGridConfig(viewMode);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
-      <div className="container mx-auto px-4 py-8">
-        {/* Enhanced Header */}
+      <div className="mx-auto px-4 py-8">
+        {/* Header */}
         <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 mb-2 backdrop-blur-sm">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
@@ -735,7 +354,7 @@ const GalleryContent = () => {
 
           <div className="relative px-8 py-6">
             <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
-              {/* Title Section with Enhanced Typography */}
+              {/* Title Section */}
               <div className="flex-1">
                 <div className="flex items-start gap-4 mb-3">
                   <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
@@ -762,9 +381,8 @@ const GalleryContent = () => {
                 </div>
               </div>
 
-              {/* Enhanced Action Buttons */}
+              {/* Action Buttons */}
               <div className="flex items-center gap-3">
-                {/* View Mode Switcher */}
                 <ViewModeSwitcher
                   currentView={viewMode}
                   onViewChange={setViewMode}
@@ -852,7 +470,6 @@ const GalleryContent = () => {
 
         {/* Navigation and Actions */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-          {/* Tab Navigation */}
           <TabSelector
             activeTab={activeTab}
             onTabChange={setActiveTab}
@@ -860,7 +477,6 @@ const GalleryContent = () => {
             galleryItemsLength={galleryItems.length}
           />
 
-          {/* Action Buttons */}
           <div className="flex items-center gap-3">
             {/* Sheet/Board Toggle Switch */}
             <div className="flex items-center h-12 p-1 bg-gray-100 dark:bg-gray-800 rounded-2xl border border-gray-200 dark:border-gray-700">
@@ -933,7 +549,7 @@ const GalleryContent = () => {
                   outcome: "all",
                   sortBy: "revenue",
                   revenue: "",
-                  dataSource: prev.dataSource, // Keep the current dataSource (controlled by header switch)
+                  dataSource: prev.dataSource,
                   postOrigin: "all",
                 }))
               }
@@ -948,7 +564,7 @@ const GalleryContent = () => {
           totalRevenue={totalRevenue}
         />
 
-        {/* Main Content Area with Optional Sidebar */}
+        {/* Main Content Area */}
         <div className={cn("flex gap-6", showCollectionsSidebar ? "flex-row" : "flex-col")}>
           {/* Smart Collections Sidebar */}
           {showCollectionsSidebar && (
@@ -987,81 +603,67 @@ const GalleryContent = () => {
 
             {/* Content Grid */}
             {paginatedContent.length > 0 ? (
-              useVirtualScrolling ? (
-                <VirtualizedGalleryGrid
-                  items={filteredContent}
-                  viewMode={viewMode}
-                  onToggleFavorite={handleToggleFavorite}
-                  onTogglePTR={handleTogglePTR}
-                  onMarkPTRAsSent={handleMarkPTRAsSent}
-                  selectionMode={selectionMode}
-                  selectedIds={selectedIds}
-                  onToggleSelection={toggleSelection}
-                  className="mb-8"
-                />
-              ) : (
-                <div
-                  className={cn(
-                    "grid mb-8",
-                    gridConfig.gap,
-                    gridConfig.columns
-                  )}
-                >
-                  {paginatedContent.map((content, index) => {
-                    const isFocused = index === focusedIndex;
+              <div
+                className={cn(
+                  "grid mb-8",
+                  gridConfig.gap,
+                  gridConfig.columns
+                )}
+              >
+                {paginatedContent.map((content, index) => {
+                  const isFocused = index === focusedIndex;
 
-                    return (
-                      <ErrorBoundary
-                        key={`${content.tableName || "default"}-${content.id}-${content.sheetRowId || index}`}
-                        fallback={
-                          <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-                            <div className="text-red-600 dark:text-red-400 text-sm">
-                              Error loading content: {content.title || content.id}
-                            </div>
+                  return (
+                    <ErrorBoundary
+                      key={`${content.tableName || "default"}-${content.id}-${content.sheetRowId || index}`}
+                      fallback={
+                        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                          <div className="text-red-600 dark:text-red-400 text-sm">
+                            Error loading content: {content.title || content.id}
                           </div>
-                        }
-                      >
-                        <div className={cn(isFocused && "ring-2 ring-pink-500 ring-offset-2 rounded-xl")}>
-                          {viewMode === "list" ? (
-                            <ListCard
-                              content={content}
-                              onToggleFavorite={handleToggleFavorite}
-                              onTogglePTR={handleTogglePTR}
-                              onMarkPTRAsSent={handleMarkPTRAsSent}
-                              selectionMode={selectionMode}
-                              isSelected={selectedIds.has(content.id)}
-                              onToggleSelection={toggleSelection}
-                              cardHeight={gridConfig.cardHeight}
-                            />
-                          ) : viewMode === "compact" ? (
-                            <CompactCard
-                              content={content}
-                              onToggleFavorite={handleToggleFavorite}
-                              onTogglePTR={handleTogglePTR}
-                              onMarkPTRAsSent={handleMarkPTRAsSent}
-                              selectionMode={selectionMode}
-                              isSelected={selectedIds.has(content.id)}
-                              onToggleSelection={toggleSelection}
-                              cardHeight={gridConfig.cardHeight}
-                              imageHeight={gridConfig.imageHeight}
-                            />
-                          ) : (
-                            <ContentCard
-                              content={content}
-                              onToggleFavorite={handleToggleFavorite}
-                              onTogglePTR={handleTogglePTR}
-                              onMarkPTRAsSent={handleMarkPTRAsSent}
-                              selectionMode={selectionMode}
-                              isSelected={selectedIds.has(content.id)}
-                              onToggleSelection={toggleSelection}
-                            />
-                          )}
                         </div>
-                      </ErrorBoundary>
-                    );
-                  })}
-                </div>
-              )
+                      }
+                    >
+                      <div className={cn(isFocused && "ring-2 ring-pink-500 ring-offset-2 rounded-xl")}>
+                        {viewMode === "list" ? (
+                          <ListCard
+                            content={content}
+                            onToggleFavorite={handleToggleFavorite}
+                            onTogglePTR={handleTogglePTR}
+                            onMarkPTRAsSent={handleMarkPTRAsSent}
+                            selectionMode={selectionMode}
+                            isSelected={selectedIds.has(content.id)}
+                            onToggleSelection={toggleSelection}
+                            cardHeight={gridConfig.cardHeight}
+                          />
+                        ) : viewMode === "compact" ? (
+                          <CompactCard
+                            content={content}
+                            onToggleFavorite={handleToggleFavorite}
+                            onTogglePTR={handleTogglePTR}
+                            onMarkPTRAsSent={handleMarkPTRAsSent}
+                            selectionMode={selectionMode}
+                            isSelected={selectedIds.has(content.id)}
+                            onToggleSelection={toggleSelection}
+                            cardHeight={gridConfig.cardHeight}
+                            imageHeight={gridConfig.imageHeight}
+                          />
+                        ) : (
+                          <ContentCard
+                            content={content}
+                            onToggleFavorite={handleToggleFavorite}
+                            onTogglePTR={handleTogglePTR}
+                            onMarkPTRAsSent={handleMarkPTRAsSent}
+                            selectionMode={selectionMode}
+                            isSelected={selectedIds.has(content.id)}
+                            onToggleSelection={toggleSelection}
+                          />
+                        )}
+                      </div>
+                    </ErrorBoundary>
+                  );
+                })}
+              </div>
             ) : (
               <div className="flex flex-col items-center justify-center py-20 mb-8">
                 <div className="flex items-center justify-center w-20 h-20 rounded-2xl bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-700 mb-6">
@@ -1118,7 +720,7 @@ const GalleryContent = () => {
           </div>
         </div>
 
-        {/* Pagination */}
+        {/* Pagination - show if there are multiple pages */}
         {totalPages > 1 && (
           <Pagination
             pagination={{
@@ -1136,7 +738,7 @@ const GalleryContent = () => {
           />
         )}
 
-        {/* Bulk Actions Toolbar (fixed bottom) */}
+        {/* Bulk Actions Toolbar */}
         <BulkActionsToolbar
           selectedCount={selectedIds.size}
           onBulkFavorite={handleBulkFavorite}

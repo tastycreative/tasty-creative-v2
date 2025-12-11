@@ -65,6 +65,12 @@ const navigation: { title: string; items: NavItem[] }[] = [
         icon: LayoutDashboard,
       },
       {
+        title: "My Models",
+        href: "/my-models",
+        icon: Users,
+        badge: { text: "★", variant: "primary" },
+      },
+      {
         title: "Board",
         icon: Kanban,
         subItems: [],
@@ -137,11 +143,6 @@ const navigation: { title: string; items: NavItem[] }[] = [
   {
     title: "Management",
     items: [
-      {
-        title: "My Models",
-        href: "/my-models",
-        icon: Users,
-      },
       { title: "Team", href: "/team", icon: Users2 },
     ],
   },

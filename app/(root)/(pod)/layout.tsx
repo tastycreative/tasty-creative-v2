@@ -3,7 +3,7 @@
 import React, { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Focus, Layout } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Focus, Layout, Users } from "lucide-react";
 import LeftSidebar from "@/components/pod-new/layouts/LeftSidebar";
 import RightSidebar from "@/components/pod-new/layouts/RightSidebar";
 import {
@@ -92,11 +92,13 @@ export default function PodLayout({ children }: PodLayoutProps) {
     if (!pathname) return "dashboard";
     if (pathname === "/" || pathname === "/dashboard")
       return "dashboard";
+    if (pathname.includes("/my-models")) return "my-models";
     if (pathname.includes("/sheets")) return "sheets";
     if (pathname.includes("/board")) return "board";
     if (pathname.includes("/pricing")) return "pricing";
     if (pathname.includes("/forms")) return "forms";
     if (pathname.includes("/generative-ai")) return "generative-ai";
+    if (pathname.includes("/gallery")) return "gallery";
     if (pathname.includes("/pod-admin")) return "pod-admin";
     return "dashboard";
   };
@@ -105,14 +107,13 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   const tabItems = [
     { id: "dashboard", label: "Dashboard", href: "/dashboard" },
+    { id: "my-models", label: "My Models", href: "/my-models", highlight: true },
     { id: "sheets", label: "Sheets Integration", href: "/sheets" },
-    // { id: "board", label: "Board", href: "/board" },
-    // { id: "pricing", label: "Pricing Guide", href: "/pricing" },
-    { id: "forms", label: "Gallery", href: "/gallery" },
+    { id: "gallery", label: "Gallery", href: "/gallery" },
     { id: "generative-ai", label: "Voice", href: "/generative-ai/voice" },
     // Only show POD-Admin to ADMIN and MODERATOR users
-    ...(session?.user?.role === "ADMIN" || session?.user?.role === "MODERATOR" 
-      ? [{ id: "pod-admin", label: "POD-Admin", href: "/pod-admin" }] 
+    ...(session?.user?.role === "ADMIN" || session?.user?.role === "MODERATOR"
+      ? [{ id: "pod-admin", label: "POD-Admin", href: "/pod-admin" }]
       : []),
   ];
 
@@ -162,12 +163,17 @@ export default function PodLayout({ children }: PodLayoutProps) {
             <Link
               key={tab.id}
               href={tab.href}
-              className={`inline-flex items-center rounded-full border border-gray-200/50 dark:border-white/10 px-4 py-2 text-sm transition-colors ${
-                activeTab === tab.id
-                  ? "bg-gray-100/80 dark:bg-white/10 text-gray-900 dark:text-white"
-                  : "text-gray-600 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
+              className={`inline-flex items-center gap-1.5 rounded-full border px-4 py-2 text-sm transition-all duration-200 ${
+                tab.highlight
+                  ? activeTab === tab.id
+                    ? "bg-gradient-to-r from-pink-500 to-purple-500 text-white border-pink-400/50 shadow-lg shadow-pink-500/25"
+                    : "bg-gradient-to-r from-pink-500/10 to-purple-500/10 text-pink-600 dark:text-pink-300 border-pink-300/50 dark:border-pink-500/30 hover:from-pink-500/20 hover:to-purple-500/20 hover:border-pink-400/60"
+                  : activeTab === tab.id
+                    ? "bg-gray-100/80 dark:bg-white/10 text-gray-900 dark:text-white border-gray-200/50 dark:border-white/10"
+                    : "text-gray-600 dark:text-gray-300 hover:bg-gray-50/80 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white border-gray-200/50 dark:border-white/10"
               }`}
             >
+              {tab.highlight && <Users className="w-4 h-4" />}
               {tab.label}
             </Link>
           ))}

@@ -13,6 +13,7 @@ export interface GalleryApiResponse {
   };
   categories: { name: string; count: number }[];
   creators: { name: string; count: number }[];
+  postOrigins: { name: string; count: number }[];
   pagination: any;
 }
 
