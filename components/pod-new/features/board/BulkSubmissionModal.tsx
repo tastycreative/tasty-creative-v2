@@ -1,8 +1,9 @@
 "use client";
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { X, Upload, Loader2, ImagePlus, Link as LinkIcon, Check } from 'lucide-react';
 import ModelsDropdownList from '@/components/ModelsDropdownList';
+import PermissionGoogle from '@/components/PermissionGoogle';
 
 interface BulkSubmissionModalProps {
   isOpen: boolean;
@@ -49,6 +50,10 @@ export default function BulkSubmissionModal({
     { id: 'finalizing', label: 'Finalizing bulk submission', status: 'pending' },
   ]);
   const [uploadProgress, setUploadProgress] = useState({ current: 0, total: 0 });
+  const [drivePermissionChecked, setDrivePermissionChecked] = useState(false);
+  const [isCheckingDrivePermission, setIsCheckingDrivePermission] = useState(false);
+  const [showPermissionPrompt, setShowPermissionPrompt] = useState(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleProgressUpdate = (stepId: ProgressStep['id'], current?: number, total?: number) => {
     setProgressSteps(prev => prev.map(step => {
@@ -130,6 +135,76 @@ export default function BulkSubmissionModal({
       setIsSubmitting(false);
     }
   };
+
+  // Check Google Drive permission
+  const checkDrivePermission = useCallback(async (driveUrl: string) => {
+    if (!driveUrl || !driveUrl.trim()) {
+      setDrivePermissionChecked(false);
+      setShowPermissionPrompt(false);
+      return;
+    }
+
+    setIsCheckingDrivePermission(true);
+    setError(null);
+    setShowPermissionPrompt(false);
+
+    try {
+      const response = await fetch('/api/google-drive/check-url-permission', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ driveUrl }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setDrivePermissionChecked(true);
+        setError(null);
+        setShowPermissionPrompt(false);
+      } else {
+        setDrivePermissionChecked(false);
+        // Show permission prompt ONLY for OAuth scope errors, not folder access errors
+        if (response.status === 403 && data.error === 'GooglePermissionDenied' && data.isOAuthError) {
+          setShowPermissionPrompt(true);
+        }
+        setError(data.message || data.error || 'Unable to access Google Drive URL');
+      }
+    } catch (err) {
+      setDrivePermissionChecked(false);
+      setShowPermissionPrompt(false);
+      setError('Failed to check Google Drive permissions. Please try again.');
+    } finally {
+      setIsCheckingDrivePermission(false);
+    }
+  }, []);
+
+  // Handle Drive link change with automatic permission check
+  const handleDriveLinkChange = useCallback((value: string) => {
+    setFormData({ ...formData, driveLink: value });
+    setDrivePermissionChecked(false);
+    setError(null);
+
+    // Clear existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new timer to check permission after user stops typing (1.5 seconds)
+    if (value && value.trim() && value.includes('drive.google.com')) {
+      debounceTimerRef.current = setTimeout(() => {
+        checkDrivePermission(value);
+      }, 1500);
+    }
+  }, [formData, checkDrivePermission]);
+
+  // Cleanup timer on unmount
+  useEffect(() => {
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, []);
 
   const handleFilesSelected = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -405,22 +480,82 @@ export default function BulkSubmissionModal({
             <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
               Option 2: Google Drive Link
             </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                <LinkIcon className="h-5 w-5 text-gray-400" />
-              </div>
-              <input
-                type="url"
-                value={formData.driveLink || ''}
-                onChange={(e) => setFormData({ ...formData, driveLink: e.target.value })}
-                placeholder="https://drive.google.com/drive/folders/..."
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all"
-                disabled={isSubmitting}
-              />
-            </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Paste the full Google Drive folder or file link containing the photos
-            </p>
+
+            {/* Show PermissionGoogle only when user has input a Drive link */}
+            {formData.driveLink && formData.driveLink.trim() ? (
+              <PermissionGoogle apiEndpoint="/api/google-drive/list">
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <LinkIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="url"
+                    value={formData.driveLink || ''}
+                    onChange={(e) => handleDriveLinkChange(e.target.value)}
+                    placeholder="https://drive.google.com/drive/folders/..."
+                    className={`w-full pl-10 pr-12 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all ${
+                      drivePermissionChecked
+                        ? 'border-green-500 dark:border-green-500'
+                        : 'border-gray-300 dark:border-gray-600'
+                    }`}
+                    disabled={isSubmitting}
+                  />
+                  {/* Status Indicator */}
+                  <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none">
+                    {isCheckingDrivePermission ? (
+                      <Loader2 className="h-5 w-5 text-blue-500 animate-spin" />
+                    ) : drivePermissionChecked ? (
+                      <Check className="h-5 w-5 text-green-500" />
+                    ) : null}
+                  </div>
+                </div>
+                <div className="flex items-start justify-between">
+                  <p className="text-xs text-gray-500 dark:text-gray-400">
+                    Paste the full Google Drive folder or file link. Access will be verified automatically.
+                  </p>
+                  {isCheckingDrivePermission && (
+                    <p className="text-xs text-blue-600 dark:text-blue-400 flex items-center space-x-1 ml-2">
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      <span>Checking...</span>
+                    </p>
+                  )}
+                  {drivePermissionChecked && !isCheckingDrivePermission && (
+                    <p className="text-xs text-green-600 dark:text-green-400 flex items-center space-x-1 ml-2 flex-shrink-0">
+                      <Check className="h-3 w-3" />
+                      <span>Verified</span>
+                    </p>
+                  )}
+                </div>
+
+                {/* Show additional PermissionGoogle component only when permission check fails with OAuth error */}
+                {showPermissionPrompt && (
+                  <div className="mt-3">
+                    <PermissionGoogle apiEndpoint="/api/google-drive/list">
+                      <div className="hidden"></div>
+                    </PermissionGoogle>
+                  </div>
+                )}
+              </PermissionGoogle>
+            ) : (
+              <>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <LinkIcon className="h-5 w-5 text-gray-400" />
+                  </div>
+                  <input
+                    type="url"
+                    value={formData.driveLink || ''}
+                    onChange={(e) => handleDriveLinkChange(e.target.value)}
+                    placeholder="https://drive.google.com/drive/folders/..."
+                    className="w-full pl-10 pr-12 py-3 border rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 placeholder-gray-400 dark:placeholder-gray-500 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all border-gray-300 dark:border-gray-600"
+                    disabled={isSubmitting}
+                  />
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  Paste the full Google Drive folder or file link. Access will be verified automatically.
+                </p>
+              </>
+            )}
           </div>
 
           {/* Requirement Notice */}
@@ -539,7 +674,14 @@ export default function BulkSubmissionModal({
               <button
                 type="submit"
                 onClick={handleSubmit}
-                disabled={isSubmitting}
+                disabled={
+                  isSubmitting ||
+                  !formData.modelName.trim() ||
+                  // Disable if Drive link is provided but not checked
+                  (formData.driveLink && formData.driveLink.trim() && !drivePermissionChecked) ||
+                  // Disable if neither option is provided
+                  ((!formData.uploadedFiles || formData.uploadedFiles.length === 0) && (!formData.driveLink || !formData.driveLink.trim()))
+                }
                 className="px-6 py-2 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-lg hover:from-pink-700 hover:to-purple-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2 font-medium shadow-lg shadow-pink-500/25"
               >
                 {isSubmitting && <Loader2 className="h-4 w-4 animate-spin" />}
