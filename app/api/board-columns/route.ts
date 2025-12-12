@@ -184,45 +184,79 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if position is already taken, if so, shift other columns
-    const existingColumn = await prisma.boardColumn.findFirst({
-      where: {
-        teamId,
-        position,
-        isActive: true,
-      }
-    });
-
-    if (existingColumn) {
-      // Shift all columns at this position and after to the right
-      await prisma.boardColumn.updateMany({
+    // Use transaction to ensure atomic position shifting and creation
+    const newColumn = await prisma.$transaction(async (tx) => {
+      // Get ALL columns for this team (including inactive ones), ordered by position
+      const allColumns = await tx.boardColumn.findMany({
         where: {
           teamId,
-          position: {
-            gte: position
-          },
-          isActive: true,
         },
-        data: {
-          position: {
-            increment: 1
-          }
+        orderBy: {
+          position: 'asc'
         }
       });
-    }
 
-    const newColumn = await prisma.boardColumn.create({
-      data: {
-        id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-        teamId,
-        label,
-        status,
-        position,
-        color: color || '#6B7280',
-        isDefault: false,
-        isActive: true,
-        updatedAt: new Date(),
+      console.log(`Creating column at position ${position}. ALL columns (including inactive):`,
+        allColumns.map(c => ({ id: c.id, pos: c.position, label: c.label, active: c.isActive })));
+
+      // Check if position is already taken (INCLUDING inactive columns)
+      const existingColumn = allColumns.find(col => col.position === position);
+
+      if (existingColumn) {
+        console.log(`Position ${position} is taken by ${existingColumn.isActive ? 'ACTIVE' : 'INACTIVE'} column. Shifting columns...`);
+
+        // Get all columns at this position and after, in DESCENDING order
+        const columnsToShift = allColumns
+          .filter(col => col.position >= position)
+          .sort((a, b) => b.position - a.position); // Highest first
+
+        console.log('Columns to shift (including inactive):',
+          columnsToShift.map(c => ({ id: c.id, pos: c.position, active: c.isActive })));
+
+        // Shift each column individually from highest position to lowest
+        for (const col of columnsToShift) {
+          const newPos = col.position + 1;
+          console.log(`Shifting column ${col.id} from position ${col.position} to ${newPos} (active: ${col.isActive})`);
+          await tx.boardColumn.update({
+            where: { id: col.id },
+            data: { position: newPos }
+          });
+        }
+
+        // Wait a moment to ensure updates are committed
+        await new Promise(resolve => setTimeout(resolve, 10));
       }
+
+      // Verify the position is now free before creating (check ALL columns, not just active)
+      const checkPosition = await tx.boardColumn.findFirst({
+        where: {
+          teamId,
+          position,
+        }
+      });
+
+      if (checkPosition) {
+        console.error(`Position ${position} is STILL taken after shifting!`,
+          { id: checkPosition.id, pos: checkPosition.position, active: checkPosition.isActive, label: checkPosition.label });
+        throw new Error(`Position ${position} is still occupied after shifting. Column: ${checkPosition.id} (active: ${checkPosition.isActive})`);
+      }
+
+      console.log(`Position ${position} is now free. Creating new column...`);
+
+      // Now create the new column at the desired position
+      return await tx.boardColumn.create({
+        data: {
+          id: `col_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+          teamId,
+          label,
+          status,
+          position,
+          color: color || '#6B7280',
+          isDefault: false,
+          isActive: true,
+          updatedAt: new Date(),
+        }
+      });
     });
 
     return NextResponse.json({ success: true, column: newColumn });

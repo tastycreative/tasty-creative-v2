@@ -472,10 +472,14 @@ export default function WallPostTaskModal({
                 {selectedPhoto && selectedPhoto.url ? (
                   <>
                     <img
-                      src={getGoogleDriveImageUrl(selectedPhoto.url) || selectedPhoto.url}
+                      src={
+                        isGoogleDriveUrl(selectedPhoto.url)
+                          ? getGoogleDriveImageUrl(selectedPhoto.url) || selectedPhoto.url
+                          : selectedPhoto.url
+                      }
                       alt={`Photo ${selectedPhotoIndex + 1}`}
                       className="max-w-full max-h-full object-contain"
-                      crossOrigin="anonymous"
+                      {...(isGoogleDriveUrl(selectedPhoto.url) && { crossOrigin: "anonymous" })}
                       onError={(e) => {
                         console.error('Failed to load image:', selectedPhoto.url);
                         // Fallback: try original URL if conversion fails
@@ -484,17 +488,21 @@ export default function WallPostTaskModal({
                         }
                       }}
                     />
-                    {/* Quick External Link Button (for Google Drive photos) */}
-                    {isGoogleDriveUrl(selectedPhoto.url) && (
+                    {/* Quick External Link Button (for all photos) */}
+                    {selectedPhoto.url && (
                       <a
                         href={(() => {
-                          const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
-                          return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
+                          if (isGoogleDriveUrl(selectedPhoto.url!)) {
+                            const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
+                            return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
+                          }
+                          // For S3 or other URLs, open directly
+                          return selectedPhoto.url!;
                         })()}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg transition-all hover:scale-105"
-                        title="Open in Google Drive"
+                        title={isGoogleDriveUrl(selectedPhoto.url) ? "Open in Google Drive" : "Open in new tab"}
                       >
                         <ExternalLink className="h-4 w-4 text-gray-700 dark:text-gray-300" />
                       </a>
@@ -627,20 +635,24 @@ export default function WallPostTaskModal({
                       )}
                     </div>
 
-                    {/* External Link for Google Drive Photos */}
-                    {selectedPhoto.url && isGoogleDriveUrl(selectedPhoto.url) && (
+                    {/* External Link for All Photos */}
+                    {selectedPhoto.url && (
                       <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
                         <a
                           href={(() => {
-                            const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
-                            return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
+                            if (isGoogleDriveUrl(selectedPhoto.url!)) {
+                              const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
+                              return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
+                            }
+                            // For S3 or other URLs, open directly
+                            return selectedPhoto.url!;
                           })()}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="flex items-center space-x-2 px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
                         >
                           <ExternalLink className="h-3.5 w-3.5" />
-                          <span>Open in Google Drive</span>
+                          <span>{isGoogleDriveUrl(selectedPhoto.url) ? "Open in Google Drive" : "Open in new tab"}</span>
                         </a>
                       </div>
                     )}
@@ -673,10 +685,14 @@ export default function WallPostTaskModal({
                       <div className="flex-shrink-0">
                         {photo.url ? (
                           <img
-                            src={getGoogleDriveImageUrl(photo.url) || photo.url}
+                            src={
+                              isGoogleDriveUrl(photo.url)
+                                ? getGoogleDriveImageUrl(photo.url) || photo.url
+                                : photo.url
+                            }
                             alt={`Photo ${index + 1}`}
                             className="w-20 h-20 object-cover rounded"
-                            crossOrigin="anonymous"
+                            {...(isGoogleDriveUrl(photo.url) && { crossOrigin: "anonymous" })}
                             onError={(e) => {
                               // Fallback to original URL if conversion fails
                               if (photo.url && e.currentTarget.src !== photo.url) {
