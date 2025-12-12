@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { Badge } from "@/components/ui/badge";
@@ -620,10 +621,20 @@ export function ModelInformationTab({
   const hasEngagement = Number(analytics?.engagementRate) > 0;
 
   return (
-    <div className="min-h-full bg-white dark:bg-gray-900">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="min-h-full bg-white dark:bg-gray-900"
+    >
       <div className="w-full p-6 space-y-6">
         {/* Hero Section */}
-        <div className="relative group overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">
+        <motion.div 
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className="relative group overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm shadow-xl"
+        >
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
             <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-pink-400 to-purple-400 rounded-full -translate-y-16 translate-x-16 blur-3xl"></div>
@@ -809,7 +820,7 @@ export function ModelInformationTab({
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Conditional Content: Show Sheet Links OR Regular Information */}
         {showSheetLinks ? (
@@ -2302,6 +2313,6 @@ export function ModelInformationTab({
           </>
         )}
       </div>
-    </div>
+    </motion.div>
   );
 }

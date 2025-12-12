@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import {
   Plus,
   Download,
@@ -272,7 +273,6 @@ const EnhancedModelsPage = ({
   }, [quickFilter]);
 
   const effectiveSort = useMemo<"name" | "date" | "revenue">(() => {
-    if (sortBy === "subscribers") return "revenue";
     return sortBy;
   }, [sortBy]);
 
@@ -361,6 +361,9 @@ const EnhancedModelsPage = ({
     (state) => state.setSelectedModel
   );
 
+  // Get the router
+  const router = useRouter();
+
   // Memoized event handlers
   const handleModelClick = useCallback(
     (model: ModelDetails) => {
@@ -369,9 +372,9 @@ const EnhancedModelsPage = ({
 
       // Navigate using display name so the detail page can normalize
       const encoded = encodeURIComponent(model.name);
-      window.location.href = `/my-models/${encoded}`;
+      router.push(`/my-models/${encoded}`);
     },
-    [setSelectedModel]
+    [setSelectedModel, router]
   );
 
   const handleAddModel = useCallback(() => {

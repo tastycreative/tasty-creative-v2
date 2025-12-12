@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, memo, useCallback, useMemo, useRef, useEffect } from "react";
+import { motion } from "framer-motion";
 import Image from "next/image";
 import {
   Calendar,
@@ -406,25 +407,21 @@ const EnhancedModelCard = memo(
     };
 
     return (
-      <div
+      <motion.div
         ref={cardRef}
         onClick={onClick}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
         onKeyDown={handleKeyDown}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: index * 0.05 }}
+        whileHover={{ y: -5, scale: 1.02 }}
         className={cn(
           "relative group cursor-pointer select-none",
-          "transition-all duration-300 ease-out",
-          "transform-gpu will-change-transform",
-          "animate-in fade-in-0 slide-in-from-bottom-4",
-          cardVariantClasses[variant],
-          isHovered && "scale-[1.02] -translate-y-1",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2"
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2",
+          cardVariantClasses[variant]
         )}
-        style={{
-          animationDelay: `${animationDelay}ms`,
-          animationFillMode: 'backwards',
-        }}
         tabIndex={0}
         role="article"
         aria-label={`Model card for ${model.name}`}
@@ -543,7 +540,7 @@ const EnhancedModelCard = memo(
 
           </div>
         </div>
-      </div>
+      </motion.div>
     );
   }
 );

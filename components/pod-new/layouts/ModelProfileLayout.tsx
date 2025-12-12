@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import { AnimatePresence, motion } from "framer-motion";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { ModelProfileSidebar } from "../features/models/profile/ModelProfileSidebar";
@@ -87,7 +88,18 @@ export function ModelProfileLayout({
           />
           <SidebarInset className="flex-1 overflow-hidden">
             <main className="h-full overflow-y-auto">
-              {children || renderContent()}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="h-full"
+                >
+                  {children || renderContent()}
+                </motion.div>
+              </AnimatePresence>
             </main>
           </SidebarInset>
         </div>
