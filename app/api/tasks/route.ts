@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import { trackTaskChanges, createTaskActivity } from '@/lib/taskActivityHelper';
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { parseUserDate } from '@/lib/dateUtils';
+import { publishTaskCreated, publishTaskUpdated, publishTaskDeleted } from '@/lib/boardSync';
 
 const prisma = new PrismaClient();
 
@@ -138,6 +139,11 @@ export async function POST(request: NextRequest) {
       ...task,
       assignedUser,
     };
+
+    // Publish real-time update via Ably (non-blocking)
+    publishTaskCreated(teamId, task.id, session.user.id, taskWithAssignedUser).catch((err) => {
+      console.error('Failed to publish task creation to Ably:', err);
+    });
 
     return NextResponse.json({
       success: true,
@@ -437,6 +443,18 @@ export async function PUT(request: NextRequest) {
       assignedUser,
     };
 
+    // Publish real-time update via Ably (non-blocking)
+    if (currentTask.podTeamId) {
+      publishTaskUpdated(
+        currentTask.podTeamId,
+        id,
+        session.user.id,
+        taskWithAssignedUser
+      ).catch((err) => {
+        console.error('Failed to publish task update to Ably:', err);
+      });
+    }
+
     return NextResponse.json({
       success: true,
       task: taskWithAssignedUser,
@@ -468,6 +486,12 @@ export async function DELETE(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    // Fetch task details before deletion (for Ably notification)
+    const taskToDelete = await prisma.task.findUnique({
+      where: { id: taskId },
+      select: { podTeamId: true },
+    });
 
     // Create deletion activity before deleting the task
     await createTaskActivity({
@@ -515,6 +539,13 @@ export async function DELETE(request: NextRequest) {
     await prisma.task.delete({
       where: { id: taskId },
     });
+
+    // Publish real-time update via Ably (non-blocking)
+    if (taskToDelete?.podTeamId) {
+      publishTaskDeleted(taskToDelete.podTeamId, taskId, session.user.id).catch((err) => {
+        console.error('Failed to publish task deletion to Ably:', err);
+      });
+    }
 
     return NextResponse.json({
       success: true,

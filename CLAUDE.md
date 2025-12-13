@@ -17,7 +17,7 @@ Tasty Creative V2 is a Next.js 15 multi-app platform featuring AI-powered conten
 - **State Management**: Zustand v5, TanStack React Query v5
 - **AI Integration**: OpenAI API v5, TensorFlow.js v4
 - **Media Processing**: FFmpeg (client-side via @ffmpeg/ffmpeg), Remotion v4, gif.js, Three.js
-- **Real-time**: Socket.io v4, Redis for notifications
+- **Real-time**: Ably v2 for board synchronization, Socket.io v4, Redis for notifications
 - **Email**: Nodemailer with React Email templates
 
 ## Essential Commands
@@ -147,6 +147,7 @@ Additional service integrations:
 - `OPENAI_API_KEY` - Required for AI content generation features
 - `SUPABASE_URL`, `SUPABASE_ANON_KEY` - For Supabase storage
 - `REDIS_URL` - Redis connection for notification system
+- `ABLY_API_KEY` - Required for real-time board synchronization (format: `appId.keyId:keySecret`)
 - AWS S3 credentials for media storage
 - Google API credentials for various integrations
 

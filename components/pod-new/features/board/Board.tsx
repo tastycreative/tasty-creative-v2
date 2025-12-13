@@ -12,6 +12,7 @@ import { useMarkAsFinal } from '@/hooks/useMarkAsFinal';
 import { useMarkAsPublished } from '@/hooks/useMarkAsPublished';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import { useTasksQuery, useColumnsQuery, useTeamMembersQuery, useTeamSettingsQuery, boardQueryKeys, useUpdateTaskMutation, useUpdateTaskStatusMutation, useUpdateOFTVTaskMutation } from '@/hooks/useBoardQueries';
+import { useBoardSync } from '@/hooks/useBoardSync';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
 import { getTaskErrorMessage } from '@/lib/utils/errorMessages';
 import ColumnSettings from './ColumnSettings';
@@ -372,7 +373,13 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     };
   }, [headerToBodyScroll, bodyToHeaderScroll]); // Stable dependencies
 
-  // Real-time task updates with debouncing
+  // Real-time board synchronization with Ably
+  const { publishTaskUpdate } = useBoardSync({
+    teamId: currentTeamId,
+    enabled: !!currentTeamId,
+  });
+
+  // Real-time task updates with debouncing (legacy - keeping for backward compatibility)
   const { broadcastTaskUpdate } = useTaskUpdates({
     teamId: currentTeamId,
     onTaskUpdate: useCallback((update: any) => {
@@ -380,7 +387,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         if (update.type === 'TASK_UPDATED' || update.type === 'TASK_CREATED' || update.type === 'TASK_DELETED') {
           // Invalidate tasks to refetch
           await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
-          
+
           // If a task is currently selected and was updated, refresh it with new data from the store
           if (update.taskId && update.type === 'TASK_UPDATED') {
             setTimeout(() => {
@@ -436,12 +443,20 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     }
 
     try {
-  await deleteTask(taskId);
+      await deleteTask(taskId);
+
+      // Publish real-time update via Ably
+      await publishTaskUpdate({
+        type: 'TASK_DELETED',
+        taskId: taskId,
+        userId: session?.user?.id,
+      });
+
       await broadcastTaskUpdate({
         type: 'TASK_DELETED',
         taskId: taskId
       });
-  await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
     } catch (error) {
       console.error('Error deleting task:', error);
     }
@@ -649,12 +664,20 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       // Update selected task state immediately
       setSelectedTask(updatedTask as Task);
 
-  await broadcastTaskUpdate({
+      // Publish real-time update via Ably
+      await publishTaskUpdate({
+        type: 'TASK_UPDATED',
+        taskId: selectedTask.id,
+        data: updatedTask,
+        userId: session?.user?.id,
+      });
+
+      await broadcastTaskUpdate({
         type: 'TASK_UPDATED',
         taskId: selectedTask.id,
         data: updatedTask
       });
-  await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
       setIsEditingTask(false);
       setEditingTaskData({});
     } catch (error) {
@@ -1174,6 +1197,19 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
       console.log('✅ Mutation completed successfully');
 
+      // Publish real-time update via Ably
+      await publishTaskUpdate({
+        type: 'TASK_MOVED',
+        taskId: taskToUpdate.id,
+        data: {
+          oldStatus,
+          newStatus,
+          fromColumn: fromColumn?.label,
+          toColumn: toColumn?.label,
+        },
+        userId: session?.user?.id,
+      });
+
       // For OFTV team, update the description based on column label
       if (teamName === "OFTV") {
         await updateOFTVTaskDescription(taskToUpdate, newStatus);
@@ -1186,9 +1222,9 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       // This prevents double refetches and race conditions
     } catch (err) {
       console.error('Error updating task status on drop:', err);
-      
+
       // Mutation's onError handles rollback automatically
-      
+
       // Show error toast
       const toast = (await import('sonner')).toast;
       toast.error('Failed to move task. Please try again.');
