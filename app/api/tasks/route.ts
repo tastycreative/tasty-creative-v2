@@ -349,6 +349,11 @@ export async function PUT(request: NextRequest) {
 
     const effectiveStatus = updateData.status || status;
 
+    // Ensure the effective status is written to the update payload so status changes persist
+    if (typeof effectiveStatus !== 'undefined') {
+      updateData.status = effectiveStatus;
+    }
+
     // Automatic QA assignment when moving to QA column
     // Only if:
     // 1. Status is changing to 'QA' (using ID)
