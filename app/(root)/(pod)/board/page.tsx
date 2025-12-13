@@ -76,6 +76,15 @@ export default function BoardPage() {
 
   const currentTeam = availableTeams.find((team) => team.id === selectedTeamId);
 
+  // Update document title when team changes
+  useEffect(() => {
+    if (currentTeam) {
+      document.title = `${currentTeam.name} - Board | Tasty Creative`;
+    } else {
+      document.title = 'Board | Tasty Creative';
+    }
+  }, [currentTeam]);
+
   if (!selectedTeamId || !currentTeam) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">

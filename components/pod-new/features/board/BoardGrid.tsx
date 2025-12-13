@@ -4,6 +4,7 @@ import React from "react";
 import { Session } from "next-auth";
 import { Task, NewTaskData } from "@/lib/stores/boardStore";
 import TaskColumn from "./TaskColumn";
+import { useDraggableScroll } from "@/hooks/useDraggableScroll";
 
 interface BoardGridProps {
   session: Session | null;
@@ -62,11 +63,27 @@ export default function BoardGrid({
   columns,
   teamName,
 }: BoardGridProps) {
+  // Enable draggable scroll for mobile
+  const mobileScrollRef = useDraggableScroll<HTMLDivElement>({
+    enabled: true,
+    sensitivity: 1.2,
+  });
+
+  // Enable draggable scroll for desktop
+  const desktopScrollRef = useDraggableScroll<HTMLDivElement>({
+    enabled: true,
+    sensitivity: 1.2,
+  });
+
   return (
     <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
       {/* Mobile: Horizontal Scrolling Columns */}
       <div className="md:hidden">
-        <div className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 min-h-[600px]">
+        <div
+          ref={mobileScrollRef}
+          className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 min-h-[600px]"
+          title="Click and drag to scroll horizontally"
+        >
           {getColumnConfig().map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task["status"]);
 
@@ -106,7 +123,11 @@ export default function BoardGrid({
       </div>
 
       {/* Desktop: Unified Header + Body Scroll Container */}
-      <div className="hidden md:block overflow-x-auto">
+      <div
+        ref={desktopScrollRef}
+        className="hidden md:block overflow-x-auto"
+        title="Click and drag to scroll horizontally"
+      >
         <div
           className={`grid ${getGridClasses()} min-h-[600px]`}
           style={getGridStyles()}
