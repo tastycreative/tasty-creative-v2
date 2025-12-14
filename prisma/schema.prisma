@@ -293,10 +293,11 @@ model TaskActivityHistory {
   taskId      String
   userId      String
   actionType  TaskActivityType
-  fieldName   String?
-  oldValue    String?
-  newValue    String?
-  description String?
+  fieldName   String?          // Field that was changed (e.g., "description", "status", "photo_123_caption")
+  oldValue    String?          // Previous value (can be JSON string for complex objects)
+  newValue    String?          // New value (can be JSON string for complex objects)
+  description String?          // Human-readable description of the change
+  metadata    Json?            // Optional: Additional context data (photo position, labels, etc.)
   createdAt   DateTime         @default(now())
   task        Task             @relation(fields: [taskId], references: [id], onDelete: Cascade)
   user        User             @relation("TaskActivityUser", fields: [userId], references: [id])

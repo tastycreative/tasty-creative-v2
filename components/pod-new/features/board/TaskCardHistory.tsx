@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Clock, Edit3, ArrowRight, User, Plus, Trash2, Calendar, Tag, Loader2, AlertCircle, GitCommit } from 'lucide-react';
 import Image from 'next/image';
 import type { TaskActivity } from '@/lib/stores/boardStore';
@@ -14,6 +15,90 @@ interface TaskCardHistoryProps {
   taskId: string;
   teamId: string;
   isModal?: boolean;
+}
+
+interface ActivityTooltipProps {
+  description: string;
+  oldValue?: string | null;
+  newValue?: string | null;
+}
+
+// Tooltip component with portal for better positioning
+function ActivityTooltip({ description, oldValue, newValue }: ActivityTooltipProps) {
+  const [isHovered, setIsHovered] = useState(false);
+  const [position, setPosition] = useState({ top: 0, left: 0 });
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  // Update position dynamically when hovered or scrolled
+  useEffect(() => {
+    const updatePosition = () => {
+      if (isHovered && triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setPosition({
+          top: rect.bottom + 8,
+          left: rect.left + rect.width / 2,
+        });
+      }
+    };
+
+    updatePosition();
+
+    if (isHovered) {
+      // Update position on scroll and resize
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isHovered]);
+
+  const hasValues = oldValue || newValue;
+
+  return (
+    <div
+      ref={triggerRef}
+      onMouseEnter={() => hasValues && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={hasValues ? 'cursor-help' : ''}
+    >
+      <div className={hasValues ? 'underline decoration-dotted decoration-gray-400 dark:decoration-gray-500' : ''}>
+        {description}
+      </div>
+
+      {/* Portal tooltip */}
+      {isHovered && hasValues && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed z-[9999] w-64 -translate-x-1/2"
+          style={{ top: `${position.top}px`, left: `${position.left}px` }}
+        >
+          <div className="bg-gray-900 dark:bg-gray-700 text-white text-xs rounded-lg shadow-2xl p-3 border border-gray-700 dark:border-gray-500">
+            {oldValue && (
+              <div className="mb-2">
+                <div className="font-semibold text-gray-300 mb-1">Before:</div>
+                <div className="text-gray-100 bg-gray-800 dark:bg-gray-600 rounded px-2 py-1 break-words">
+                  {oldValue || '(empty)'}
+                </div>
+              </div>
+            )}
+            {newValue && (
+              <div>
+                <div className="font-semibold text-gray-300 mb-1">After:</div>
+                <div className="text-gray-100 bg-gray-800 dark:bg-gray-600 rounded px-2 py-1 break-words">
+                  {newValue || '(empty)'}
+                </div>
+              </div>
+            )}
+            {/* Tooltip arrow */}
+            <div className="absolute left-1/2 -translate-x-1/2 bottom-full w-0 h-0 border-l-[6px] border-r-[6px] border-b-[6px] border-l-transparent border-r-transparent border-b-gray-900 dark:border-b-gray-700"></div>
+          </div>
+        </div>,
+        document.body
+      )}
+    </div>
+  );
 }
 
 const getActivityIcon = (actionType: string) => {
@@ -57,9 +142,17 @@ export default function TaskCardHistory({ taskId, teamId, isModal = false }: Tas
   const activitiesQuery = useTaskActivitiesQuery(teamId, taskId);
   const columnsQuery = useColumnsQuery(teamId);
   const activities: TaskActivity[] = (activitiesQuery.data?.activities as TaskActivity[]) || [];
-  
+
   const [visibleCount, setVisibleCount] = useState(4); // Start with 4 activities
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+
+  // Debug: Log activities to see what data we're receiving
+  useEffect(() => {
+    if (activities.length > 0) {
+      console.log('Activities received:', activities);
+      console.log('First activity:', activities[0]);
+    }
+  }, [activities]);
 
   // Invalidate on recent activity notifications for this task
   useEffect(() => {
@@ -206,38 +299,76 @@ export default function TaskCardHistory({ taskId, teamId, isModal = false }: Tas
                     </div>
                     
                     <div className="text-xs text-gray-600 dark:text-gray-400 mb-2">
-                      {activity.actionType === 'STATUS_CHANGED' ? (
-                        <div className="space-y-1">
-                          <div>Changed status</div>
-                          {activity.oldValue && activity.newValue && (
-                            <div className="space-y-1 text-xs">
-                              <div className="flex items-center justify-center space-x-1">
-                                <span className="text-gray-500">From:</span>
-                                <span className="px-2 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-md text-center max-w-full truncate" 
-                                      title={resolveStatusLabel(activity.oldValue)}>
-                                  {resolveStatusLabel(activity.oldValue)}
-                                </span>
+                      {/* Priority 1: Check metadata for photo activities */}
+                      {activity.metadata?.activityType === 'photo_caption' || activity.metadata?.activityType === 'photo_status' ? (
+                        // Photo-related activity from metadata - always show description with hover details
+                        <ActivityTooltip
+                          description={activity.description || 'Updated photo'}
+                          oldValue={activity.oldValue}
+                          newValue={activity.newValue}
+                        />
+                      ) : activity.description && (activity.description.toLowerCase().includes('photo #') || activity.fieldName?.startsWith('photo_')) ? (
+                        // Photo-related activity from description/fieldName - always show description
+                        <div>{activity.description}</div>
+                      ) : activity.actionType === 'STATUS_CHANGED' ? (
+                        // Task status change - show From/To labels only if not photo-related
+                        activity.description ? (
+                          <div>{activity.description}</div>
+                        ) : (
+                          <div className="space-y-1">
+                            <div>Changed status</div>
+                            {activity.oldValue && activity.newValue && (
+                              <div className="space-y-1 text-xs">
+                                <div className="flex items-center justify-center space-x-1">
+                                  <span className="text-gray-500">From:</span>
+                                  <span className="px-2 py-1 bg-orange-50 dark:bg-orange-900/20 text-orange-700 dark:text-orange-300 rounded-md text-center max-w-full truncate"
+                                        title={resolveStatusLabel(activity.oldValue)}>
+                                    {resolveStatusLabel(activity.oldValue)}
+                                  </span>
+                                </div>
+                                <div className="flex items-center justify-center space-x-1">
+                                  <span className="text-gray-500">To:</span>
+                                  <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md text-center max-w-full truncate"
+                                        title={resolveStatusLabel(activity.newValue)}>
+                                    {resolveStatusLabel(activity.newValue)}
+                                  </span>
+                                </div>
                               </div>
-                              <div className="flex items-center justify-center space-x-1">
-                                <span className="text-gray-500">To:</span>
-                                <span className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-md text-center max-w-full truncate" 
-                                      title={resolveStatusLabel(activity.newValue)}>
-                                  {resolveStatusLabel(activity.newValue)}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                            )}
+                          </div>
+                        )
                       ) : activity.actionType === 'CREATED' ? (
                         'Created task'
                       ) : activity.actionType === 'UPDATED' ? (
-                        `Updated ${activity.fieldName || 'task'}`
+                        activity.fieldName === 'description' ? (
+                          <ActivityTooltip
+                            description={activity.description || 'Updated description'}
+                            oldValue={activity.oldValue}
+                            newValue={activity.newValue}
+                          />
+                        ) : activity.fieldName === 'title' ? (
+                          <ActivityTooltip
+                            description={activity.description || 'Updated title'}
+                            oldValue={activity.oldValue}
+                            newValue={activity.newValue}
+                          />
+                        ) : (
+                          activity.description || `Updated ${activity.fieldName || 'task'}`
+                        )
                       ) : activity.actionType === 'ASSIGNED' ? (
-                        'Assigned task'
+                        <ActivityTooltip
+                          description={activity.description || 'Assigned task'}
+                          oldValue={activity.oldValue}
+                          newValue={activity.newValue}
+                        />
                       ) : activity.actionType === 'UNASSIGNED' ? (
-                        'Unassigned task'  
+                        <ActivityTooltip
+                          description={activity.description || 'Unassigned task'}
+                          oldValue={activity.oldValue}
+                          newValue={activity.newValue}
+                        />
                       ) : (
-                        activity.actionType.toLowerCase().replace('_', ' ')
+                        activity.description || activity.actionType.toLowerCase().replace('_', ' ')
                       )}
                     </div>
 

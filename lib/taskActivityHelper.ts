@@ -38,6 +38,7 @@ export interface TaskActivityData {
   oldValue?: any;
   newValue?: any;
   description?: string;
+  metadata?: any; // Optional metadata object for additional context
 }
 
 export async function createTaskActivity(data: TaskActivityData) {
@@ -56,7 +57,8 @@ export async function createTaskActivity(data: TaskActivityData) {
       fieldName: data.fieldName,
       oldValue: serializeValue(data.oldValue),
       newValue: serializeValue(data.newValue),
-      description: data.description
+      description: data.description,
+      metadata: data.metadata || undefined // Store metadata as JSON
     },
     include: {
       user: {

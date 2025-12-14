@@ -8,8 +8,10 @@ import WallPostDetailSection from "./WallPostDetailSection";
 import TaskComments from "./TaskComments";
 import TaskCardHistory from "./TaskCardHistory";
 import UserProfile from "@/components/ui/UserProfile";
+import UserDropdown from "@/components/UserDropdown";
 import { formatForTaskDetail, formatDueDate } from "@/lib/dateUtils";
 import { getGoogleDriveImageUrl, extractGoogleDriveFileId, isGoogleDriveUrl } from "@/lib/utils/googleDriveImageUrl";
+import { useTeamMembersQuery } from "@/hooks/useBoardQueries";
 
 type TabType = 'description' | 'photos';
 
@@ -39,6 +41,17 @@ export default function WallPostTaskModal({
   const [isSavingCaption, setIsSavingCaption] = useState(false);
   const [localPhotos, setLocalPhotos] = useState(task.wallPostSubmission?.photos || []);
 
+  // Edit mode states
+  const [isEditingTask, setIsEditingTask] = useState(false);
+  const [editedDescription, setEditedDescription] = useState(task.description || '');
+  const [editedPriority, setEditedPriority] = useState(task.priority);
+  const [editedAssignee, setEditedAssignee] = useState(task.assignedTo || '');
+  const [isSavingTask, setIsSavingTask] = useState(false);
+
+  // Fetch team members for assignee dropdown
+  const membersQuery = useTeamMembersQuery(task.podTeamId || '');
+  const teamMembers = membersQuery.data?.members || [];
+
   if (!isOpen || !task.wallPostSubmission) return null;
 
   const photos = localPhotos;
@@ -63,6 +76,14 @@ export default function WallPostTaskModal({
       setEditedCaption(selectedPhoto.caption || '');
     }
   }, [selectedPhotoIndex, selectedPhoto?.id]);
+
+  // Reset edit states when task changes
+  React.useEffect(() => {
+    setEditedDescription(task.description || '');
+    setEditedPriority(task.priority);
+    setEditedAssignee(task.assignedTo || '');
+    setIsEditingTask(false);
+  }, [task.id, task.description, task.priority, task.assignedTo]);
 
   const handleRefresh = () => {
     if (onRefresh) {
@@ -127,6 +148,35 @@ export default function WallPostTaskModal({
     }
   };
 
+  const handleSaveTask = async () => {
+    setIsSavingTask(true);
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: task.id,
+          description: editedDescription,
+          priority: editedPriority,
+          assignedTo: editedAssignee || null,
+        }),
+      });
+
+      if (response.ok) {
+        setIsEditingTask(false);
+        handleRefresh(); // Refresh the task data
+      } else {
+        const data = await response.json();
+        alert(data.error || 'Failed to update task');
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      alert('Failed to update task');
+    } finally {
+      setIsSavingTask(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center p-2 sm:p-4 z-[10000] overflow-y-auto">
       <div className="rounded-xl shadow-2xl w-full max-w-6xl border my-4 sm:my-8 overflow-hidden isolate backdrop-blur-none bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)] border-gray-200 dark:border-gray-700">
@@ -175,6 +225,41 @@ export default function WallPostTaskModal({
             </div>
 
             <div className="flex items-center space-x-2">
+              {activeTab === 'description' && (
+                isEditingTask ? (
+                  <>
+                    <button
+                      onClick={() => {
+                        setIsEditingTask(false);
+                        setEditedDescription(task.description || '');
+                        setEditedPriority(task.priority);
+                        setEditedAssignee(task.assignedTo || '');
+                      }}
+                      disabled={isSavingTask}
+                      className="flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <X className="h-4 w-4" />
+                      <span className="hidden sm:inline">Cancel</span>
+                    </button>
+                    <button
+                      onClick={handleSaveTask}
+                      disabled={isSavingTask}
+                      className="flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors bg-pink-600 hover:bg-pink-700 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      <Save className="h-4 w-4" />
+                      <span className="hidden sm:inline">{isSavingTask ? 'Saving...' : 'Save'}</span>
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => setIsEditingTask(true)}
+                    className="flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    <Edit3 className="h-4 w-4" />
+                    <span className="hidden sm:inline">Edit</span>
+                  </button>
+                )
+              )}
               <button
                 onClick={() => setShowHistory(!showHistory)}
                 className={`flex items-center space-x-2 px-3 py-2 text-sm font-medium rounded-lg transition-colors ${
@@ -287,11 +372,18 @@ export default function WallPostTaskModal({
                 </div>
 
                 {/* Description */}
-                {task.description && (
-                  <div>
-                    <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
-                      Description
-                    </h4>
+                <div>
+                  <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 uppercase tracking-wide">
+                    Description
+                  </h4>
+                  {isEditingTask ? (
+                    <textarea
+                      value={editedDescription}
+                      onChange={(e) => setEditedDescription(e.target.value)}
+                      className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none min-h-[150px]"
+                      placeholder="Enter task description..."
+                    />
+                  ) : task.description ? (
                     <div className="prose prose-sm dark:prose-invert max-w-none">
                       <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap">
                         {task.description.split(/(\bhttps?:\/\/[^\s]+)/g).map((part, index) => {
@@ -312,8 +404,10 @@ export default function WallPostTaskModal({
                         })}
                       </p>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <p className="text-sm text-gray-500 dark:text-gray-400 italic">No description provided</p>
+                  )}
+                </div>
 
                 {/* Comments Section */}
                 <div className="min-w-0">
@@ -353,20 +447,33 @@ export default function WallPostTaskModal({
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Priority
                 </label>
-                <div className="flex items-center space-x-2 min-w-0">
-                  <span className="text-sm flex-shrink-0">
-                    {task.priority === "URGENT"
-                      ? "🚨"
-                      : task.priority === "HIGH"
-                        ? "🔴"
-                        : task.priority === "MEDIUM"
-                          ? "🟡"
-                          : "🟢"}
-                  </span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                    {task.priority}
-                  </span>
-                </div>
+                {isEditingTask ? (
+                  <select
+                    value={editedPriority}
+                    onChange={(e) => setEditedPriority(e.target.value as any)}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-pink-500 focus:border-transparent text-sm"
+                  >
+                    <option value="LOW">🟢 LOW</option>
+                    <option value="MEDIUM">🟡 MEDIUM</option>
+                    <option value="HIGH">🔴 HIGH</option>
+                    <option value="URGENT">🚨 URGENT</option>
+                  </select>
+                ) : (
+                  <div className="flex items-center space-x-2 min-w-0">
+                    <span className="text-sm flex-shrink-0">
+                      {task.priority === "URGENT"
+                        ? "🚨"
+                        : task.priority === "HIGH"
+                          ? "🔴"
+                          : task.priority === "MEDIUM"
+                            ? "🟡"
+                            : "🟢"}
+                    </span>
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+                      {task.priority}
+                    </span>
+                  </div>
+                )}
               </div>
 
               {/* Assignee */}
@@ -374,7 +481,14 @@ export default function WallPostTaskModal({
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Assignee
                 </label>
-                {task.assignedUser ? (
+                {isEditingTask ? (
+                  <UserDropdown
+                    value={editedAssignee}
+                    onChange={(userId, email) => setEditedAssignee(email)}
+                    placeholder="Select assignee..."
+                    teamId={task.podTeamId || undefined}
+                  />
+                ) : task.assignedUser ? (
                   <div className="flex items-center space-x-3 min-w-0">
                     <UserProfile
                       user={task.assignedUser}

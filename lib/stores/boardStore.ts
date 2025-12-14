@@ -205,6 +205,7 @@ export interface TaskActivity {
   oldValue?: string;
   newValue?: string;
   description?: string;
+  metadata?: any; // Optional metadata for additional context
   createdAt: string;
   user: {
     id: string;

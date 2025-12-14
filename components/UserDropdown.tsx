@@ -37,15 +37,30 @@ export default function UserDropdown({
   const triggerRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
 
-  // Update dropdown position when opened
+  // Update dropdown position when opened or scrolled
   useEffect(() => {
-    if (isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
-      setDropdownPosition({
-        top: rect.bottom + window.scrollY + 8,
-        left: rect.left + window.scrollX,
-        width: rect.width
-      });
+    const updatePosition = () => {
+      if (isOpen && triggerRef.current) {
+        const rect = triggerRef.current.getBoundingClientRect();
+        setDropdownPosition({
+          top: rect.bottom + 8,
+          left: rect.left,
+          width: rect.width
+        });
+      }
+    };
+
+    updatePosition();
+
+    if (isOpen) {
+      // Update position on scroll
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition, true);
+        window.removeEventListener('resize', updatePosition);
+      };
     }
   }, [isOpen]);
 

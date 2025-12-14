@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { prisma } from '@/lib/prisma';
 import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { createTaskActivity } from '@/lib/taskActivityHelper';
 
 // Configure S3 client
 const s3Client = new S3Client({
@@ -100,6 +101,69 @@ export async function PATCH(
       where: { id: photoId },
       data: updateData,
     });
+
+    // Track activity for caption changes
+    if (caption !== undefined && photo.caption !== caption) {
+      const userName = session.user.name || session.user.email || 'Unknown User';
+      const taskId = photo.wallPostSubmission.task.id;
+      const photoPosition = photo.position + 1; // 1-indexed for display
+
+      const description = caption
+        ? photo.caption
+          ? `${userName} updated caption for photo #${photoPosition}`
+          : `${userName} added caption to photo #${photoPosition}`
+        : `${userName} removed caption from photo #${photoPosition}`;
+
+      await createTaskActivity({
+        taskId,
+        userId: session.user.id!,
+        actionType: 'UPDATED',
+        fieldName: `photo_${photoId}_caption`,
+        oldValue: photo.caption,
+        newValue: caption,
+        description,
+        metadata: {
+          photoId,
+          photoPosition,
+          activityType: 'photo_caption',
+          changeType: caption ? (photo.caption ? 'updated' : 'added') : 'removed'
+        }
+      });
+    }
+
+    // Track activity for status changes
+    if (status !== undefined && photo.status !== status) {
+      const userName = session.user.name || session.user.email || 'Unknown User';
+      const taskId = photo.wallPostSubmission.task.id;
+      const photoPosition = photo.position + 1;
+
+      const statusLabels: Record<string, string> = {
+        PENDING_REVIEW: 'Pending Review',
+        READY_TO_POST: 'Ready to Post',
+        POSTED: 'Posted',
+        REJECTED: 'Rejected',
+      };
+
+      const oldStatusLabel = statusLabels[photo.status] || photo.status;
+      const newStatusLabel = statusLabels[status] || status;
+
+      await createTaskActivity({
+        taskId,
+        userId: session.user.id!,
+        actionType: 'STATUS_CHANGED',
+        fieldName: `photo_${photoId}_status`,
+        oldValue: photo.status,
+        newValue: status,
+        description: `${userName} changed photo #${photoPosition} status from "${oldStatusLabel}" to "${newStatusLabel}"`,
+        metadata: {
+          photoId,
+          photoPosition,
+          activityType: 'photo_status',
+          oldStatusLabel,
+          newStatusLabel
+        }
+      });
+    }
 
     return NextResponse.json({
       success: true,

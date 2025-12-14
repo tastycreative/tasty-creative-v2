@@ -46,7 +46,7 @@ export async function GET(request: NextRequest, { params }: ActivityHistoryParam
         }
       },
       orderBy: {
-        createdAt: 'desc'
+        createdAt: 'asc' // Oldest first, so timeline flows left to right (old -> new)
       }
     });
 
