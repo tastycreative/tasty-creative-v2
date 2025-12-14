@@ -553,13 +553,13 @@ export async function POST(request: NextRequest) {
           );
 
           const importFormulas = [
-            // B2: =IMPORTRANGE("url", "Sheet!C12:C") - Source column C
+            // B2: =IMPORTRANGE("url", "Sheet!C12:C") - Source column C (Date)
             [
               `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!C12:C")`,
             ],
-            // C2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K
+            // C2: =IMPORTRANGE("url", "Sheet!D12:D") - Source column D (Time)
             [
-              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`,
+              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!D12:D")`,
             ],
             // D2: =IMPORTRANGE("url", "Sheet!E12:E") - Source column E
             [
@@ -583,9 +583,9 @@ export async function POST(request: NextRequest) {
             ],
             // J2: Skip - leave as template (index 8 skipped)
             null,
-            // K2: =IMPORTRANGE("url", "Sheet!N12:N") - Source column N
+            // K2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K (Price)
             [
-              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!N12:N")`,
+              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`,
             ],
             // L2: =IMPORTRANGE("url", "Sheet!M12:M") - Source column M
             [
