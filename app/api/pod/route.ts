@@ -579,13 +579,13 @@ export async function POST(request: NextRequest) {
             null,
             // I2: =IMPORTRANGE("url", "Sheet!J12:J") - Source column J
             [
-              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!J12:J")`,
+              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`,
             ],
             // J2: Skip - leave as template (index 8 skipped)
             null,
             // K2: =IMPORTRANGE("url", "Sheet!K12:K") - Source column K (Price)
             [
-              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!K12:K")`,
+              `=IMPORTRANGE("${sourceSpreadsheetUrl}", "'${schedule.name}'!N12:N")`,
             ],
             // L2: =IMPORTRANGE("url", "Sheet!M12:M") - Source column M
             [
