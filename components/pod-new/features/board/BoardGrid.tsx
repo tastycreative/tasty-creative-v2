@@ -22,6 +22,7 @@ interface BoardGridProps {
   onDeleteTask: (taskId: string) => void;
   onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
   onMarkAsPublished?: (taskId: string, isPublished: boolean) => void;
+  onMarkAsPosted?: (taskId: string, isPosted: boolean) => void;
   loadingTaskId: string | null;
   onOpenNewTaskModal: (status: string) => void;
   onSetShowNewTaskForm: (status: string | null) => void;
@@ -51,6 +52,7 @@ export default function BoardGrid({
   onDeleteTask,
   onMarkAsFinal,
   onMarkAsPublished,
+  onMarkAsPosted,
   loadingTaskId,
   onOpenNewTaskModal,
   onSetShowNewTaskForm,
@@ -108,6 +110,7 @@ export default function BoardGrid({
                 onDeleteTask={onDeleteTask}
                 onMarkAsFinal={onMarkAsFinal}
                 onMarkAsPublished={onMarkAsPublished}
+                onMarkAsPosted={onMarkAsPosted}
                 loadingTaskId={loadingTaskId}
                 onOpenNewTaskModal={onOpenNewTaskModal}
                 onSetShowNewTaskForm={onSetShowNewTaskForm}
@@ -156,6 +159,7 @@ export default function BoardGrid({
                 onDeleteTask={onDeleteTask}
                 onMarkAsFinal={onMarkAsFinal}
                 onMarkAsPublished={onMarkAsPublished}
+                onMarkAsPosted={onMarkAsPosted}
                 loadingTaskId={loadingTaskId}
                 onOpenNewTaskModal={onOpenNewTaskModal}
                 onSetShowNewTaskForm={onSetShowNewTaskForm}

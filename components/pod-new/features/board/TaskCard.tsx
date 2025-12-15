@@ -242,6 +242,7 @@ interface TaskCardProps {
   onDeleteTask: (taskId: string) => void;
   onMarkAsFinal: (taskId: string, isFinal: boolean) => void;
   onMarkAsPublished?: (taskId: string, isPublished: boolean) => void;
+  onMarkAsPosted?: (taskId: string, isPosted: boolean) => void;
   loadingTaskId: string | null;
   columnName: string;
   columnStatus: string;
@@ -260,6 +261,7 @@ function TaskCard({
   onDeleteTask,
   onMarkAsFinal,
   onMarkAsPublished,
+  onMarkAsPosted,
   loadingTaskId,
   columnName,
   columnStatus,
@@ -269,11 +271,15 @@ function TaskCard({
   // Show button if: 1) Task has ModularWorkflow, 2) Column name is "Ready to Deploy", 3) Task's status matches this column
   const showMarkAsFinalButton = task.ModularWorkflow && columnName === "Ready to Deploy" && task.status === columnStatus;
   const isFinal = task.ModularWorkflow?.isFinal || false;
-  
+
   // Show "Mark as Published" button if: 1) Team is OFTV, 2) Column name is "Posted", 3) Task has oftvTask
   const showMarkAsPublishedButton = teamName === "OFTV" && columnName === "Posted" && task.status === columnStatus && task.oftvTask;
   const isPublished = task.oftvTask?.videoEditorStatus === 'PUBLISHED' && task.oftvTask?.thumbnailEditorStatus === 'PUBLISHED';
-  
+
+  // Show "Mark as Posted" button if: 1) Team is Wall Post, 2) Column name is "Ready to Post" OR "Posted Today", 3) Task has wallPostSubmission
+  const showMarkAsPostedButton = teamName === "Wall Post" && (columnName === "Ready to Post" || columnName === "Posted Today") && task.status === columnStatus && task.wallPostSubmission;
+  const isPosted = task.wallPostSubmission?.photos?.some(photo => photo.status === 'POSTED') || false;
+
   const isThisTaskLoading = loadingTaskId === task.id;
   return (
     <div
@@ -493,6 +499,41 @@ function TaskCard({
               <>
                 <Circle className="w-4 h-4" />
                 <span>Mark as Published</span>
+              </>
+            )}
+          </button>
+        </div>
+      )}
+
+      {/* Mark as Posted Button - Only in Ready to Post column for Wall Post */}
+      {showMarkAsPostedButton && onMarkAsPosted && (
+        <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onMarkAsPosted(task.id, !isPosted);
+            }}
+            disabled={isThisTaskLoading}
+            className={`w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 disabled:opacity-60 disabled:cursor-not-allowed ${
+              isPosted
+                ? "bg-gradient-to-r from-emerald-50 to-green-100 dark:from-emerald-900/30 dark:to-green-800/30 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-700 hover:shadow-md hover:shadow-emerald-500/20"
+                : "bg-gradient-to-r from-pink-50 to-purple-100 dark:from-pink-900/30 dark:to-purple-800/30 text-pink-700 dark:text-pink-300 border border-pink-200 dark:border-pink-700 hover:shadow-md hover:shadow-pink-500/20"
+            }`}
+          >
+            {isThisTaskLoading ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span>Processing...</span>
+              </>
+            ) : isPosted ? (
+              <>
+                <CheckCircle2 className="w-4 h-4" />
+                <span>✓ Posted</span>
+              </>
+            ) : (
+              <>
+                <Circle className="w-4 h-4" />
+                <span>Mark as Posted</span>
               </>
             )}
           </button>

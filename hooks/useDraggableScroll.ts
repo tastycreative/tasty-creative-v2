@@ -60,7 +60,8 @@ export function useDraggableScroll<T extends HTMLElement = HTMLDivElement>(
         target.tagName === 'BUTTON' ||
         target.closest('button') ||
         target.closest('a') ||
-        target.hasAttribute('draggable')
+        target.hasAttribute('draggable') ||
+        target.closest('[draggable="true"]') // Check if inside a draggable element
       ) {
         return;
       }

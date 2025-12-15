@@ -10,6 +10,7 @@ import {
 import { useTaskUpdates } from '@/hooks/useTaskUpdates';
 import { useMarkAsFinal } from '@/hooks/useMarkAsFinal';
 import { useMarkAsPublished } from '@/hooks/useMarkAsPublished';
+import { useMarkAsPosted } from '@/hooks/useMarkAsPosted';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
 import { useTasksQuery, useColumnsQuery, useTeamMembersQuery, useTeamSettingsQuery, boardQueryKeys, useUpdateTaskMutation, useUpdateTaskStatusMutation, useUpdateOFTVTaskMutation } from '@/hooks/useBoardQueries';
 import { useBoardSync } from '@/hooks/useBoardSync';
@@ -182,8 +183,20 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     },
   });
 
-  // Combined loading state for both operations
-  const combinedLoadingTaskId = loadingTaskId || loadingPublishedTaskId;
+  // Mark as Posted hook (for Wall Post)
+  const { markAsPosted, loadingTaskId: loadingPostedTaskId } = useMarkAsPosted({
+    teamId,
+    teamName,
+    session,
+    onSuccess: async () => {
+      // Force immediate refetch of tasks to update UI
+      await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+      await queryClient.refetchQueries({ queryKey: boardQueryKeys.tasks(teamId) });
+    },
+  });
+
+  // Combined loading state for all operations
+  const combinedLoadingTaskId = loadingTaskId || loadingPublishedTaskId || loadingPostedTaskId;
 
   const handleSetOftvTaskData = useCallback((data: Partial<OFTVTaskData>) => {
     setOftvTaskData(prev => ({ ...prev, ...data }));
@@ -494,6 +507,19 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     const task = qTasks.find((t) => t.id === taskId);
     if (task) {
       await markAsPublished(task);
+    }
+  };
+
+  const handleMarkAsPosted = async (taskId: string, isPosted: boolean) => {
+    if (!isPosted) {
+      const toast = (await import('sonner')).toast;
+      toast.error('Unmarking as posted is not supported');
+      return;
+    }
+
+    const task = qTasks.find((t) => t.id === taskId);
+    if (task) {
+      await markAsPosted(task);
     }
   };
 
@@ -1797,6 +1823,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         onDeleteTask={handleDeleteTask}
         onMarkAsFinal={handleMarkAsFinal}
         onMarkAsPublished={handleMarkAsPublished}
+        onMarkAsPosted={handleMarkAsPosted}
         loadingTaskId={combinedLoadingTaskId}
         onOpenNewTaskModal={openNewTaskModal}
         onSetShowNewTaskForm={setShowNewTaskForm}
