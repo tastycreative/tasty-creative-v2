@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { X, Calendar, Clock, History, Edit3, Save, FileText, Image as ImageIcon, Check, ExternalLink } from "lucide-react";
+import { X, Calendar, Clock, History, Edit3, Save, FileText, Image as ImageIcon, Check, ExternalLink, Download, Loader2 } from "lucide-react";
 import { Task, BoardColumn } from "@/lib/stores/boardStore";
 import { Session } from "next-auth";
 import WallPostDetailSection from "./WallPostDetailSection";
@@ -47,6 +47,12 @@ export default function WallPostTaskModal({
   const [editedPriority, setEditedPriority] = useState(task.priority);
   const [editedAssignee, setEditedAssignee] = useState(task.assignedTo || '');
   const [isSavingTask, setIsSavingTask] = useState(false);
+  const [photoFilter, setPhotoFilter] = useState<'ALL' | 'PENDING_REVIEW' | 'READY_TO_POST' | 'POSTED' | 'REJECTED'>('ALL');
+
+  // Download states
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
+  const [downloadingPhotoId, setDownloadingPhotoId] = useState<string | null>(null);
 
   // Fetch team members for assignee dropdown
   const membersQuery = useTeamMembersQuery(task.podTeamId || '');
@@ -54,7 +60,12 @@ export default function WallPostTaskModal({
 
   if (!isOpen || !task.wallPostSubmission) return null;
 
-  const photos = localPhotos;
+  // Filter photos based on selected filter
+  const filteredPhotos = photoFilter === 'ALL'
+    ? localPhotos
+    : localPhotos.filter(photo => photo.status === photoFilter);
+
+  const photos = filteredPhotos;
   const selectedPhoto = photos[selectedPhotoIndex];
 
   // Get the column label for the current task status
@@ -90,6 +101,183 @@ export default function WallPostTaskModal({
       onRefresh();
     } else {
       window.location.reload();
+    }
+  };
+
+  // Download single photo
+  const handleDownloadPhoto = async (photoUrl: string, photoIndex: number, photoId?: string) => {
+    const fileName = `${task.title.replace(/[^a-z0-9]/gi, '_')}_photo_${photoIndex + 1}.jpg`;
+
+    // Set downloading state for individual photo
+    if (photoId) {
+      setDownloadingPhotoId(photoId);
+    }
+
+    try {
+      // Use proxy API to download photos (handles CORS and S3 signed URLs)
+      const proxyUrl = `/api/download-photo?url=${encodeURIComponent(photoUrl)}&filename=${encodeURIComponent(fileName)}`;
+
+      const response = await fetch(proxyUrl);
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status}`);
+      }
+
+      // Get the blob from the response
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+
+      // Create and trigger download link
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = fileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up the blob URL after a short delay
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
+
+      // Show success toast for individual downloads
+      if (photoId && !isDownloading) {
+        const { toast } = await import('sonner');
+        toast.success('Photo downloaded!', {
+          description: fileName,
+        });
+      }
+
+    } catch (error) {
+      console.error('Error downloading photo:', error);
+
+      // Show error toast
+      const { toast } = await import('sonner');
+      toast.error('Download failed', {
+        description: 'Opening image in new tab instead',
+      });
+
+      // Fallback: Open in new tab
+      window.open(photoUrl, '_blank', 'noopener,noreferrer');
+    } finally {
+      if (photoId) {
+        setDownloadingPhotoId(null);
+      }
+    }
+  };
+
+  // Load JSZip library dynamically
+  const loadJSZip = (): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      // Check if JSZip is already loaded
+      if ((window as any).JSZip) {
+        resolve((window as any).JSZip);
+        return;
+      }
+
+      // Load JSZip from CDN
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+      script.onload = () => {
+        if ((window as any).JSZip) {
+          resolve((window as any).JSZip);
+        } else {
+          reject(new Error('JSZip failed to load'));
+        }
+      };
+      script.onerror = () => reject(new Error('Failed to load JSZip'));
+      document.head.appendChild(script);
+    });
+  };
+
+  // Download all photos as ZIP
+  const handleDownloadAllPhotos = async () => {
+    setIsDownloading(true);
+    setDownloadProgress({ current: 0, total: photos.length });
+
+    const { toast } = await import('sonner');
+    const downloadToast = toast.loading(`Preparing to download ${photos.length} photos...`, {
+      description: 'Loading ZIP library...',
+    });
+
+    try {
+      // Load JSZip library
+      const JSZip = await loadJSZip();
+      const zip = new JSZip();
+
+      toast.loading('Creating ZIP archive...', {
+        id: downloadToast,
+        description: 'Starting compression',
+      });
+
+      // Fetch and add each photo to the ZIP
+      for (let i = 0; i < photos.length; i++) {
+        const photo = photos[i];
+        if (photo.url) {
+          // Update progress
+          setDownloadProgress({ current: i + 1, total: photos.length });
+
+          // Update toast with progress
+          const percentage = Math.round(((i + 1) / photos.length) * 100);
+          toast.loading(`Adding to ZIP: ${i + 1} of ${photos.length} (${percentage}%)`, {
+            id: downloadToast,
+            description: photo.caption ? photo.caption.substring(0, 50) : `Photo ${i + 1}`,
+          });
+
+          try {
+            // Use proxy API to fetch the photo
+            const proxyUrl = `/api/download-photo?url=${encodeURIComponent(photo.url)}`;
+            const response = await fetch(proxyUrl);
+
+            if (!response.ok) {
+              console.error(`Failed to fetch photo ${i + 1}`);
+              continue;
+            }
+
+            // Get the blob and add to ZIP
+            const blob = await response.blob();
+            const fileName = `photo_${i + 1}_${photo.caption ? photo.caption.substring(0, 30).replace(/[^a-z0-9]/gi, '_') : 'image'}.jpg`;
+            zip.file(fileName, blob);
+
+          } catch (error) {
+            console.error(`Error adding photo ${i + 1} to ZIP:`, error);
+            // Continue with other photos
+          }
+        }
+      }
+
+      // Generate the ZIP file
+      toast.loading('Generating ZIP file...', {
+        id: downloadToast,
+        description: 'Finalizing download',
+      });
+
+      const zipBlob = await zip.generateAsync({ type: 'blob' });
+
+      // Create download link
+      const zipFileName = `${task.title.replace(/[^a-z0-9]/gi, '_')}_photos_${photos.length}.zip`;
+      const blobUrl = window.URL.createObjectURL(zipBlob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = zipFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      // Clean up
+      setTimeout(() => window.URL.revokeObjectURL(blobUrl), 100);
+
+      toast.success('ZIP file downloaded!', {
+        id: downloadToast,
+        description: `Successfully compressed ${photos.length} photos into ${zipFileName}`,
+      });
+    } catch (error) {
+      console.error('Error creating ZIP file:', error);
+      toast.error('Failed to create ZIP file', {
+        id: downloadToast,
+        description: 'Please try downloading photos individually',
+      });
+    } finally {
+      setIsDownloading(false);
+      setDownloadProgress({ current: 0, total: 0 });
     }
   };
 
@@ -782,47 +970,193 @@ export default function WallPostTaskModal({
                 </div>
               )}
 
+              {/* Photo Filter Buttons and Download All */}
+              <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('ALL');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'ALL'
+                        ? 'bg-pink-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All ({localPhotos.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('PENDING_REVIEW');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'PENDING_REVIEW'
+                        ? 'bg-gray-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Pending ({localPhotos.filter(p => p.status === 'PENDING_REVIEW').length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('READY_TO_POST');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'READY_TO_POST'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Ready ({localPhotos.filter(p => p.status === 'READY_TO_POST').length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('POSTED');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'POSTED'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Posted ({localPhotos.filter(p => p.status === 'POSTED').length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('REJECTED');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'REJECTED'
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Rejected ({localPhotos.filter(p => p.status === 'REJECTED').length})
+                  </button>
+                  </div>
+
+                  {/* Download All Icon - Subtle */}
+                  {photos.length > 0 && (
+                    <button
+                      onClick={handleDownloadAllPhotos}
+                      disabled={isDownloading}
+                      className={`relative p-2 rounded-lg transition-colors ${
+                        isDownloading
+                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 cursor-wait'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                      }`}
+                      title={isDownloading ? `Downloading ${downloadProgress.current}/${downloadProgress.total}...` : `Download all ${photos.length} photos`}
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Download className="h-5 w-5" />
+                      )}
+                      {/* Progress indicator */}
+                      {isDownloading && (
+                        <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                          {downloadProgress.current}
+                        </div>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Download Progress Bar */}
+              {isDownloading && (
+                <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      Downloading photos...
+                    </span>
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                      {downloadProgress.current} / {downloadProgress.total}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-400 h-full transition-all duration-300 ease-out"
+                      style={{ width: `${(downloadProgress.current / downloadProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
               {/* Photo Thumbnails List */}
               <div className="flex-1 overflow-y-auto">
                 <div className="p-2 space-y-2">
-                  {photos.map((photo, index) => (
-                    <button
+                  {photos.length > 0 ? photos.map((photo, index) => (
+                    <div
                       key={photo.id}
-                      onClick={() => setSelectedPhotoIndex(index)}
                       className={`w-full flex items-start space-x-3 p-2 rounded-lg transition-colors ${
                         selectedPhotoIndex === index
                           ? 'bg-pink-100 dark:bg-pink-900/30 border-2 border-pink-500'
                           : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
-                      {/* Thumbnail */}
-                      <div className="flex-shrink-0">
-                        {photo.url ? (
-                          <img
-                            src={
-                              isGoogleDriveUrl(photo.url)
-                                ? getGoogleDriveImageUrl(photo.url) || photo.url
-                                : photo.url
-                            }
-                            alt={`Photo ${index + 1}`}
-                            className="w-20 h-20 object-cover rounded"
-                            {...(isGoogleDriveUrl(photo.url) && { crossOrigin: "anonymous" })}
-                            onError={(e) => {
-                              // Fallback to original URL if conversion fails
-                              if (photo.url && e.currentTarget.src !== photo.url) {
-                                e.currentTarget.src = photo.url;
+                      {/* Thumbnail with Download Icon */}
+                      <div className="flex-shrink-0 relative group">
+                        <button
+                          onClick={() => setSelectedPhotoIndex(index)}
+                          className="block"
+                        >
+                          {photo.url ? (
+                            <img
+                              src={
+                                isGoogleDriveUrl(photo.url)
+                                  ? getGoogleDriveImageUrl(photo.url) || photo.url
+                                  : photo.url
                               }
+                              alt={`Photo ${index + 1}`}
+                              className="w-20 h-20 object-cover rounded"
+                              {...(isGoogleDriveUrl(photo.url) && { crossOrigin: "anonymous" })}
+                              onError={(e) => {
+                                // Fallback to original URL if conversion fails
+                                if (photo.url && e.currentTarget.src !== photo.url) {
+                                  e.currentTarget.src = photo.url;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                              <ImageIcon className="h-8 w-8 text-gray-400" />
+                            </div>
+                          )}
+                        </button>
+
+                        {/* Download Icon - Shows on hover or when downloading */}
+                        {photo.url && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadPhoto(photo.url!, index, photo.id);
                             }}
-                          />
-                        ) : (
-                          <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
-                            <ImageIcon className="h-8 w-8 text-gray-400" />
-                          </div>
+                            disabled={downloadingPhotoId === photo.id}
+                            className={`absolute top-1 right-1 p-1.5 rounded-md transition-opacity ${
+                              downloadingPhotoId === photo.id
+                                ? 'bg-blue-600 text-white opacity-100'
+                                : 'bg-black/60 hover:bg-black/80 text-white opacity-0 group-hover:opacity-100'
+                            }`}
+                            title={downloadingPhotoId === photo.id ? 'Downloading...' : 'Download photo'}
+                          >
+                            <Download className={`h-3.5 w-3.5 ${downloadingPhotoId === photo.id ? 'animate-bounce' : ''}`} />
+                          </button>
                         )}
                       </div>
 
                       {/* Info */}
-                      <div className="flex-1 min-w-0 text-left">
+                      <button
+                        onClick={() => setSelectedPhotoIndex(index)}
+                        className="flex-1 min-w-0 text-left"
+                      >
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                             Photo {index + 1}
@@ -844,9 +1178,31 @@ export default function WallPostTaskModal({
                             {photo.status.replace('_', ' ')}
                           </span>
                         </div>
-                      </div>
-                    </button>
-                  ))}
+                      </button>
+                    </div>
+                  )) : (
+                    <div className="flex flex-col items-center justify-center p-8 text-center">
+                      <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-3" />
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        No photos found
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        {photoFilter === 'ALL'
+                          ? 'No photos available'
+                          : `No photos with status: ${photoFilter.replace('_', ' ').toLowerCase()}`
+                        }
+                      </p>
+                      <button
+                        onClick={() => {
+                          setPhotoFilter('ALL');
+                          setSelectedPhotoIndex(0);
+                        }}
+                        className="mt-4 px-4 py-2 text-xs font-medium text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors"
+                      >
+                        Show all photos
+                      </button>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

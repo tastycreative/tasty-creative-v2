@@ -19,6 +19,7 @@ export interface BulkSubmissionData {
   uploadedFiles?: File[];
   captions?: string[];
   columnStatus: string;
+  priority?: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
 }
 
 export type ProgressStep = {
@@ -256,6 +257,7 @@ export default function BulkSubmissionModal({
         uploadedFiles: [],
         captions: [],
         columnStatus,
+        priority: 'MEDIUM',
       });
       setError(null);
       onClose();
@@ -327,6 +329,27 @@ export default function BulkSubmissionModal({
             />
             <p className="text-xs text-gray-500 dark:text-gray-400">
               Select the model whose content you're uploading
+            </p>
+          </div>
+
+          {/* Priority Selection */}
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300">
+              Task Priority
+            </label>
+            <select
+              value={formData.priority || 'MEDIUM'}
+              onChange={(e) => setFormData({ ...formData, priority: e.target.value as 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT' })}
+              disabled={isSubmitting}
+              className="w-full px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-pink-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <option value="LOW">🟢 Low Priority</option>
+              <option value="MEDIUM">🟡 Medium Priority</option>
+              <option value="HIGH">🟠 High Priority</option>
+              <option value="URGENT">🔴 Urgent</option>
+            </select>
+            <p className="text-xs text-gray-500 dark:text-gray-400">
+              Set the priority level for this task
             </p>
           </div>
 

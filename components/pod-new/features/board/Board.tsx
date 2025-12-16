@@ -1193,7 +1193,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     // Find column names for debug logging
     const fromColumn = qColumns.find((col: BoardColumn) => col.status === oldStatus);
     const toColumn = qColumns.find((col: BoardColumn) => col.status === newStatus);
-    
+
     console.log('🎯 DRAG & DROP DEBUG:', {
       taskId: taskToUpdate.id,
       taskTitle: taskToUpdate.title,
@@ -1212,6 +1212,29 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
     // Clear dragged task immediately to remove opacity effect
     setDraggedTask(null);
+
+    // Check if this is Wall Post team dropping into "Posted Today" column
+    if (teamName === "Wall Post" && toColumn?.label === "Posted Today" && taskToUpdate.wallPostSubmission) {
+      const { toast } = await import('sonner');
+
+      // Show confirmation dialog
+      const confirmed = window.confirm(
+        `Do you want to mark all photos as POSTED for this task?\n\n` +
+        `Task: ${taskToUpdate.title}\n` +
+        `Photos: ${taskToUpdate.wallPostSubmission.photos?.length || 0}\n\n` +
+        `Click OK to mark as posted and move to Posted Today.\n` +
+        `Click Cancel to just move the task without marking photos as posted.`
+      );
+
+      if (confirmed) {
+        // User confirmed - run the mark as posted function
+        await markAsPosted(taskToUpdate);
+        return; // markAsPosted already handles the status change and refresh
+      } else {
+        // User cancelled - just move the task without marking as posted
+        toast.info('Task moved without marking photos as posted');
+      }
+    }
 
     // Update the task status via TanStack mutation (handles optimistic update and cache invalidation)
     try {
