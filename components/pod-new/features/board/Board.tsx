@@ -976,17 +976,13 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   // Permission functions
   const canMoveTask = (task: Task) => {
     if (!session?.user) return false;
-    
+
+    // Admins can always move tasks
     if (session.user.role === 'ADMIN') return true;
-    if (task.createdById === session.user.id) return true;
-    
-    if (task.assignedTo === session.user.id || 
-        task.assignedTo === session.user.email ||
-        task.assignedUser?.id === session.user.id ||
-        task.assignedUser?.email === session.user.email) {
-      return true;
-    }
-    
+
+    // Anyone on the team (member or admin) can move tasks
+    if (isUserInTeam()) return true;
+
     return false;
   };
 
