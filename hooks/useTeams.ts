@@ -7,6 +7,7 @@ export interface Team {
   name: string;
   description?: string;
   isActive?: boolean;
+  order?: number | null;
   createdAt: string;
   memberCount: number;
   clientCount: number;

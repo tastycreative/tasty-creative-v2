@@ -42,9 +42,10 @@ export async function GET() {
           }
         }
       },
-      orderBy: {
-        createdAt: 'asc'
-      }
+      orderBy: [
+        { order: 'asc' },
+        { createdAt: 'asc' }
+      ]
     });
 
     // Transform the data to match expected format
@@ -53,6 +54,7 @@ export async function GET() {
       name: team.name,
       description: team.description,
       isActive: team.isActive,
+      order: team.order,
       createdAt: team.createdAt.toISOString(),
       createdBy: team.createdBy,
       memberCount: team.members.length,

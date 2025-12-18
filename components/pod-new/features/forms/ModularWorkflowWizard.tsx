@@ -78,6 +78,7 @@ import { MultiSelect } from "@/components/ui/multi-select";
 export type SubmissionType = "otp" | "ptr";
 export type ContentStyle = "normal" | "poll" | "game" | "ppv" | "bundle";
 export type ComponentModule = "pricing" | "release" | "upload";
+export type Platform = "onlyfans" | "fansly";
 
 // Workflow Routing Helper
 function getWorkflowRouting(
@@ -103,6 +104,7 @@ interface ModularFormData {
   submissionType: SubmissionType;
   contentStyle: ContentStyle;
   selectedComponents: ComponentModule[];
+  platform: Platform; // NEW: OnlyFans or Fansly
 
   // Base fields
   model: string;
@@ -357,7 +359,7 @@ const componentModules = [
 export default function ModularWorkflowWizard() {
   const router = useRouter();
   const { fetchTasks } = useBoardTasks();
-  const { selectedTeamId } = usePodStore();
+  const { selectedTeamId, setSelectedTeamId } = usePodStore();
   const { teams: availableTeams } = useAvailableTeams();
 
   // Form Management
@@ -375,6 +377,7 @@ export default function ModularWorkflowWizard() {
       submissionType: "otp",
       contentStyle: "normal",
       selectedComponents: [],
+      platform: "onlyfans", // Default to OnlyFans
       model: "",
       priority: "normal",
       driveLink: "",
@@ -386,6 +389,7 @@ export default function ModularWorkflowWizard() {
   const [currentStep, setCurrentStep] = useState(0);
   const [completedSteps, setCompletedSteps] = useState<number[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionProgress, setSubmissionProgress] = useState<string>("");
   const [showHelp, setShowHelp] = useState(false);
   const [selectedTemplate, setSelectedTemplate] = useState<FormTemplate | null>(
     null
@@ -408,10 +412,34 @@ export default function ModularWorkflowWizard() {
   const submissionType = watch("submissionType");
   const contentStyle = watch("contentStyle");
   const selectedComponents = watch("selectedComponents") || [];
-  const originalPollReference = watch("originalPollReference");
+  const platform = watch("platform");
 
   // Get current team
   const currentTeam = availableTeams.find((team) => team.id === selectedTeamId);
+  // Compute preview team name based on selected platform (ui-only preview)
+  const previewTeamName = platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR';
+
+  // Auto-select appropriate team when platform changes (best-effort)
+  useEffect(() => {
+    if (!availableTeams || availableTeams.length === 0) return;
+
+    // prefer explicit Fansly team when platform === 'fansly'
+    if (platform === 'fansly') {
+      const fanslyTeam = availableTeams.find((t) => /fansly/i.test(t.name));
+      if (fanslyTeam && selectedTeamId !== fanslyTeam.id) {
+        console.log('🎯 Auto-selecting Fansly team:', fanslyTeam.id, fanslyTeam.name);
+        setSelectedTeamId(fanslyTeam.id);
+      }
+      return;
+    }
+
+    // For onlyfans or default, choose OTP-PTR-like team
+    const ptrTeam = availableTeams.find((t) => /otp-?ptr|ptr|onlyfans/i.test(t.name));
+    if (ptrTeam && selectedTeamId !== ptrTeam.id) {
+      console.log('🎯 Auto-selecting PTR team:', ptrTeam.id, ptrTeam.name);
+      setSelectedTeamId(ptrTeam.id);
+    }
+  }, [platform, availableTeams, selectedTeamId, setSelectedTeamId]);
 
   // Calculate progress
   const progress = ((currentStep + 1) / WIZARD_STEPS.length) * 100;
@@ -619,6 +647,10 @@ export default function ModularWorkflowWizard() {
       // case 'templates': // COMMENTED OUT - Template step removed
       //   return true; // Optional step
       case "type":
+        if (!platform) {
+          toast.error("Please select a platform (OnlyFans or Fansly)");
+          return false;
+        }
         if (!submissionType) {
           toast.error("Please select a submission type");
           return false;
@@ -639,12 +671,10 @@ export default function ModularWorkflowWizard() {
           return false;
         }
 
-        // Only block on other required fields for final submission
-        if (currentStep === WIZARD_STEPS.length - 1) {
-          if (!formData.driveLink) {
-            toast.error("Please provide a Drive link before submitting");
-            return false;
-          }
+        // Always validate driveLink (required field)
+        if (!formData.driveLink || formData.driveLink.trim() === "") {
+          toast.error("Please provide a Drive link before continuing");
+          return false;
         }
 
         // Show warnings for optional fields (don't block navigation)
@@ -672,6 +702,21 @@ export default function ModularWorkflowWizard() {
               }
             );
           }
+        }
+
+        return true;
+      case "review":
+        // Final validation before submission
+        const reviewData = getValues();
+
+        if (!reviewData.model) {
+          toast.error("Please go back and select a model");
+          return false;
+        }
+
+        if (!reviewData.driveLink || reviewData.driveLink.trim() === "") {
+          toast.error("Please go back and provide a Drive link");
+          return false;
         }
 
         return true;
@@ -714,11 +759,13 @@ export default function ModularWorkflowWizard() {
     }
 
     setIsSubmitting(true);
+    setSubmissionProgress("Preparing workflow...");
 
     try {
       // Upload files first (with error handling for missing AWS config)
       let uploadedAttachments = attachments;
       if (localFiles.length > 0) {
+        setSubmissionProgress(`Uploading ${localFiles.length} file${localFiles.length > 1 ? 's' : ''}...`);
         try {
           const newAttachments = await uploadAllLocalFiles(
             localFiles,
@@ -756,6 +803,7 @@ export default function ModularWorkflowWizard() {
         submissionType: data.submissionType,
         contentStyle: data.contentStyle,
         selectedComponents: data.selectedComponents || [],
+        platform: data.platform, // NEW: Include platform selection
         componentData: {
           ...(data.selectedComponents?.includes("release") && {
             releaseDate: data.releaseDate,
@@ -781,9 +829,24 @@ export default function ModularWorkflowWizard() {
         contentTags: data.contentTags || [],
         externalCreatorTags: data.externalCreatorTags,
         internalModelTags: data.internalModelTags || [],
-        teamId: selectedTeamId,
+        // NOTE: Don't send teamId - let platform-based routing determine the team
+        // teamId: selectedTeamId,
         estimatedDuration: parseInt(estimatedTime),
       };
+
+      console.log('🚀 Submitting workflow payload:', {
+        ...workflowPayload,
+        requiredFields: {
+          submissionType: !!workflowPayload.submissionType,
+          contentStyle: !!workflowPayload.contentStyle,
+          selectedComponents: workflowPayload.selectedComponents !== undefined,
+          modelName: !!workflowPayload.modelName,
+          priority: !!workflowPayload.priority,
+          driveLink: !!workflowPayload.driveLink,
+        }
+      });
+
+      setSubmissionProgress("Creating workflow...");
 
       const response = await fetch("/api/modular-workflows", {
         method: "POST",
@@ -797,16 +860,22 @@ export default function ModularWorkflowWizard() {
         throw new Error(result.error || "Failed to create workflow");
       }
 
+      setSubmissionProgress("Assigning to team...");
+
       // Clear draft
       localStorage.removeItem("workflow_draft");
 
-      toast.success("Workflow created successfully!");
+      setSubmissionProgress("Finalizing...");
 
-      // Refresh tasks and redirect
-      if (selectedTeamId) {
-        fetchTasks(selectedTeamId, true);
+      toast.success(`Workflow created successfully! Assigned to ${result.task.teamName}`);
+
+      // Refresh tasks and redirect to the team where the task was actually created
+      const createdTeamId = result.task.teamId;
+      if (createdTeamId) {
+        setSubmissionProgress("Refreshing tasks...");
+        fetchTasks(createdTeamId, true);
         setTimeout(() => {
-          router.push(`/board?team=${selectedTeamId}`);
+          router.push(`/board?team=${createdTeamId}`);
         }, 1500);
       }
     } catch (error) {
@@ -816,6 +885,7 @@ export default function ModularWorkflowWizard() {
       );
     } finally {
       setIsSubmitting(false);
+      setSubmissionProgress("");
     }
   };
 
@@ -859,13 +929,68 @@ export default function ModularWorkflowWizard() {
           <div className="space-y-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
               <h2 className="text-2xl font-bold mb-2">
-                Choose Submission Type
+                Choose Submission Type & Platform
               </h2>
               <p className="text-gray-600 dark:text-gray-300">
                 This determines the priority and routing of your workflow
               </p>
             </div>
 
+            {/* Platform Selection */}
+            <div className="mb-8">
+              <h3 className="text-lg font-semibold mb-4 text-center">Select Platform</h3>
+              <div className="grid grid-cols-2 gap-4">
+                {[
+                  {
+                    id: "onlyfans" as Platform,
+                    name: "OnlyFans",
+                    color: "from-blue-500 to-cyan-500",
+                    icon: Package,
+                  },
+                  {
+                    id: "fansly" as Platform,
+                    name: "Fansly",
+                    color: "from-purple-500 to-pink-500",
+                    icon: Sparkles,
+                  },
+                ].map((plat) => (
+                  <motion.div
+                    key={plat.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                  >
+                    <Card
+                      className={cn(
+                        "cursor-pointer transition-all",
+                        platform === plat.id
+                          ? "border-2 border-purple-500 shadow-lg"
+                          : "border-2 border-gray-200 hover:border-gray-300"
+                      )}
+                      onClick={() => setValue("platform", plat.id)}
+                    >
+                      <CardHeader className="text-center">
+                        <div
+                          className={cn(
+                            "w-16 h-16 rounded-2xl bg-gradient-to-br flex items-center justify-center mb-4 mx-auto",
+                            plat.color
+                          )}
+                        >
+                          <plat.icon className="w-8 h-8 text-white" />
+                        </div>
+                        <CardTitle className="text-xl flex items-center justify-center gap-2">
+                          {plat.name}
+                          {platform === plat.id && (
+                            <Check className="w-5 h-5 text-purple-500" />
+                          )}
+                        </CardTitle>
+                      </CardHeader>
+                    </Card>
+                  </motion.div>
+                ))}
+              </div>
+            </div>
+
+            <h3 className="text-lg font-semibold mb-4 text-center">Select Submission Type</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 {
@@ -1053,10 +1178,11 @@ export default function ModularWorkflowWizard() {
         return (
           <div className="space-y-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
-              <h2 className="text-2xl font-bold mb-2">Content Details</h2>
+                <h2 className="text-2xl font-bold mb-2">Content Details</h2>
               <p className="text-gray-600 dark:text-gray-300">
                 Add the specific information for your workflow
               </p>
+              
             </div>
 
             <Card>
@@ -1452,6 +1578,7 @@ export default function ModularWorkflowWizard() {
                       💡 Tip: You can change the team assignment in the right
                       sidebar before submitting
                     </p>
+                  
                   </div>
                 ) : (
                   <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -1537,18 +1664,16 @@ export default function ModularWorkflowWizard() {
                   )}
 
                   {/* Team Assignment */}
-                  {currentTeam && (
-                    <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
-                      <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                        👥 Assigned Team:
-                      </p>
-                      <div className="text-center">
-                        <Badge className="bg-blue-600 text-white px-4 py-1">
-                          {currentTeam.name}
-                        </Badge>
-                      </div>
+                  <div className="p-3 bg-white/60 dark:bg-gray-900/40 rounded-lg">
+                    <p className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                      👥 Assigned Team:
+                    </p>
+                    <div className="text-center">
+                      <Badge className="bg-blue-600 text-white px-4 py-1">
+                        {formData.platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR'}
+                      </Badge>
                     </div>
-                  )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -1594,14 +1719,10 @@ export default function ModularWorkflowWizard() {
                         <Badge variant="outline">{comp}</Badge>
                       </React.Fragment>
                     ))}
-                    {currentTeam && (
-                      <>
-                        <ArrowRight className="w-4 h-4 text-gray-400" />
-                        <Badge className="bg-blue-600 text-white">
-                          {currentTeam.name}
-                        </Badge>
-                      </>
-                    )}
+                    <ArrowRight className="w-4 h-4 text-gray-400" />
+                    <Badge className="bg-blue-600 text-white">
+                      {formData.platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR'}
+                    </Badge>
                   </div>
                 </div>
 
@@ -1731,23 +1852,21 @@ export default function ModularWorkflowWizard() {
                 )}
 
                 {/* Team Assignment */}
-                {currentTeam && (
-                  <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                    <h4 className="font-medium mb-2 flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Team Assignment
-                    </h4>
-                    <p className="text-sm">
-                      This workflow will be assigned to{" "}
-                      <strong>{currentTeam.name}</strong>
-                    </p>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                      {formData.submissionType === "ptr"
-                        ? "🔥 High priority - PTR deadline enforced"
-                        : "📋 Standard workflow routing"}
-                    </p>
-                  </div>
-                )}
+                <div className="p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                  <h4 className="font-medium mb-2 flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    Team Assignment
+                  </h4>
+                  <p className="text-sm">
+                    This workflow will be assigned to{" "}
+                    <strong>{formData.platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR'}</strong>
+                  </p>
+                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                    {formData.submissionType === "ptr"
+                      ? "🔥 High priority - PTR deadline enforced"
+                      : "📋 Standard workflow routing"}
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -1871,7 +1990,7 @@ export default function ModularWorkflowWizard() {
                 {isSubmitting ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    Creating...
+                    {submissionProgress || "Creating..."}
                   </>
                 ) : (
                   <>
@@ -1895,7 +2014,7 @@ export default function ModularWorkflowWizard() {
 
       {/* Floating Help Button */}
       <motion.button
-        className="fixed bottom-4 right-4 w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg flex items-center justify-center z-20"
+        className="fixed bottom-4 right-4 w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg flex items-center justify-center z-30"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowHelp(!showHelp)}
@@ -1906,23 +2025,35 @@ export default function ModularWorkflowWizard() {
       {/* Help Panel */}
       <AnimatePresence>
         {showHelp && (
-          <motion.div
-            initial={{ opacity: 0, x: 400 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: 400 }}
-            className="fixed right-0 top-0 h-full w-96 bg-white dark:bg-gray-900 shadow-2xl z-30 overflow-y-auto"
-          >
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
-                <h3 className="text-xl font-bold">Help & Tips</h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowHelp(false)}
-                >
-                  ✕
-                </Button>
-              </div>
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+              onClick={() => setShowHelp(false)}
+            />
+
+            {/* Panel */}
+            <motion.div
+              initial={{ opacity: 0, x: 400 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: 400 }}
+              className="fixed right-0 top-0 h-full w-96 bg-white dark:bg-gray-900 shadow-2xl z-50 overflow-y-auto"
+            >
+              <div className="p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-bold">Help & Tips</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowHelp(false)}
+                    className="hover:bg-gray-100 dark:hover:bg-gray-800"
+                  >
+                    ✕
+                  </Button>
+                </div>
 
               <div className="space-y-4">
                 <Card>
@@ -1991,6 +2122,7 @@ export default function ModularWorkflowWizard() {
               </div>
             </div>
           </motion.div>
+          </>
         )}
       </AnimatePresence>
 

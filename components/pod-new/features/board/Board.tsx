@@ -259,16 +259,26 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   useEffect(() => {
     const params = new URLSearchParams(searchParamsString);
     const taskParam = params.get('task');
-    
+
+    console.log('🔍 URL Effect triggered:', { taskParam, qTasksLength: qTasks.length, teamName });
+
     if (taskParam && qTasks.length > 0) {
       // URL has a task parameter - find task by ID or podTeam.projectPrefix-taskNumber
       let task: Task | undefined;
-      
+
       // Check if taskParam looks like projectPrefix-taskNumber format
-      if (taskParam.includes('-') && /^[A-Z0-9]{3,5}-\d+$/.test(taskParam)) {
+      if (taskParam.includes('-') && /^[A-Z0-9]{2,10}-\d+$/.test(taskParam)) {
         const [projectPrefix, taskNumberStr] = taskParam.split('-');
         const taskNumber = parseInt(taskNumberStr, 10);
+        console.log('🔍 Looking for task:', { projectPrefix, taskNumber, taskParam, totalTasks: qTasks.length });
+        console.log('🔍 Sample task prefixes:', qTasks.slice(0, 3).map(t => ({
+          id: t.id,
+          prefix: t.podTeam?.projectPrefix,
+          taskNumber: t.taskNumber,
+          hasPodTeam: !!t.podTeam
+        })));
         task = qTasks.find(t => t.podTeam?.projectPrefix === projectPrefix && t.taskNumber === taskNumber);
+        console.log('🔍 Task found:', !!task, task?.id);
       } else {
         // Fall back to finding by task ID
         task = qTasks.find(t => t.id === taskParam);
@@ -719,6 +729,12 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     if (teamName === "Wall Post") {
       setBulkSubmissionColumnStatus(status);
       setShowBulkSubmissionModal(true);
+      return;
+    }
+
+    // For OTP-PTR and OTP-Fansly teams, redirect to forms page
+    if (teamName === "OTP-PTR" || teamName === "OTP-Fansly") {
+      router.push('/forms');
       return;
     }
 

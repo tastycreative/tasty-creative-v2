@@ -111,6 +111,7 @@ interface ModularFormData {
   submissionType: SubmissionType;
   contentStyle: ContentStyle;
   selectedComponents: ComponentModule[];
+  platform: 'onlyfans' | 'fansly'; // NEW: Platform selection
 
   // Base fields
   model: string;
@@ -306,6 +307,7 @@ export default function ModularWorkflowForm() {
       submissionType: "otp",
       contentStyle: "normal",
       selectedComponents: [],
+      platform: "onlyfans", // Default to OnlyFans
       model: "",
       priority: "normal",
       driveLink: "",
@@ -331,6 +333,7 @@ export default function ModularWorkflowForm() {
   const submissionType = useWatch({ control, name: "submissionType" });
   const contentStyle = useWatch({ control, name: "contentStyle" });
   const selectedComponents = useWatch({ control, name: "selectedComponents" }) || [];
+  const platform = useWatch({ control, name: "platform" });
 
   // Get smart recommendations
   const smartRecommendations = getSmartRecommendations(submissionType, contentStyle);
@@ -481,6 +484,7 @@ export default function ModularWorkflowForm() {
         submissionType: data.submissionType,
         contentStyle: data.contentStyle,
         selectedComponents: data.selectedComponents || [],
+        platform: data.platform, // NEW: Include platform selection
         componentData: {
           // NEW FIELDS - Content Details
           contentType: data.contentType,
@@ -525,14 +529,15 @@ export default function ModularWorkflowForm() {
         // File attachments (S3 uploaded files)
         attachments: attachments,
 
-        // Team assignment - handle manual overrides
-        teamId: selectedTeamId, // Uses team selected in RightSidebar
-        teamAssignments: {
-          primaryTeamId: selectedTeamId,
-          additionalTeamIds: [],
-          assignmentMethod: 'automatic',
-          assignedAt: new Date().toISOString()
-        },
+        // Team assignment - NOTE: Don't send teamId to allow platform-based routing
+        // The API will determine the correct team based on platform selection
+        // teamId: selectedTeamId,
+        // teamAssignments: {
+        //   primaryTeamId: selectedTeamId,
+        //   additionalTeamIds: [],
+        //   assignmentMethod: 'automatic',
+        //   assignedAt: new Date().toISOString()
+        // },
         estimatedDuration: undefined // Can be calculated based on components
       };
 
@@ -561,11 +566,12 @@ export default function ModularWorkflowForm() {
       // Show success with task details
       setValidationErrors([]);
 
-      // Force refresh board tasks to show the new task
-      if (selectedTeamId) {
+      // Force refresh board tasks for the team where the task was created
+      const createdTeamId = result.task.teamId;
+      if (createdTeamId) {
         // Force refresh with forceRefresh=true to bypass cache
-        fetchTasks(selectedTeamId, true).then(() => {
-          console.log('✅ Board tasks refreshed after workflow creation');
+        fetchTasks(createdTeamId, true).then(() => {
+          console.log(`✅ Board tasks refreshed for team ${result.task.teamName}`);
         }).catch((e) => {
           console.log('⚠️ Could not refresh board tasks:', e);
         });
@@ -689,6 +695,55 @@ export default function ModularWorkflowForm() {
 
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+          {/* Step 0: Platform Selection */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-cyan-500 text-white rounded-full flex items-center justify-center text-sm font-bold">
+                0
+              </div>
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                Select Platform
+              </h3>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 ml-11">
+              {[
+                { id: 'onlyfans', name: 'OnlyFans', color: 'from-blue-500 to-cyan-500' },
+                { id: 'fansly', name: 'Fansly', color: 'from-purple-500 to-pink-500' }
+              ].map((plat) => (
+                <div
+                  key={plat.id}
+                  className={`relative rounded-lg border p-4 shadow-sm transition-all cursor-pointer hover:shadow-md ${
+                    platform === plat.id
+                      ? "border-pink-300 bg-pink-50 dark:border-pink-600 dark:bg-pink-950"
+                      : "border-gray-300 bg-white dark:border-gray-600 dark:bg-gray-800"
+                  }`}
+                  onClick={() => setValue("platform", plat.id as 'onlyfans' | 'fansly')}
+                >
+                  <div className="flex items-center space-x-3">
+                    <input
+                      type="radio"
+                      name="platform"
+                      value={plat.id}
+                      checked={platform === plat.id}
+                      onChange={() => setValue("platform", plat.id as 'onlyfans' | 'fansly')}
+                      className="h-4 w-4"
+                    />
+                    <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${plat.color} flex items-center justify-center`}>
+                      <span className="text-white font-bold text-xs">{plat.name.substring(0, 2)}</span>
+                    </div>
+                    <div>
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{plat.name}</h4>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
+                        {plat.id === 'onlyfans' ? 'Team: OTP-PTR' : 'Team: OTP-Fansly'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
           {/* Step 1: Submission Type */}
           <SubmissionTypeSelector register={register} currentValue={submissionType} />
 

@@ -52,7 +52,7 @@ export default function RootLayout({
           <SessionErrorHandler />
           {children}
           {/* <QuicklinksNavigation /> */}
-          <ChatBot />
+          {/* <ChatBot /> */}
         </Providers>
       </body>
     </html>

@@ -32,6 +32,7 @@ interface ModularWorkflowData {
   submissionType: 'otp' | 'ptr';
   contentStyle: 'normal' | 'poll' | 'game' | 'ppv' | 'bundle';
   selectedComponents: string[];
+  platform?: 'onlyfans' | 'fansly'; // NEW: Platform selection
   componentData?: ComponentData;
   workflowTemplate?: string;
 
@@ -151,11 +152,16 @@ async function createWorkflowColumns(teamId: string, contentStyle: string): Prom
 
 }
 
-// Helper function to get team assignment (simplified to use existing team)
-function getTeamForWorkflow(): string {
-  // Use the OTP-PTR team for all wall post workflows (OTP/PTR submissions)
-  // OFTV team is for video editing tasks only, not content submissions
-  return 'OTP-PTR'; // This will match your OTP-PTR team name exactly
+// Helper function to get team assignment based on platform
+function getTeamForWorkflow(platform?: 'onlyfans' | 'fansly'): string {
+  // Platform-based team assignment:
+  // - OnlyFans → OTP-PTR team
+  // - Fansly → OTP-Fansly team
+  // - Default (no platform specified) → OTP-PTR team for backward compatibility
+  if (platform === 'fansly') {
+    return 'OTP-Fansly';
+  }
+  return 'OTP-PTR'; // Default for OnlyFans or unspecified
 }
 
 
@@ -442,10 +448,13 @@ export async function POST(request: NextRequest) {
     const firstColumn = workflowColumns[0];
 
 
-    // Simplified team assignment - use existing OTP-PTR team for all workflows
-    const targetTeamName = getTeamForWorkflow();
+  // Normalize platform value (accept case-insensitive values and trim)
+  const normalizedPlatform = typeof data.platform === 'string' ? data.platform.trim().toLowerCase() : undefined;
 
-    // Find the OTP-PTR team or use manual assignment
+  // Platform-based team assignment - use OTP-PTR for OnlyFans, OTP-Fansly for Fansly
+  const targetTeamName = getTeamForWorkflow(normalizedPlatform as any);
+
+    // Find the appropriate team or use manual assignment
     let assignedTeam;
     const fallbackTeamId = data.teamAssignments?.primaryTeamId || data.teamId;
 
@@ -469,7 +478,7 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      console.log(`🔍 Team search for "${targetTeamName}":`, assignedTeam ? `Found: ${assignedTeam.name}` : 'Not found');
+      console.log(`🔍 Platform-based team search for "${targetTeamName}" (${data.platform || 'onlyfans'}):`, assignedTeam ? `Found: ${assignedTeam.name}` : 'Not found');
 
       if (!assignedTeam) {
         // Try to find any team that's NOT OFTV (for content workflows)
@@ -498,7 +507,7 @@ export async function POST(request: NextRequest) {
           throw new Error('No active teams found');
         }
 
-        console.warn(`⚠️ OTP-PTR team not found, falling back to: ${assignedTeam.name}`);
+        console.warn(`⚠️ ${targetTeamName} team not found for platform ${data.platform || 'onlyfans'}, falling back to: ${assignedTeam.name}`);
       }
     }
 
@@ -728,6 +737,7 @@ export async function POST(request: NextRequest) {
       task: {
         id: task.id,
         title: task.title,
+        teamId: assignedTeam.id, // NEW: Include team ID for redirect
         teamName: assignedTeam.name,
         priority: task.priority,
         description: taskDescription

@@ -516,6 +516,7 @@ model PodTeam {
   name                       String                    @unique
   updatedAt                  DateTime?                 @updatedAt
   projectPrefix              String?                   @unique
+  order                      Int?                      @default(0)
   columnNotificationsEnabled Boolean                   @default(true)
   notifications              Notification[]
   createdBy                  User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])
@@ -529,6 +530,7 @@ model PodTeam {
   @@index([isActive])
   @@index([name])
   @@index([projectPrefix])
+  @@index([order])
 }
 
 model PodTeamMember {

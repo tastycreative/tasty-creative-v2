@@ -95,6 +95,23 @@ const navigation: { title: string; items: NavItem[] }[] = [
     ],
   },
   {
+    title: "Workflow",
+    items: [
+      {
+        title: "OTP",
+        href: "/forms",
+        icon: FileText,
+        badge: { text: "New", variant: "primary" },
+      },
+        // {
+        //   title: "OFTV",
+        //   href: "/oftv",
+        //   icon: FileText,
+        //   badge: { text: "New", variant: "primary" },
+        // },
+      ],
+  },
+  {
     title: "Content & Schedule",
     items: [
       {
@@ -110,7 +127,7 @@ const navigation: { title: string; items: NavItem[] }[] = [
       },
       { title: "Calendar", href: "/calendar", icon: CalendarIcon },
       {
-        title: "Content Dates",
+      title: "Content Dates",
         href: "/content-dates",
         icon: Calendar,
         badge: { text: "New", variant: "primary" },
@@ -123,23 +140,7 @@ const navigation: { title: string; items: NavItem[] }[] = [
       },
     ],
   },
-  {
-    title: "Workflow",
-    items: [
-      {
-        title: "OTP/PTR",
-        href: "/forms",
-        icon: FileText,
-        badge: { text: "New", variant: "primary" },
-      },
-        // {
-        //   title: "OFTV",
-        //   href: "/oftv",
-        //   icon: FileText,
-        //   badge: { text: "New", variant: "primary" },
-        // },
-      ],
-  },
+  
   {
     title: "Management",
     items: [
