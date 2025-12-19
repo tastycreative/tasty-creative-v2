@@ -1,0 +1,698 @@
+"use client";
+
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Image as ImageIcon, Filter, Download, Grid3X3, Search, ExternalLink, Calendar, User, CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import Image from 'next/image';
+import { toast } from 'sonner';
+import { getGoogleDriveImageUrl } from '@/lib/utils/googleDriveImageUrl';
+
+interface WallPostPhoto {
+  id: string;
+  s3Key: string;
+  url: string | null;
+  caption: string | null;
+  status: string;
+  position: number;
+  createdAt: string;
+  postedAt: string | null;
+  publishedToGalleryAt: string | null;
+  wallPostSubmission: {
+    id: string;
+    modelName: string;
+    driveLink: string;
+    task: {
+      id: string;
+      title: string;
+      status: string;
+      taskNumber: number;
+      podTeam: {
+        projectPrefix: string | null;
+      } | null;
+    };
+  };
+}
+
+interface WallPostGalleryProps {
+  teamId: string;
+  teamName: string;
+}
+
+const photoStatusConfig = {
+  PENDING_REVIEW: {
+    label: 'Pending Review',
+    color: 'bg-gray-100 text-gray-700 border-gray-200',
+    dotColor: 'bg-gray-500',
+    icon: Clock,
+  },
+  READY_TO_POST: {
+    label: 'Ready to Post',
+    color: 'bg-blue-100 text-blue-700 border-blue-200',
+    dotColor: 'bg-blue-500',
+    icon: CheckCircle2,
+  },
+  POSTED: {
+    label: 'Posted',
+    color: 'bg-green-100 text-green-700 border-green-200',
+    dotColor: 'bg-green-500',
+    icon: CheckCircle2,
+  },
+  REJECTED: {
+    label: 'Rejected',
+    color: 'bg-red-100 text-red-700 border-red-200',
+    dotColor: 'bg-red-500',
+    icon: XCircle,
+  },
+};
+
+export default function WallPostGallery({ teamId, teamName }: WallPostGalleryProps) {
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedModel, setSelectedModel] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [selectedPhoto, setSelectedPhoto] = useState<WallPostPhoto | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(20);
+
+  // Fetch all wall post photos with pagination
+  const { data, isLoading, isFetching, error, refetch } = useQuery({
+    queryKey: ['wall-post-photos', teamId, selectedModel, selectedStatus, currentPage, itemsPerPage],
+    queryFn: async () => {
+      const offset = (currentPage - 1) * itemsPerPage;
+      const params = new URLSearchParams({
+        teamId,
+        limit: itemsPerPage.toString(),
+        offset: offset.toString(),
+        ...(selectedModel !== 'all' && { modelName: selectedModel }),
+        ...(selectedStatus !== 'all' && { status: selectedStatus }),
+      });
+
+      const response = await fetch(`/api/wall-post-photos/all?${params.toString()}`);
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch photos');
+      }
+
+      return response.json();
+    },
+  });
+
+  const photos: WallPostPhoto[] = data?.photos || [];
+  // Trim whitespace from model names and ensure uniqueness
+  const modelNames: string[] = Array.from(
+    new Set((data?.modelNames || []).map((name: string) => name.trim()).filter((name: string) => name))
+  ).sort();
+  const stats = data?.stats || { total: 0, pendingReview: 0, readyToPost: 0, posted: 0, rejected: 0 };
+  const totalCount = data?.totalCount || 0;
+
+  // Filter photos by search query (client-side for current page)
+  const filteredPhotos = photos.filter(photo => {
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      photo.wallPostSubmission.modelName.toLowerCase().includes(searchLower) ||
+      photo.caption?.toLowerCase().includes(searchLower) ||
+      photo.wallPostSubmission.task.title.toLowerCase().includes(searchLower)
+    );
+  });
+
+  // Calculate pagination
+  const totalPages = Math.ceil(totalCount / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage + 1;
+  const endIndex = Math.min(currentPage * itemsPerPage, totalCount);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedModel, selectedStatus]);
+
+  // Handle photo download
+  const handleDownload = async (photo: WallPostPhoto) => {
+    try {
+      if (!photo.url) {
+        toast.error('Photo URL not available');
+        return;
+      }
+
+      const imageUrl = getGoogleDriveImageUrl(photo.url);
+      if (!imageUrl) {
+        toast.error('Could not generate download URL');
+        return;
+      }
+
+      const fileName = `${photo.wallPostSubmission.modelName}_${photo.position + 1}.jpg`;
+
+      // Use proxy API to download photos (handles CORS)
+      const proxyUrl = `/api/download-photo?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(fileName)}`;
+
+      const response = await fetch(proxyUrl);
+
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status}`);
+      }
+
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+      toast.success('Photo downloaded successfully');
+    } catch (error) {
+      console.error('Download error:', error);
+      toast.error('Failed to download photo', {
+        description: 'Opening in new tab instead',
+      });
+
+      // Fallback: Open in new tab
+      const imageUrl = getGoogleDriveImageUrl(photo.url);
+      if (imageUrl) {
+        window.open(imageUrl, '_blank', 'noopener,noreferrer');
+      }
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header with Stats */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
+        <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
+          <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+        </div>
+
+        <div className="relative p-6">
+          <div className="flex items-start gap-4 mb-6">
+            <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
+              <Grid3X3 className="w-6 h-6 text-pink-600 dark:text-pink-400" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black tracking-tight bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+                Wall Post Gallery
+              </h2>
+              <p className="text-gray-600 dark:text-gray-300 mt-1">Browse and manage all Wall Post photos</p>
+            </div>
+          </div>
+
+          {/* Stats Cards */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <button
+              onClick={() => setSelectedStatus('all')}
+              className={`relative overflow-hidden bg-gradient-to-br from-pink-50 via-pink-50/30 to-purple-50/30 dark:from-pink-900/20 dark:via-pink-800/10 dark:to-purple-900/20 rounded-xl border p-4 hover:scale-105 transition-all duration-200 text-left ${
+                selectedStatus === 'all'
+                  ? 'border-pink-500 dark:border-pink-400 ring-2 ring-pink-500/50 shadow-lg shadow-pink-500/25'
+                  : 'border-pink-200/60 dark:border-pink-700/60'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-pink-600 dark:text-pink-400">Total</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.total}</p>
+                </div>
+                <ImageIcon className="w-8 h-8 text-pink-500 opacity-50" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => setSelectedStatus('PENDING_REVIEW')}
+              className={`relative overflow-hidden bg-gradient-to-br from-gray-50 via-gray-50/30 to-gray-100/30 dark:from-gray-800/20 dark:via-gray-700/10 dark:to-gray-900/20 rounded-xl border p-4 hover:scale-105 transition-all duration-200 text-left ${
+                selectedStatus === 'PENDING_REVIEW'
+                  ? 'border-gray-500 dark:border-gray-400 ring-2 ring-gray-500/50 shadow-lg shadow-gray-500/25'
+                  : 'border-gray-200/60 dark:border-gray-700/60'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-gray-600 dark:text-gray-400">Pending</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.pendingReview}</p>
+                </div>
+                <Clock className="w-8 h-8 text-gray-500 opacity-50" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => setSelectedStatus('READY_TO_POST')}
+              className={`relative overflow-hidden bg-gradient-to-br from-blue-50 via-blue-50/30 to-blue-100/30 dark:from-blue-900/20 dark:via-blue-800/10 dark:to-blue-900/20 rounded-xl border p-4 hover:scale-105 transition-all duration-200 text-left ${
+                selectedStatus === 'READY_TO_POST'
+                  ? 'border-blue-500 dark:border-blue-400 ring-2 ring-blue-500/50 shadow-lg shadow-blue-500/25'
+                  : 'border-blue-200/60 dark:border-blue-700/60'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">Ready</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.readyToPost}</p>
+                </div>
+                <CheckCircle2 className="w-8 h-8 text-blue-500 opacity-50" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => setSelectedStatus('POSTED')}
+              className={`relative overflow-hidden bg-gradient-to-br from-green-50 via-green-50/30 to-green-100/30 dark:from-green-900/20 dark:via-green-800/10 dark:to-green-900/20 rounded-xl border p-4 hover:scale-105 transition-all duration-200 text-left ${
+                selectedStatus === 'POSTED'
+                  ? 'border-green-500 dark:border-green-400 ring-2 ring-green-500/50 shadow-lg shadow-green-500/25'
+                  : 'border-green-200/60 dark:border-green-700/60'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-green-600 dark:text-green-400">Posted</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.posted}</p>
+                </div>
+                <CheckCircle2 className="w-8 h-8 text-green-500 opacity-50" />
+              </div>
+            </button>
+
+            <button
+              onClick={() => setSelectedStatus('REJECTED')}
+              className={`relative overflow-hidden bg-gradient-to-br from-red-50 via-red-50/30 to-red-100/30 dark:from-red-900/20 dark:via-red-800/10 dark:to-red-900/20 rounded-xl border p-4 hover:scale-105 transition-all duration-200 text-left ${
+                selectedStatus === 'REJECTED'
+                  ? 'border-red-500 dark:border-red-400 ring-2 ring-red-500/50 shadow-lg shadow-red-500/25'
+                  : 'border-red-200/60 dark:border-red-700/60'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-red-600 dark:text-red-400">Rejected</p>
+                  <p className="text-2xl font-black text-gray-900 dark:text-white mt-1">{stats.rejected}</p>
+                </div>
+                <XCircle className="w-8 h-8 text-red-500 opacity-50" />
+              </div>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            type="text"
+            placeholder="Search by model, caption, or task..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 h-12 rounded-xl border-gray-200 dark:border-gray-700"
+          />
+        </div>
+
+        <div className="relative">
+          <select
+            value={selectedModel}
+            onChange={(e) => setSelectedModel(e.target.value)}
+            disabled={isFetching}
+            className="h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50"
+          >
+            <option value="all">All Models</option>
+            {modelNames.map(name => (
+              <option key={name} value={name}>{name}</option>
+            ))}
+          </select>
+          {isFetching && data && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-pink-500 border-t-transparent"></div>
+            </div>
+          )}
+        </div>
+
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          disabled={isFetching}
+          className="h-12 px-4 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white disabled:opacity-50"
+        >
+          <option value="all">All Status</option>
+          <option value="PENDING_REVIEW">Pending Review</option>
+          <option value="READY_TO_POST">Ready to Post</option>
+          <option value="POSTED">Posted</option>
+          <option value="REJECTED">Rejected</option>
+        </select>
+      </div>
+
+      {/* Photo Grid */}
+      {isFetching && !data ? (
+        // Show skeleton loaders only on initial load (no data yet)
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {[...Array(itemsPerPage > 20 ? 20 : itemsPerPage)].map((_, i) => (
+            <div key={i} className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-700/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 animate-pulse">
+              <div className="aspect-square bg-gray-200 dark:bg-gray-700" />
+              <div className="p-4 space-y-2">
+                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-3/4" />
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : error ? (
+        // Show error state
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-red-50 dark:bg-red-900/20 rounded-2xl border border-red-200 dark:border-red-800">
+          <AlertCircle className="w-12 h-12 text-red-500 mb-4" />
+          <h3 className="text-lg font-semibold text-red-700 dark:text-red-400 mb-2">Failed to load photos</h3>
+          <p className="text-red-600 dark:text-red-300 text-sm mb-4">{(error as Error).message}</p>
+          <Button onClick={() => refetch()} variant="outline" className="border-red-300 dark:border-red-700">
+            Try Again
+          </Button>
+        </div>
+      ) : filteredPhotos.length > 0 ? (
+        <>
+          <div className="relative">
+            {/* Loading overlay when refetching */}
+            {isFetching && data && (
+              <div className="absolute inset-0 bg-white/50 dark:bg-gray-900/50 backdrop-blur-[2px] z-10 rounded-2xl flex items-center justify-center">
+                <div className="bg-white dark:bg-gray-800 rounded-xl px-4 py-2 shadow-lg border border-gray-200 dark:border-gray-700 flex items-center gap-2">
+                  <div className="animate-spin rounded-full h-4 w-4 border-2 border-pink-500 border-t-transparent"></div>
+                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Loading...</span>
+                </div>
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredPhotos.map((photo) => {
+            const statusConfig = photoStatusConfig[photo.status as keyof typeof photoStatusConfig] || photoStatusConfig.PENDING_REVIEW;
+            const StatusIcon = statusConfig.icon;
+
+            return (
+              <div
+                key={photo.id}
+                className="group relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-700/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] cursor-pointer"
+                onClick={() => setSelectedPhoto(photo)}
+              >
+                {/* Photo */}
+                <div className="relative aspect-square bg-gray-100 dark:bg-gray-900 overflow-hidden">
+                  {(() => {
+                    const imageUrl = getGoogleDriveImageUrl(photo.url);
+                    return imageUrl ? (
+                      <Image
+                        src={imageUrl}
+                        alt={photo.caption || 'Wall post photo'}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                        unoptimized
+                      />
+                    ) : (
+                      <div className="flex items-center justify-center h-full">
+                        <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                      </div>
+                    );
+                  })()}
+
+                  {/* Overlay on hover */}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(photo);
+                      }}
+                      className="bg-white/90 hover:bg-white text-gray-900"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
+                    </Button>
+                  </div>
+
+                  {/* Status Badge */}
+                  <div className={`absolute top-2 right-2 px-2 py-1 rounded-lg text-xs font-semibold ${statusConfig.color} backdrop-blur-sm flex items-center gap-1`}>
+                    <StatusIcon className="w-3 h-3" />
+                    {statusConfig.label}
+                  </div>
+                </div>
+
+                {/* Details */}
+                <div className="p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <h3 className="font-bold text-sm text-gray-900 dark:text-white line-clamp-1">
+                      {photo.wallPostSubmission.modelName}
+                    </h3>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">
+                      #{photo.position + 1}
+                    </span>
+                  </div>
+
+                  {photo.caption && (
+                    <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
+                      {photo.caption}
+                    </p>
+                  )}
+
+                  <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
+                    <Calendar className="w-3 h-3" />
+                    {new Date(photo.createdAt).toLocaleDateString()}
+                  </div>
+
+                  {photo.postedAt && (
+                    <div className="flex items-center gap-2 text-xs text-green-600 dark:text-green-400">
+                      <CheckCircle2 className="w-3 h-3" />
+                      Posted {new Date(photo.postedAt).toLocaleDateString()}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+            </div>
+          </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="mt-8 relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
+            <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
+              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
+            </div>
+
+            <div className="relative p-6">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                {/* Pagination Info */}
+                <div className="text-sm text-gray-600 dark:text-gray-400">
+                  Showing <span className="font-semibold text-gray-900 dark:text-white">{startIndex}</span> to{' '}
+                  <span className="font-semibold text-gray-900 dark:text-white">{endIndex}</span> of{' '}
+                  <span className="font-semibold text-gray-900 dark:text-white">{totalCount}</span> photos
+                </div>
+
+                {/* Page Controls */}
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(1)}
+                    disabled={currentPage === 1}
+                    className="h-9 px-3 rounded-xl border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    First
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="h-9 px-3 rounded-xl border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Previous
+                  </Button>
+
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+
+                      return (
+                        <Button
+                          key={pageNum}
+                          variant={currentPage === pageNum ? 'default' : 'outline'}
+                          size="sm"
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`h-9 w-9 rounded-xl ${
+                            currentPage === pageNum
+                              ? 'bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg shadow-pink-500/25'
+                              : 'border-gray-200 dark:border-gray-700'
+                          }`}
+                        >
+                          {pageNum}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="h-9 px-3 rounded-xl border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage(totalPages)}
+                    disabled={currentPage === totalPages}
+                    className="h-9 px-3 rounded-xl border-gray-200 dark:border-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Last
+                  </Button>
+                </div>
+
+                {/* Items Per Page Selector */}
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">Per page:</span>
+                  <select
+                    value={itemsPerPage}
+                    onChange={(e) => {
+                      setItemsPerPage(Number(e.target.value));
+                      setCurrentPage(1);
+                    }}
+                    className="h-9 px-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white text-sm"
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </>
+      ) : (
+        <div className="flex flex-col items-center justify-center min-h-[400px] bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-800 dark:via-gray-700/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60">
+          <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-700 dark:text-gray-300 mb-2">No photos found</h3>
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {searchQuery ? 'Try adjusting your search filters' : 'Upload photos to get started'}
+          </p>
+        </div>
+      )}
+
+      {/* Photo Detail Modal */}
+      {selectedPhoto && (
+        <div
+          className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setSelectedPhoto(null)}
+        >
+          <div
+            className="relative max-w-4xl w-full bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="grid md:grid-cols-2 gap-6 p-6">
+              {/* Photo */}
+              <div className="relative aspect-square bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden">
+                {(() => {
+                  const imageUrl = getGoogleDriveImageUrl(selectedPhoto.url);
+                  return imageUrl ? (
+                    <Image
+                      src={imageUrl}
+                      alt={selectedPhoto.caption || 'Wall post photo'}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      unoptimized
+                    />
+                  ) : (
+                    <div className="flex items-center justify-center h-full">
+                      <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                    </div>
+                  );
+                })()}
+              </div>
+
+              {/* Details */}
+              <div className="space-y-4">
+                <div>
+                  <h2 className="text-2xl font-black text-gray-900 dark:text-white mb-2">
+                    {selectedPhoto.wallPostSubmission.modelName}
+                  </h2>
+                  <div className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-semibold ${photoStatusConfig[selectedPhoto.status as keyof typeof photoStatusConfig]?.color || photoStatusConfig.PENDING_REVIEW.color}`}>
+                    {React.createElement(photoStatusConfig[selectedPhoto.status as keyof typeof photoStatusConfig]?.icon || Clock, { className: "w-4 h-4" })}
+                    {photoStatusConfig[selectedPhoto.status as keyof typeof photoStatusConfig]?.label || 'Unknown'}
+                  </div>
+                </div>
+
+                {selectedPhoto.caption && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-1">Caption</h3>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{selectedPhoto.caption}</p>
+                  </div>
+                )}
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Position</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">#{selectedPhoto.position + 1}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Created</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {new Date(selectedPhoto.createdAt).toLocaleString()}
+                    </span>
+                  </div>
+
+                  {selectedPhoto.postedAt && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-gray-500 dark:text-gray-400">Posted</span>
+                      <span className="font-semibold text-green-600 dark:text-green-400">
+                        {new Date(selectedPhoto.postedAt).toLocaleString()}
+                      </span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center justify-between">
+                    <span className="text-gray-500 dark:text-gray-400">Task</span>
+                    <span className="font-semibold text-gray-900 dark:text-white">
+                      {selectedPhoto.wallPostSubmission.task.podTeam?.projectPrefix || 'WP'}-{selectedPhoto.wallPostSubmission.task.taskNumber}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    onClick={() => handleDownload(selectedPhoto)}
+                    className="flex-1 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
+                  </Button>
+
+                  {selectedPhoto.wallPostSubmission.driveLink && (
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(selectedPhoto.wallPostSubmission.driveLink, '_blank')}
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Close Button */}
+            <button
+              onClick={() => setSelectedPhoto(null)}
+              className="absolute top-4 right-4 p-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full transition-colors"
+            >
+              <XCircle className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

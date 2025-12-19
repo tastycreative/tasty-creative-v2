@@ -25,6 +25,7 @@ export default function BoardHeader({
 }: BoardHeaderProps) {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
+  const isWallPostTeam = teamName === 'Wall Post';
   const isOFTVTeam = teamName === 'OFTV';
 
   const handleTabChange = (tab: TabType) => {
@@ -32,7 +33,7 @@ export default function BoardHeader({
     if (tab === 'settings' && !isAdmin) {
       return;
     }
-    
+
     if (onTabChange) {
       onTabChange(tab);
     }
@@ -54,7 +55,7 @@ export default function BoardHeader({
       label: 'List',
       icon: List,
     },
-    ...(isOFTVTeam ? [{
+    ...(isWallPostTeam || isOFTVTeam ? [{
       id: 'gallery' as TabType,
       label: 'Gallery',
       icon: Image,
