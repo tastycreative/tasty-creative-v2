@@ -25,8 +25,7 @@ export default function BoardHeader({
 }: BoardHeaderProps) {
   const { data: session } = useSession();
   const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
-  const isWallPostTeam = teamName === 'Wall Post';
-  const isOFTVTeam = teamName === 'OFTV';
+  const hasGallery = teamName === 'Wall Post' || teamName === 'OFTV';
 
   const handleTabChange = (tab: TabType) => {
     // Prevent settings access for non-admin/moderator users
@@ -55,7 +54,7 @@ export default function BoardHeader({
       label: 'List',
       icon: List,
     },
-    ...(isWallPostTeam || isOFTVTeam ? [{
+    ...(hasGallery ? [{
       id: 'gallery' as TabType,
       label: 'Gallery',
       icon: Image,

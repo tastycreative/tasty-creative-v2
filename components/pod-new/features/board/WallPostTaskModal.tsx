@@ -325,6 +325,8 @@ export default function WallPostTaskModal({
           )
         );
         setIsEditingPhotos(false);
+        // Refresh task data to ensure persistence
+        handleRefresh();
       } else {
         alert('Failed to save caption');
       }
@@ -840,8 +842,8 @@ export default function WallPostTaskModal({
             <div className="w-full lg:w-96 lg:flex-shrink-0 bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 flex flex-col">
               {/* Photo Details Section */}
               {selectedPhoto && (
-                <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-                  <div className="space-y-3">
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                  <div className="space-y-2">
                     {/* Photo Number and Status */}
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
@@ -929,9 +931,9 @@ export default function WallPostTaskModal({
                           )}
                         </>
                       ) : selectedPhoto.caption ? (
-                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">
+                        <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap max-h-16 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent pr-1">
                           {selectedPhoto.caption}
-                        </p>
+                        </div>
                       ) : (
                         <p className="text-sm text-gray-400 dark:text-gray-600 italic">No caption</p>
                       )}
@@ -971,8 +973,8 @@ export default function WallPostTaskModal({
               )}
 
               {/* Photo Filter Buttons and Download All */}
-              <div className="p-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
-                <div className="flex items-center justify-between mb-2">
+              <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+                <div className="flex items-center justify-between mb-1">
                   <div className="flex flex-wrap gap-2">
                   <button
                     onClick={() => {
@@ -1071,7 +1073,7 @@ export default function WallPostTaskModal({
 
               {/* Download Progress Bar */}
               {isDownloading && (
-                <div className="px-3 py-2 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 flex-shrink-0">
+                <div className="px-2 py-1.5 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 flex-shrink-0">
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
                       Downloading photos...
@@ -1165,9 +1167,9 @@ export default function WallPostTaskModal({
                             <div className="w-2 h-2 rounded-full bg-pink-500"></div>
                           )}
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                        <div className="text-xs text-gray-600 dark:text-gray-400 max-h-10 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent pr-1">
                           {photo.caption || 'No caption'}
-                        </p>
+                        </div>
                         <div className="mt-1">
                           <span className={`text-xs px-1.5 py-0.5 rounded ${
                             photo.status === 'POSTED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :

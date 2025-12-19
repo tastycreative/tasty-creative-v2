@@ -34,8 +34,7 @@ import BulkSubmissionModal, { BulkSubmissionData } from './BulkSubmissionModal';
 import OnboardingTaskModal from '@/components/pod/OnboardingTaskModal';
 import NoTeamSelected from '@/components/pod/NoTeamSelected';
 import TeamSettings from './TeamSettings';
-import WallPostGallery from './WallPostGallery';
-import Gallery from './Gallery';
+import BoardGallery from './gallery';
 
 interface BoardProps {
   teamId: string;
@@ -1779,15 +1778,10 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
             queryClient.invalidateQueries({ queryKey: boardQueryKeys.settings(teamId) });
           }}
         />
-      ) : activeTab === 'gallery' && teamName === 'Wall Post' ? (
-        <WallPostGallery
+      ) : activeTab === 'gallery' ? (
+        <BoardGallery
           teamId={teamId}
           teamName={teamName}
-        />
-      ): activeTab === 'gallery' && teamName === 'OFTV' ? (
-        <Gallery
-          teamName={teamName}
-          teamId={teamId}
         />
       ) : activeTab === 'list' ? (
         <>

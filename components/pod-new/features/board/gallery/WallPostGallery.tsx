@@ -404,12 +404,11 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-all duration-300 flex items-center justify-center opacity-0 group-hover:opacity-100">
                     <Button
                       size="sm"
-                      variant="secondary"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDownload(photo);
                       }}
-                      className="bg-white/90 hover:bg-white text-gray-900"
+                      className="bg-white hover:bg-gray-100 text-gray-900 shadow-lg border-0"
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Download
@@ -434,11 +433,13 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
                     </span>
                   </div>
 
-                  {photo.caption && (
-                    <p className="text-xs text-gray-600 dark:text-gray-300 line-clamp-2">
-                      {photo.caption}
-                    </p>
-                  )}
+                  <p className="text-xs line-clamp-2 min-h-10">
+                    {photo.caption ? (
+                      <span className="text-gray-600 dark:text-gray-300">{photo.caption}</span>
+                    ) : (
+                      <span className="text-gray-400 dark:text-gray-500 italic">No caption</span>
+                    )}
+                  </p>
 
                   <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
                     <Calendar className="w-3 h-3" />
