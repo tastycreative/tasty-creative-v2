@@ -2,6 +2,21 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { auth } from '@/auth';
 
+// Helper to validate and sanitize creator name input
+function sanitizeCreatorName(name: string | null): string | null {
+  if (!name) return null;
+  // Remove any potential SQL/NoSQL injection attempts and limit length
+  const sanitized = name.trim().slice(0, 100);
+  // Basic validation - allow letters, numbers, spaces, and common name characters
+  if (!/^[\w\s\-.']+$/i.test(sanitized)) {
+    return null;
+  }
+  return sanitized;
+}
+
+// Check if we're in development mode
+const isDev = process.env.NODE_ENV === 'development';
+
 export async function GET(request: Request) {
   try {
     const session = await auth();
@@ -10,22 +25,33 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Get query parameters
+    // Get query parameters with validation
     const { searchParams } = new URL(request.url);
-    const creatorName = searchParams.get('creatorName');
+    const rawCreatorName = searchParams.get('creatorName');
     const creatorsParam = searchParams.get('creators');
+    
+    // Validate and sanitize inputs
+    const creatorName = sanitizeCreatorName(rawCreatorName);
     
     // If creators list is provided, only fetch those specific creators
     let whereCondition: any = {};
     if (creatorsParam) {
-      const creatorNames = creatorsParam.split(',').map(name => name.trim());
+      const creatorNames = creatorsParam
+        .split(',')
+        .map(name => sanitizeCreatorName(name.trim()))
+        .filter((name): name is string => name !== null)
+        .slice(0, 50); // Limit to 50 creators max
+      
+      if (creatorNames.length === 0) {
+        return NextResponse.json({ creators: [], pricingData: [] });
+      }
+      
       whereCondition = {
         clientName: {
           in: creatorNames,
           mode: 'insensitive'
         }
       };
-      console.log('🎯 Filtering to specific creators:', creatorNames);
     } else if (creatorName) {
       whereCondition = {
         clientName: {
@@ -47,18 +73,18 @@ export async function GET(request: Request) {
       },
     });
     
-    // Debug: Check what ContentDetails records exist
-    const allContentDetails = await prisma.contentDetails.findMany({
-      select: {
-        clientModelName: true,
-        upsell_1: true,
-        upsell_2: true,
-        upsell_3: true
-      }
-    });
-    console.log('🔍 All ContentDetails with upsells:', allContentDetails);
-    
-    console.log(`📊 Fetched ${clientModels.length} creators from database`);
+    // Debug logging only in development
+    if (isDev) {
+      const allContentDetails = await prisma.contentDetails.findMany({
+        select: {
+          clientModelName: true,
+          upsell_1: true,
+          upsell_2: true,
+          upsell_3: true
+        }
+      });
+      console.log('🔍 All ContentDetails with upsells:', allContentDetails.length);
+    }
 
     // Transform the data to match the expected format for POD
     const creators = await Promise.all(clientModels.map(async (model: any) => {
@@ -76,10 +102,10 @@ export async function GET(request: Request) {
               }
             }
           });
-          
-          console.log(`Fetching details for creator: ${model.clientName}, found: ${!!modelDetails}`);
         } catch (error) {
-          console.error(`Error fetching details for ${model.clientName}:`, error);
+          if (isDev) {
+            console.error(`Error fetching details for ${model.clientName}:`, error);
+          }
         }
       }
 
@@ -187,20 +213,11 @@ export async function GET(request: Request) {
       // ContentDetails is a singular object
       const content = model.contentDetails;
       
-      // Debug: Log content details for first creator to check upsell data
-      if (model === clientModels[0]) {
-        console.log(`🔍 Model data for ${creatorName}:`, {
-          clientName: model.clientName,
-          hasContentDetails: !!content,
-          contentDetailsClientModelName: content?.clientModelName,
-          contentDetailsRaw: content,
-          modelKeys: Object.keys(model)
-        });
+      // Debug: Log content details for first creator in dev mode only
+      if (isDev && model === clientModels[0]) {
         console.log(`🔍 ContentDetails for ${creatorName}:`, {
-          upsell_1: content?.upsell_1,
-          upsell_2: content?.upsell_2,
-          upsell_3: content?.upsell_3,
-          allUpsellFields: content ? Object.keys(content).filter(key => key.startsWith('upsell_')) : []
+          hasContentDetails: !!content,
+          upsellFields: content ? Object.keys(content).filter(key => key.startsWith('upsell_')).length : 0
         });
       }
       
@@ -264,13 +281,15 @@ export async function GET(request: Request) {
       };
     });
 
-    // Debug: Log the upsells group data
-    console.log('🔍 Upsells group data:', JSON.stringify(pricingGroups[3], null, 2));
-    
-    return NextResponse.json({
-      creators,
-      pricingData: pricingGroups
-    });
+    // Return response with cache headers for better performance
+    return NextResponse.json(
+      { creators, pricingData: pricingGroups },
+      {
+        headers: {
+          'Cache-Control': 'private, max-age=60, stale-while-revalidate=120',
+        },
+      }
+    );
 
   } catch (error) {
     console.error('Error fetching creators from database:', error);

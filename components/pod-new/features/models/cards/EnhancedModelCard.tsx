@@ -1,8 +1,7 @@
-"use client";
-
 import React, { useState, memo, useCallback, useMemo, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import Image from "next/image";
+import { isOptimizable } from "@/lib/image-optimization";
 import {
   Calendar,
   Instagram,
@@ -18,6 +17,9 @@ import {
   Clock,
   Zap,
   AlertCircle,
+  Sparkles,
+  PieChart,
+  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
@@ -37,6 +39,9 @@ interface ModelDetails {
   tiktok?: string;
   chattingManagers: string[];
   profileImage?: string;
+  percentTaken?: number | null;
+  guaranteed?: number | string | null;
+  notes?: string | null;
   stats?: {
     totalRevenue: number;
     monthlyRevenue: number;
@@ -44,6 +49,33 @@ interface ModelDetails {
     avgResponseTime: string;
   };
 }
+
+// Personality type color mapping
+const getPersonalityTypeConfig = (type: string | undefined | null): { bg: string; text: string; icon: string } => {
+  if (!type) return { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", icon: "text-gray-500" };
+  
+  const typeLower = type.toLowerCase().trim();
+  
+  // Map common personality types to colors
+  if (typeLower.includes("expressive") || typeLower.includes("outgoing")) {
+    return { bg: "bg-pink-50 dark:bg-pink-900/20", text: "text-pink-700 dark:text-pink-300", icon: "text-pink-500" };
+  }
+  if (typeLower.includes("analytical") || typeLower.includes("logical")) {
+    return { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-300", icon: "text-blue-500" };
+  }
+  if (typeLower.includes("driver") || typeLower.includes("ambitious")) {
+    return { bg: "bg-orange-50 dark:bg-orange-900/20", text: "text-orange-700 dark:text-orange-300", icon: "text-orange-500" };
+  }
+  if (typeLower.includes("amiable") || typeLower.includes("friendly")) {
+    return { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-700 dark:text-green-300", icon: "text-green-500" };
+  }
+  if (typeLower.includes("creative") || typeLower.includes("artistic")) {
+    return { bg: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-700 dark:text-purple-300", icon: "text-purple-500" };
+  }
+  
+  // Default fallback
+  return { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", icon: "text-gray-500" };
+};
 
 type ModelStatus = "active" | "dropped";
 
@@ -194,6 +226,7 @@ const OptimizedModelImage = memo(({ model, priority }: { model: ModelDetails; pr
           onLoad={handleImageLoad}
           onError={handleImageError}
           priority={priority}
+          unoptimized={!isOptimizable(imageUrl)}
           quality={85}
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
         />
@@ -497,8 +530,8 @@ const EnhancedModelCard = memo(
           </div>
 
           {/* Content section */}
-          <div className="p-4 space-y-4">
-            {/* Quick info with guaranteed amount */}
+          <div className="p-4 space-y-3">
+            {/* Quick info row: date + guaranteed */}
             <div className="flex items-center justify-between text-sm">
               <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
                 <Calendar className="w-4 h-4" />
@@ -512,8 +545,39 @@ const EnhancedModelCard = memo(
               </div>
             </div>
 
+            {/* Model attributes row: personality + managers + percent taken */}
+            <div className="flex items-center flex-wrap gap-2">
+              {/* Personality Type Badge */}
+              {model.personalityType && (
+                <div className={cn(
+                  "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium",
+                  getPersonalityTypeConfig(model.personalityType).bg,
+                  getPersonalityTypeConfig(model.personalityType).text
+                )}>
+                  <Sparkles className={cn("w-3 h-3", getPersonalityTypeConfig(model.personalityType).icon)} />
+                  <span className="truncate max-w-[80px]">{model.personalityType}</span>
+                </div>
+              )}
+              
+              {/* Manager Count */}
+              {model.chattingManagers && model.chattingManagers.length > 0 && (
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-[10px] font-medium">
+                  <MessageCircle className="w-3 h-3" />
+                  <span>{model.chattingManagers.length} {model.chattingManagers.length === 1 ? 'manager' : 'managers'}</span>
+                </div>
+              )}
+              
+              {/* Percent Taken */}
+              {model.percentTaken && model.percentTaken > 0 && (
+                <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-[10px] font-medium">
+                  <PieChart className="w-3 h-3" />
+                  <span>{model.percentTaken}% taken</span>
+                </div>
+              )}
+            </div>
+
             {/* Social links */}
-            <div className="flex items-center pt-3 border-t border-gray-100 dark:border-gray-700">
+            <div className="flex items-center pt-2 border-t border-gray-100 dark:border-gray-700">
               <div className="flex items-center gap-1 h-8">
                 <SocialLinkButton
                   platform="instagram"

@@ -514,6 +514,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                       </span>
                       <input
                         type="number"
+                        step="0.01"
                         id="tip"
                         name="tip"
                         className="border-2 border-gray-200/60 dark:border-gray-600/60 pl-6 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-100 rounded-xl p-3 flex-1 focus:border-pink-400 dark:focus:border-pink-400 focus:ring-2 focus:ring-pink-200/50 dark:focus:ring-pink-500/20 transition-all duration-200"
@@ -536,6 +537,7 @@ export default function FTTFlyer({ modelName }: { modelName?: string }) {
                       </span>
                       <input
                         type="number"
+                        step="0.01"
                         id="gets"
                         name="gets"
                         className="border-2 border-gray-200/60 dark:border-gray-600/60 pl-6 bg-white/80 dark:bg-gray-800/80 text-gray-700 dark:text-gray-100 rounded-xl p-3 flex-1 focus:border-pink-400 dark:focus:border-pink-400 focus:ring-2 focus:ring-pink-200/50 dark:focus:ring-pink-500/20 transition-all duration-200"

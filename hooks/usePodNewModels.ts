@@ -52,7 +52,7 @@ async function fetchModels({
 }: UseModelsOptions & { pageParam?: number }): Promise<ModelsResponse> {
   const params = new URLSearchParams({
     cursor: pageParam.toString(),
-    limit: (options.limit || 1000).toString(),
+    limit: (options.limit || 50).toString(),
     search: options.search || "",
     status: options.status || "all",
     sort: options.sort || "name",

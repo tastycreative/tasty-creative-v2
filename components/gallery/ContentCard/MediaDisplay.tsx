@@ -4,6 +4,7 @@ import React, { useRef, useState, useEffect } from "react";
 import Image from "next/image";
 import { Play, ImageOff } from "lucide-react";
 import { MediaDisplayProps } from "@/types/gallery";
+import { isOptimizable } from "@/lib/image-optimization";
 
 const MediaDisplay: React.FC<MediaDisplayProps> = ({
   content,
@@ -81,7 +82,7 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({
             }`}
             onLoad={handleImageLoad}
             onError={handleImageError}
-            unoptimized
+            unoptimized={!isOptimizable(mediaUrl)}
           />
           <div className="absolute bottom-2 right-2 bg-black/50 text-white text-xs px-1.5 py-0.5 rounded backdrop-blur-sm">
             GIF
@@ -138,7 +139,7 @@ const MediaDisplay: React.FC<MediaDisplayProps> = ({
           }`}
           onLoad={handleImageLoad}
           onError={handleImageError}
-          unoptimized
+          unoptimized={!isOptimizable(mediaUrl)}
         />
       )}
     </div>

@@ -27,6 +27,7 @@ import {
   User,
   LogOut,
   Instagram,
+  MessageSquareText,
 } from "lucide-react";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import {
@@ -103,6 +104,12 @@ const navigation: { title: string; items: NavItem[] }[] = [
         icon: FileText,
         badge: { text: "New", variant: "primary" },
       },
+      {
+        title: "Caption Bank",
+        href: "/caption-bank",
+        icon: MessageSquareText,
+        badge: { text: "New", variant: "primary" },
+      },
         // {
         //   title: "OFTV",
         //   href: "/oftv",
@@ -140,7 +147,6 @@ const navigation: { title: string; items: NavItem[] }[] = [
       },
     ],
   },
-  
   {
     title: "Management",
     items: [

@@ -269,6 +269,7 @@ export default function DynamicWorkflowForm() {
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium">$</div>
                   <Input
                     type="number"
+                    step="0.01"
                     placeholder="10"
                     {...register("pricingTiers.tier1")}
                     className="pl-8 h-12"
@@ -279,6 +280,7 @@ export default function DynamicWorkflowForm() {
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium">$</div>
                   <Input
                     type="number"
+                    step="0.01"
                     placeholder="20"
                     {...register("pricingTiers.tier2")}
                     className="pl-8 h-12"
@@ -289,6 +291,7 @@ export default function DynamicWorkflowForm() {
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium">$</div>
                   <Input
                     type="number"
+                    step="0.01"
                     placeholder="25"
                     {...register("pricingTiers.tier3")}
                     className="pl-8 h-12"
@@ -299,6 +302,7 @@ export default function DynamicWorkflowForm() {
                   <div className="absolute left-3 top-1/2 -translate-y-1/2 text-green-500 font-medium">$</div>
                   <Input
                     type="number"
+                    step="0.01"
                     placeholder="30"
                     {...register("pricingTiers.tier4")}
                     className="pl-8 h-12"
@@ -389,6 +393,7 @@ export default function DynamicWorkflowForm() {
                 <div className="absolute left-3 top-1/2 -translate-y-1/2 text-pink-500 font-medium">$</div>
                 <Input
                   type="number"
+                  step="0.01"
                   placeholder="25"
                   {...register("ppvPrice", { required: "PPV price is required" })}
                   className="pl-8 h-12"

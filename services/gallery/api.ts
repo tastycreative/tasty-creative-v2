@@ -30,7 +30,7 @@ const API_CONFIG = {
  */
 export async function fetchGalleryData(): Promise<GalleryApiResponse> {
   const timestamp = Date.now();
-  const response = await fetch(`/api/gallery-db?t=${timestamp}&forceRefresh=true`, API_CONFIG);
+  const response = await fetch(`/api/gallery-db?t=${timestamp}`, API_CONFIG);
 
   if (!response.ok) {
     throw new Error('Failed to fetch gallery data');

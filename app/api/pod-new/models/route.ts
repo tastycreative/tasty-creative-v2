@@ -2,19 +2,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
 
-// Helper to build status filter with exact matching (faster than contains)
+// Constants
+const MAX_LIMIT = 100;
+const DEFAULT_LIMIT = 50;
+
+// Type definition for transformed model response
+interface ModelDetails {
+  id: string;
+  name: string;
+  status: "active" | "dropped";
+  launchDate: string;
+  referrerName: string;
+  personalityType: string;
+  commonTerms: string[];
+  commonEmojis: string[];
+  instagram?: string;
+  twitter?: string;
+  tiktok?: string;
+  chattingManagers: string[];
+  profileImage?: string;
+  profile: string;
+  percentTaken: number | null;
+  guaranteed: number | null;
+  notes: string | null;
+  generalNotes: string | null;
+  restrictedTermsEmojis: string | null;
+  profileLink: string | null;
+}
+
+// Helper to build status filter using case-insensitive matching
 function buildStatusFilter(status: string) {
   if (status === "all") return undefined;
-
-  // Match common case variations
-  const statusLower = status.toLowerCase();
-  if (statusLower === "active") {
-    return { OR: [{ status: "active" }, { status: "Active" }, { status: "ACTIVE" }] };
-  }
-  if (statusLower === "dropped") {
-    return { OR: [{ status: "dropped" }, { status: "Dropped" }, { status: "DROPPED" }] };
-  }
-  // Fallback for other statuses
   return { status: { equals: status, mode: "insensitive" as const } };
 }
 
@@ -24,6 +42,17 @@ const parseCommaSeparated = (str: string | null): string[] => {
   return str.split(',').map(item => item.trim()).filter(item => item);
 };
 
+// Helper to validate and sanitize pagination params
+function validatePaginationParams(cursorParam: string | null, limitParam: string | null) {
+  const cursor = parseInt(cursorParam || "0", 10);
+  const limit = parseInt(limitParam || String(DEFAULT_LIMIT), 10);
+  
+  return {
+    cursor: isNaN(cursor) || cursor < 0 ? 0 : cursor,
+    limit: isNaN(limit) || limit < 1 ? DEFAULT_LIMIT : Math.min(limit, MAX_LIMIT),
+  };
+}
+
 export async function GET(request: NextRequest) {
   try {
     const session = await auth();
@@ -32,8 +61,10 @@ export async function GET(request: NextRequest) {
     }
 
     const searchParams = request.nextUrl.searchParams;
-    const cursor = parseInt(searchParams.get("cursor") || "0");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const { cursor, limit } = validatePaginationParams(
+      searchParams.get("cursor"),
+      searchParams.get("limit")
+    );
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "all";
     const sort = searchParams.get("sort") || "name";
@@ -168,7 +199,7 @@ export async function GET(request: NextRequest) {
         : await prisma.clientModel.count({
             where: {
               ...where,
-              OR: [{ status: "active" }, { status: "Active" }, { status: "ACTIVE" }],
+              status: { equals: "active", mode: "insensitive" },
             },
           });
 

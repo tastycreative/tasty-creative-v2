@@ -2,8 +2,33 @@
 
 import React, { useMemo } from "react";
 import Image from "next/image";
-import { Calendar, DollarSign, TrendingUp, Instagram, Twitter } from "lucide-react";
+import { Calendar, DollarSign, TrendingUp, Instagram, Twitter, Sparkles, PieChart, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Personality type color mapping
+const getPersonalityTypeConfig = (type: string | undefined | null): { bg: string; text: string } => {
+  if (!type) return { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400" };
+  
+  const typeLower = type.toLowerCase().trim();
+  
+  if (typeLower.includes("expressive") || typeLower.includes("outgoing")) {
+    return { bg: "bg-pink-50 dark:bg-pink-900/20", text: "text-pink-700 dark:text-pink-300" };
+  }
+  if (typeLower.includes("analytical") || typeLower.includes("logical")) {
+    return { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-300" };
+  }
+  if (typeLower.includes("driver") || typeLower.includes("ambitious")) {
+    return { bg: "bg-orange-50 dark:bg-orange-900/20", text: "text-orange-700 dark:text-orange-300" };
+  }
+  if (typeLower.includes("amiable") || typeLower.includes("friendly")) {
+    return { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-700 dark:text-green-300" };
+  }
+  if (typeLower.includes("creative") || typeLower.includes("artistic")) {
+    return { bg: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-700 dark:text-purple-300" };
+  }
+  
+  return { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400" };
+};
 
 interface ModelsTableProps {
   models: ModelDetails[];
@@ -72,13 +97,19 @@ export function ModelsTable({ models, onModelClick, startIndex }: ModelsTablePro
                 Status
               </th>
               <th className="text-left py-4 px-6 font-semibold text-gray-700 dark:text-gray-200 text-sm uppercase tracking-wide">
+                Personality
+              </th>
+              <th className="text-left py-4 px-6 font-semibold text-gray-700 dark:text-gray-200 text-sm uppercase tracking-wide">
                 Launch Date
               </th>
               <th className="text-left py-4 px-6 font-semibold text-gray-700 dark:text-gray-200 text-sm uppercase tracking-wide">
                 Guaranteed
               </th>
               <th className="text-left py-4 px-6 font-semibold text-gray-700 dark:text-gray-200 text-sm uppercase tracking-wide">
-                Referrer
+                % Taken
+              </th>
+              <th className="text-left py-4 px-6 font-semibold text-gray-700 dark:text-gray-200 text-sm uppercase tracking-wide">
+                Managers
               </th>
               <th className="text-left py-4 px-6 font-semibold text-gray-700 dark:text-gray-200 text-sm uppercase tracking-wide">
                 Social
@@ -129,6 +160,24 @@ export function ModelsTable({ models, onModelClick, startIndex }: ModelsTablePro
                   </span>
                 </td>
 
+                {/* Personality Type */}
+                <td className="py-4 px-6">
+                  {model.personalityType ? (
+                    <span
+                      className={cn(
+                        "inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium",
+                        getPersonalityTypeConfig(model.personalityType).bg,
+                        getPersonalityTypeConfig(model.personalityType).text
+                      )}
+                    >
+                      <Sparkles className="w-3 h-3" />
+                      <span className="truncate max-w-[100px]">{model.personalityType}</span>
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
+                </td>
+
                 {/* Launch Date */}
                 <td className="py-4 px-6">
                   <div className="flex items-center gap-2 text-gray-600 dark:text-gray-400">
@@ -173,11 +222,28 @@ export function ModelsTable({ models, onModelClick, startIndex }: ModelsTablePro
                   </div>
                 </td>
 
-                {/* Referrer */}
+                {/* Percent Taken */}
                 <td className="py-4 px-6">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {model.referrerName || "Direct"}
-                  </span>
+                  {(model as any).percentTaken && (model as any).percentTaken > 0 ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 text-xs font-medium">
+                      <PieChart className="w-3 h-3" />
+                      {(model as any).percentTaken}%
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
+                </td>
+
+                {/* Managers */}
+                <td className="py-4 px-6">
+                  {model.chattingManagers && model.chattingManagers.length > 0 ? (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 text-xs font-medium">
+                      <MessageCircle className="w-3 h-3" />
+                      {model.chattingManagers.length}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-gray-400">—</span>
+                  )}
                 </td>
 
                 {/* Social Links */}
