@@ -2,12 +2,17 @@
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Image as ImageIcon, Filter, Download, Grid3X3, Search, ExternalLink, Calendar, User, CheckCircle2, Clock, XCircle, AlertCircle } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Session } from 'next-auth';
+import { Image as ImageIcon, Filter, Download, Grid3X3, Search, ExternalLink, Calendar, User, CheckCircle2, Clock, XCircle, AlertCircle, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import { getGoogleDriveImageUrl } from '@/lib/utils/googleDriveImageUrl';
+import { extractGoogleDriveFileId, isGoogleDriveUrl } from '@/lib/utils/googleDriveImageUrl';
+import PermissionGoogle from '@/components/PermissionGoogle';
+import WallPostTaskModal from '../WallPostTaskModal';
+import type { Task, BoardColumn } from '@/lib/stores/boardStore';
 
 interface WallPostPhoto {
   id: string;
@@ -38,6 +43,12 @@ interface WallPostPhoto {
 interface WallPostGalleryProps {
   teamId: string;
   teamName: string;
+  session?: Session | null;
+  columns?: BoardColumn[];
+  selectedTask?: Task | null;
+  onTaskSelect?: (task: Task) => void;
+  onCloseTask?: () => void;
+  onRefresh?: () => Promise<void>;
 }
 
 const photoStatusConfig = {
@@ -67,7 +78,18 @@ const photoStatusConfig = {
   },
 };
 
-export default function WallPostGallery({ teamId, teamName }: WallPostGalleryProps) {
+export default function WallPostGallery({
+  teamId,
+  teamName,
+  session,
+  columns = [],
+  selectedTask,
+  onTaskSelect,
+  onCloseTask,
+  onRefresh
+}: WallPostGalleryProps) {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
@@ -134,18 +156,26 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
         return;
       }
 
-      const imageUrl = getGoogleDriveImageUrl(photo.url);
-      if (!imageUrl) {
-        toast.error('Could not generate download URL');
-        return;
-      }
-
       const fileName = `${photo.wallPostSubmission.modelName}_${photo.position + 1}.jpg`;
 
-      // Use proxy API to download photos (handles CORS)
-      const proxyUrl = `/api/download-photo?url=${encodeURIComponent(imageUrl)}&filename=${encodeURIComponent(fileName)}`;
+      // Determine download URL based on source
+      let downloadUrl: string;
 
-      const response = await fetch(proxyUrl);
+      // Check if it's a Google Drive URL
+      if (isGoogleDriveUrl(photo.url)) {
+        const fileId = extractGoogleDriveFileId(photo.url);
+        if (!fileId) {
+          toast.error('Could not extract file ID from Google Drive URL');
+          return;
+        }
+        // Use authenticated Google Drive API to download photos
+        downloadUrl = `/api/google-drive/thumbnail?fileId=${fileId}&size=2000`;
+      } else {
+        // For S3 or other URLs, use the URL directly (it's already signed)
+        downloadUrl = photo.url;
+      }
+
+      const response = await fetch(downloadUrl);
 
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status}`);
@@ -167,18 +197,36 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
         description: 'Opening in new tab instead',
       });
 
-      // Fallback: Open in new tab
-      const imageUrl = getGoogleDriveImageUrl(photo.url);
-      if (imageUrl) {
-        window.open(imageUrl, '_blank', 'noopener,noreferrer');
+      // Fallback: Open in Google Drive
+      if (photo.url) {
+        const fileId = extractGoogleDriveFileId(photo.url);
+        const driveUrl = fileId
+          ? `https://drive.google.com/file/d/${fileId}/view`
+          : photo.url;
+        window.open(driveUrl, '_blank', 'noopener,noreferrer');
       }
     }
   };
 
+  // Navigate to task
+  const handleGoToTask = (photo: WallPostPhoto) => {
+    const task = photo.wallPostSubmission.task;
+    const projectPrefix = task.podTeam?.projectPrefix;
+    const taskNumber = task.taskNumber;
+
+    if (projectPrefix && taskNumber) {
+      const taskIdentifier = `${projectPrefix}-${taskNumber}`;
+      const currentParams = new URLSearchParams(searchParams.toString());
+      currentParams.set('task', taskIdentifier);
+      router.push(`?${currentParams.toString()}`);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      {/* Header with Stats */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
+    <PermissionGoogle apiEndpoint="/api/google-drive/list">
+      <div className="space-y-6">
+        {/* Header with Stats */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
         <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]" />
         </div>
@@ -383,7 +431,20 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
                 {/* Photo */}
                 <div className="relative aspect-square bg-gray-100 dark:bg-gray-900 overflow-hidden">
                   {(() => {
-                    const imageUrl = getGoogleDriveImageUrl(photo.url);
+                    // Determine image URL based on source type
+                    let imageUrl: string | null = null;
+
+                    if (photo.url) {
+                      // Check if it's a Google Drive URL
+                      if (isGoogleDriveUrl(photo.url)) {
+                        const fileId = extractGoogleDriveFileId(photo.url);
+                        imageUrl = fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=800` : null;
+                      } else {
+                        // For S3 or other URLs, use directly (they're already signed/public)
+                        imageUrl = photo.url;
+                      }
+                    }
+
                     return imageUrl ? (
                       <Image
                         src={imageUrl}
@@ -391,7 +452,23 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
                         fill
                         className="object-cover"
                         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                        loading="lazy"
                         unoptimized
+                        onError={(e) => {
+                          // Fallback to a placeholder on error
+                          const target = e.target as HTMLImageElement;
+                          if (!target.dataset.errorHandled) {
+                            target.dataset.errorHandled = 'true';
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'flex items-center justify-center h-full bg-gray-200 dark:bg-gray-700';
+                              fallback.innerHTML = `<div class="text-center"><svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-xs text-gray-500 dark:text-gray-400">Image unavailable</span></div>`;
+                              parent.appendChild(fallback);
+                            }
+                          }
+                        }}
                       />
                     ) : (
                       <div className="flex items-center justify-center h-full">
@@ -420,6 +497,23 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
                     <StatusIcon className="w-3 h-3" />
                     {statusConfig.label}
                   </div>
+
+                  {/* Go to Task Button */}
+                  {photo.wallPostSubmission.task.podTeam?.projectPrefix && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleGoToTask(photo);
+                      }}
+                      className="absolute top-2 left-2 p-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white shadow-lg transition-all hover:scale-105 backdrop-blur-sm flex items-center gap-1"
+                      title={`Open ${photo.wallPostSubmission.task.podTeam.projectPrefix}-${photo.wallPostSubmission.task.taskNumber}`}
+                    >
+                      <Link2 className="w-3 h-3" />
+                      <span className="text-xs font-semibold">
+                        {photo.wallPostSubmission.task.podTeam.projectPrefix}-{photo.wallPostSubmission.task.taskNumber}
+                      </span>
+                    </button>
+                  )}
                 </div>
 
                 {/* Details */}
@@ -596,7 +690,20 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
               {/* Photo */}
               <div className="relative aspect-square bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden">
                 {(() => {
-                  const imageUrl = getGoogleDriveImageUrl(selectedPhoto.url);
+                  // Determine image URL based on source type
+                  let imageUrl: string | null = null;
+
+                  if (selectedPhoto.url) {
+                    // Check if it's a Google Drive URL
+                    if (isGoogleDriveUrl(selectedPhoto.url)) {
+                      const fileId = extractGoogleDriveFileId(selectedPhoto.url);
+                      imageUrl = fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=2000` : null;
+                    } else {
+                      // For S3 or other URLs, use directly (they're already signed/public)
+                      imageUrl = selectedPhoto.url;
+                    }
+                  }
+
                   return imageUrl ? (
                     <Image
                       src={imageUrl}
@@ -605,6 +712,21 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
                       className="object-contain"
                       sizes="(max-width: 768px) 100vw, 50vw"
                       unoptimized
+                      priority
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.errorHandled) {
+                          target.dataset.errorHandled = 'true';
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'flex flex-col items-center justify-center h-full bg-gray-200 dark:bg-gray-700 p-8';
+                            fallback.innerHTML = `<div class="text-center"><svg class="w-24 h-24 mx-auto text-gray-400 dark:text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Image unavailable</p><p class="text-xs text-gray-500 dark:text-gray-400">Unable to load image.</p></div>`;
+                            parent.appendChild(fallback);
+                          }
+                        }
+                      }}
                     />
                   ) : (
                     <div className="flex items-center justify-center h-full">
@@ -672,10 +794,19 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
                     Download
                   </Button>
 
-                  {selectedPhoto.wallPostSubmission.driveLink && (
+                  {selectedPhoto.url && (
                     <Button
                       variant="outline"
-                      onClick={() => window.open(selectedPhoto.wallPostSubmission.driveLink, '_blank')}
+                      onClick={() => {
+                        if (selectedPhoto.url) {
+                          const fileId = extractGoogleDriveFileId(selectedPhoto.url);
+                          const driveUrl = fileId
+                            ? `https://drive.google.com/file/d/${fileId}/view`
+                            : selectedPhoto.url;
+                          window.open(driveUrl, '_blank');
+                        }
+                      }}
+                      title="Open in Google Drive"
                     >
                       <ExternalLink className="w-4 h-4" />
                     </Button>
@@ -694,6 +825,19 @@ export default function WallPostGallery({ teamId, teamName }: WallPostGalleryPro
           </div>
         </div>
       )}
-    </div>
+
+      {/* Wall Post Task Modal */}
+      {selectedTask && session && onCloseTask && onRefresh && (
+        <WallPostTaskModal
+          task={selectedTask}
+          isOpen={!!selectedTask}
+          session={session}
+          columns={columns}
+          onClose={onCloseTask}
+          onRefresh={onRefresh}
+        />
+      )}
+      </div>
+    </PermissionGoogle>
   );
 }

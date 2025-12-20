@@ -36,9 +36,9 @@ export function getGoogleDriveImageUrl(url: string | null | undefined): string |
     return url; // Return original URL as fallback
   }
 
-  // Return lh3.googleusercontent.com URL for direct image access
-  // s2000 = 2000px max dimension while maintaining aspect ratio
-  return `https://lh3.googleusercontent.com/d/${fileId}=s2000`;
+  // Use thumbnail API for better public access support
+  // w2000 = 2000px width while maintaining aspect ratio
+  return `https://drive.google.com/thumbnail?id=${fileId}&sz=w2000`;
 }
 
 /**

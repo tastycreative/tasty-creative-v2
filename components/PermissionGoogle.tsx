@@ -186,7 +186,7 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
           <span className="text-gray-600 dark:text-gray-300 font-medium text-sm sm:text-base">
             Loading Google Permissions...
           </span>
-        </div>
+        </div>  
       </div>
     );
   }

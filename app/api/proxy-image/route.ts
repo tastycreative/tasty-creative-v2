@@ -13,13 +13,16 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Allow OnlyFans CDN URLs and other common CDN patterns
+    // Allow OnlyFans CDN URLs and Google Drive URLs
     const allowedDomains = [
       "cdn2.onlyfans.com",
       "cdn3.onlyfans.com",
       "cdn4.onlyfans.com",
       "cdn5.onlyfans.com",
       "public.onlyfans.com",
+      "lh3.googleusercontent.com",
+      "drive.google.com",
+      "work.fife.usercontent.google.com",
     ];
 
     const isAllowedDomain = allowedDomains.some((domain) =>
@@ -36,15 +39,19 @@ export async function GET(request: NextRequest) {
     console.log(`Processing image stream request`);
     console.log(`Original URL: ${imageUrl}`);
 
-    // Note: Removed caching for streaming approach - direct stream from CDN
-    console.log("Cache miss - downloading image from OnlyFans CDN");
-
     // Parse the URL to check for AWS authentication parameters
     const parsedUrl = new URL(imageUrl);
     const hasAwsAuth =
       parsedUrl.searchParams.has("Policy") &&
       parsedUrl.searchParams.has("Signature") &&
       parsedUrl.searchParams.has("Key-Pair-Id");
+
+    // Detect if this is a Google Drive URL
+    const isGoogleDrive =
+      imageUrl.includes("lh3.googleusercontent.com") ||
+      imageUrl.includes("drive.google.com") ||
+      imageUrl.includes("googleapis.com") ||
+      imageUrl.includes("usercontent.google.com");
 
     // Prepare headers to mimic browser request
     const requestHeaders: Record<string, string> = {
@@ -53,13 +60,22 @@ export async function GET(request: NextRequest) {
       Accept: "image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8",
       "Accept-Language": "en-US,en;q=0.9",
       "Accept-Encoding": "gzip, deflate, br",
-      Referer: "https://onlyfans.com/",
-      Origin: "https://onlyfans.com",
       "Sec-Fetch-Dest": "image",
       "Sec-Fetch-Mode": "no-cors",
       "Sec-Fetch-Site": "cross-site",
       "Cache-Control": "no-cache",
     };
+
+    // Add domain-specific headers
+    if (isGoogleDrive) {
+      // For Google Drive, use Google-specific headers
+      requestHeaders["Referer"] = "https://drive.google.com/";
+      requestHeaders["Origin"] = "https://drive.google.com";
+    } else {
+      // For OnlyFans CDN, use OnlyFans headers
+      requestHeaders["Referer"] = "https://onlyfans.com/";
+      requestHeaders["Origin"] = "https://onlyfans.com";
+    }
 
     if (hasAwsAuth) {
       const policy = parsedUrl.searchParams.get("Policy");
@@ -69,20 +85,20 @@ export async function GET(request: NextRequest) {
       if (policy && signature && keyPairId) {
         console.log("Adding CloudFront authentication parameters");
 
-        requestHeaders["Cookie"] = 
+        requestHeaders["Cookie"] =
           `CloudFront-Policy=${policy}; CloudFront-Signature=${signature}; CloudFront-Key-Pair-Id=${keyPairId}`;
-        
+
 
         requestHeaders["CloudFront-Policy"] = policy;
         requestHeaders["CloudFront-Signature"] = signature;
         requestHeaders["CloudFront-Key-Pair-Id"] = keyPairId;
-        
+
         console.log("Authentication methods applied: query params (preserved), cookies, headers");
       }
     }
 
     // Stream the image directly without downloading
-    console.log("Streaming image from OnlyFans CDN");
+    console.log(`Streaming image from ${isGoogleDrive ? 'Google Drive' : 'CDN'}`);
 
     let response: Response | null = null;
     let lastError: Error | null = null;
@@ -121,13 +137,13 @@ export async function GET(request: NextRequest) {
             <path d="M-15,-15 L15,15 M15,-15 L-15,15" stroke="#ef4444" stroke-width="3" stroke-linecap="round"/>
           </g>
           <text x="150" y="200" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#374151" font-weight="600">
-            OnlyFans Media
+            Image Load Failed
           </text>
           <text x="150" y="220" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#6b7280">
-            Stream Failed
+            ${lastError?.message || "Access Restricted"}
           </text>
           <text x="150" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#9ca3af">
-            ${lastError?.message || "CDN Access Restricted"}
+            Check file sharing settings
           </text>
         </svg>
       `;

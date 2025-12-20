@@ -10,8 +10,9 @@ import TaskCardHistory from "./TaskCardHistory";
 import UserProfile from "@/components/ui/UserProfile";
 import UserDropdown from "@/components/UserDropdown";
 import { formatForTaskDetail, formatDueDate } from "@/lib/dateUtils";
-import { getGoogleDriveImageUrl, extractGoogleDriveFileId, isGoogleDriveUrl } from "@/lib/utils/googleDriveImageUrl";
+import { extractGoogleDriveFileId, isGoogleDriveUrl } from "@/lib/utils/googleDriveImageUrl";
 import { useTeamMembersQuery } from "@/hooks/useBoardQueries";
+import PermissionGoogle from "@/components/PermissionGoogle";
 
 type TabType = 'description' | 'photos';
 
@@ -114,10 +115,20 @@ export default function WallPostTaskModal({
     }
 
     try {
-      // Use proxy API to download photos (handles CORS and S3 signed URLs)
-      const proxyUrl = `/api/download-photo?url=${encodeURIComponent(photoUrl)}&filename=${encodeURIComponent(fileName)}`;
+      // Use authenticated Google Drive API for Google Drive URLs, otherwise use proxy
+      let downloadUrl: string;
+      if (isGoogleDriveUrl(photoUrl)) {
+        const fileId = extractGoogleDriveFileId(photoUrl);
+        if (fileId) {
+          downloadUrl = `/api/google-drive/thumbnail?fileId=${fileId}&size=2000`;
+        } else {
+          downloadUrl = `/api/download-photo?url=${encodeURIComponent(photoUrl)}&filename=${encodeURIComponent(fileName)}`;
+        }
+      } else {
+        downloadUrl = `/api/download-photo?url=${encodeURIComponent(photoUrl)}&filename=${encodeURIComponent(fileName)}`;
+      }
 
-      const response = await fetch(proxyUrl);
+      const response = await fetch(downloadUrl);
 
       if (!response.ok) {
         throw new Error(`Download failed: ${response.status}`);
@@ -223,9 +234,20 @@ export default function WallPostTaskModal({
           });
 
           try {
-            // Use proxy API to fetch the photo
-            const proxyUrl = `/api/download-photo?url=${encodeURIComponent(photo.url)}`;
-            const response = await fetch(proxyUrl);
+            // Use authenticated Google Drive API for Google Drive URLs, otherwise use proxy
+            let downloadUrl: string;
+            if (isGoogleDriveUrl(photo.url)) {
+              const fileId = extractGoogleDriveFileId(photo.url);
+              if (fileId) {
+                downloadUrl = `/api/google-drive/thumbnail?fileId=${fileId}&size=2000`;
+              } else {
+                downloadUrl = `/api/download-photo?url=${encodeURIComponent(photo.url)}`;
+              }
+            } else {
+              downloadUrl = `/api/download-photo?url=${encodeURIComponent(photo.url)}`;
+            }
+
+            const response = await fetch(downloadUrl);
 
             if (!response.ok) {
               console.error(`Failed to fetch photo ${i + 1}`);
@@ -768,7 +790,8 @@ export default function WallPostTaskModal({
           </div>
         ) : (
           // Photos Tab - YouTube-style layout
-          <div className="flex flex-col lg:flex-row h-[calc(100vh-300px)]">
+          <PermissionGoogle apiEndpoint="/api/google-drive/list">
+            <div className="flex flex-col lg:flex-row h-[calc(100vh-300px)]">
             {/* Left Section - Photo Viewer and Comments */}
             <div className="flex-1 flex flex-col">
               {/* Main Photo Viewer */}
@@ -778,18 +801,18 @@ export default function WallPostTaskModal({
                     <img
                       src={
                         isGoogleDriveUrl(selectedPhoto.url)
-                          ? getGoogleDriveImageUrl(selectedPhoto.url) || selectedPhoto.url
+                          ? (() => {
+                              const fileId = extractGoogleDriveFileId(selectedPhoto.url);
+                              return fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=2000` : selectedPhoto.url;
+                            })()
                           : selectedPhoto.url
                       }
                       alt={`Photo ${selectedPhotoIndex + 1}`}
                       className="max-w-full max-h-full object-contain"
-                      {...(isGoogleDriveUrl(selectedPhoto.url) && { crossOrigin: "anonymous" })}
                       onError={(e) => {
                         console.error('Failed to load image:', selectedPhoto.url);
-                        // Fallback: try original URL if conversion fails
-                        if (selectedPhoto.url && e.currentTarget.src !== selectedPhoto.url) {
-                          e.currentTarget.src = selectedPhoto.url;
-                        }
+                        // Show placeholder on error
+                        e.currentTarget.style.display = 'none';
                       }}
                     />
                     {/* Quick External Link Button (for all photos) */}
@@ -1114,17 +1137,17 @@ export default function WallPostTaskModal({
                             <img
                               src={
                                 isGoogleDriveUrl(photo.url)
-                                  ? getGoogleDriveImageUrl(photo.url) || photo.url
+                                  ? (() => {
+                                      const fileId = extractGoogleDriveFileId(photo.url);
+                                      return fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=400` : photo.url;
+                                    })()
                                   : photo.url
                               }
                               alt={`Photo ${index + 1}`}
                               className="w-20 h-20 object-cover rounded"
-                              {...(isGoogleDriveUrl(photo.url) && { crossOrigin: "anonymous" })}
                               onError={(e) => {
-                                // Fallback to original URL if conversion fails
-                                if (photo.url && e.currentTarget.src !== photo.url) {
-                                  e.currentTarget.src = photo.url;
-                                }
+                                // Hide on error
+                                e.currentTarget.style.display = 'none';
                               }}
                             />
                           ) : (
@@ -1208,7 +1231,8 @@ export default function WallPostTaskModal({
                 </div>
               </div>
             </div>
-          </div>
+            </div>
+          </PermissionGoogle>
         )}
       </div>
     </div>

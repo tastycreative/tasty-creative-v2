@@ -1782,6 +1782,23 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         <BoardGallery
           teamId={teamId}
           teamName={teamName}
+          session={session}
+          columns={qColumns}
+          selectedTask={selectedTask}
+          onTaskSelect={(task: Task) => {
+            const projectPrefix = task.podTeam?.projectPrefix;
+            const taskNumber = task.taskNumber;
+            if (projectPrefix && taskNumber) {
+              const taskIdentifier = `${projectPrefix}-${taskNumber}`;
+              const params = new URLSearchParams(searchParams?.toString() || '');
+              params.set('task', taskIdentifier);
+              router.push(`?${params.toString()}`);
+            }
+          }}
+          onCloseTask={closeTaskDetail}
+          onRefresh={async () => {
+            await queryClient.invalidateQueries({ queryKey: boardQueryKeys.tasks(currentTeamId) });
+          }}
         />
       ) : activeTab === 'list' ? (
         <>

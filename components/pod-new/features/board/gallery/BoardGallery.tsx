@@ -1,18 +1,46 @@
 "use client";
 
 import React from 'react';
+import { Session } from 'next-auth';
 import WallPostGallery from './WallPostGallery';
 import OFTVGallery from './OFTVGallery';
+import type { Task, BoardColumn } from '@/lib/stores/boardStore';
 
 interface BoardGalleryProps {
   teamId: string;
   teamName: string;
+  session?: Session | null;
+  columns?: BoardColumn[];
+  selectedTask?: Task | null;
+  onTaskSelect?: (task: Task) => void;
+  onCloseTask?: () => void;
+  onRefresh?: () => Promise<void>;
 }
 
-export default function BoardGallery({ teamId, teamName }: BoardGalleryProps) {
+export default function BoardGallery({
+  teamId,
+  teamName,
+  session,
+  columns,
+  selectedTask,
+  onTaskSelect,
+  onCloseTask,
+  onRefresh
+}: BoardGalleryProps) {
   // Render the appropriate gallery based on team name
   if (teamName === 'Wall Post') {
-    return <WallPostGallery teamId={teamId} teamName={teamName} />;
+    return (
+      <WallPostGallery
+        teamId={teamId}
+        teamName={teamName}
+        session={session}
+        columns={columns}
+        selectedTask={selectedTask}
+        onTaskSelect={onTaskSelect}
+        onCloseTask={onCloseTask}
+        onRefresh={onRefresh}
+      />
+    );
   }
 
   if (teamName === 'OFTV') {
