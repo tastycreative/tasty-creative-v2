@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
     const teamId = searchParams.get('teamId');
     const modelName = searchParams.get('modelName');
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
     const limit = searchParams.get('limit');
     const offset = searchParams.get('offset');
 
@@ -87,6 +88,37 @@ export async function GET(request: NextRequest) {
 
     if (status) {
       whereConditions.status = status;
+    }
+
+    // Add search filter (searches model name, caption, and task title)
+    if (search && search.trim()) {
+      const searchTerm = search.trim();
+      whereConditions.OR = [
+        {
+          wallPostSubmission: {
+            modelName: {
+              contains: searchTerm,
+              mode: 'insensitive',
+            },
+          },
+        },
+        {
+          caption: {
+            contains: searchTerm,
+            mode: 'insensitive',
+          },
+        },
+        {
+          wallPostSubmission: {
+            task: {
+              title: {
+                contains: searchTerm,
+                mode: 'insensitive',
+              },
+            },
+          },
+        },
+      ];
     }
 
     // Fetch photos with pagination

@@ -91,15 +91,25 @@ export default function WallPostGallery({
   const router = useRouter();
   const searchParams = useSearchParams();
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('all');
   const [selectedStatus, setSelectedStatus] = useState<string>('all');
   const [selectedPhoto, setSelectedPhoto] = useState<WallPostPhoto | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
 
-  // Fetch all wall post photos with pagination
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 500); // 500ms delay
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  // Fetch all wall post photos with pagination and search
   const { data, isLoading, isFetching, error, refetch } = useQuery({
-    queryKey: ['wall-post-photos', teamId, selectedModel, selectedStatus, currentPage, itemsPerPage],
+    queryKey: ['wall-post-photos', teamId, selectedModel, selectedStatus, debouncedSearchQuery, currentPage, itemsPerPage],
     queryFn: async () => {
       const offset = (currentPage - 1) * itemsPerPage;
       const params = new URLSearchParams({
@@ -108,6 +118,7 @@ export default function WallPostGallery({
         offset: offset.toString(),
         ...(selectedModel !== 'all' && { modelName: selectedModel }),
         ...(selectedStatus !== 'all' && { status: selectedStatus }),
+        ...(debouncedSearchQuery && { search: debouncedSearchQuery }),
       });
 
       const response = await fetch(`/api/wall-post-photos/all?${params.toString()}`);
@@ -128,25 +139,15 @@ export default function WallPostGallery({
   const stats = data?.stats || { total: 0, pendingReview: 0, readyToPost: 0, posted: 0, rejected: 0 };
   const totalCount = data?.totalCount || 0;
 
-  // Filter photos by search query (client-side for current page)
-  const filteredPhotos = photos.filter(photo => {
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      photo.wallPostSubmission.modelName.toLowerCase().includes(searchLower) ||
-      photo.caption?.toLowerCase().includes(searchLower) ||
-      photo.wallPostSubmission.task.title.toLowerCase().includes(searchLower)
-    );
-  });
-
   // Calculate pagination
   const totalPages = Math.ceil(totalCount / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage + 1;
   const endIndex = Math.min(currentPage * itemsPerPage, totalCount);
 
-  // Reset to page 1 when filters change
+  // Reset to page 1 when filters or search change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedModel, selectedStatus]);
+  }, [selectedModel, selectedStatus, debouncedSearchQuery]);
 
   // Handle photo download
   const handleDownload = async (photo: WallPostPhoto) => {
@@ -343,8 +344,13 @@ export default function WallPostGallery({
             placeholder="Search by model, caption, or task..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 h-12 rounded-xl border-gray-200 dark:border-gray-700"
+            className="pl-10 pr-10 h-12 rounded-xl border-gray-200 dark:border-gray-700"
           />
+          {(searchQuery !== debouncedSearchQuery || (isFetching && debouncedSearchQuery)) && (
+            <div className="absolute right-3 top-1/2 -translate-y-1/2">
+              <div className="animate-spin rounded-full h-4 w-4 border-2 border-pink-500 border-t-transparent"></div>
+            </div>
+          )}
         </div>
 
         <div className="relative">
@@ -404,7 +410,7 @@ export default function WallPostGallery({
             Try Again
           </Button>
         </div>
-      ) : filteredPhotos.length > 0 ? (
+      ) : photos.length > 0 ? (
         <>
           <div className="relative">
             {/* Loading overlay when refetching */}
@@ -418,7 +424,7 @@ export default function WallPostGallery({
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredPhotos.map((photo) => {
+              {photos.map((photo) => {
             const statusConfig = photoStatusConfig[photo.status as keyof typeof photoStatusConfig] || photoStatusConfig.PENDING_REVIEW;
             const StatusIcon = statusConfig.icon;
 
