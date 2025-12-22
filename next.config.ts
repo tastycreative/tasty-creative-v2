@@ -6,6 +6,27 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   eslint: { ignoreDuringBuilds: true },
   typescript: { ignoreBuildErrors: true },
+
+  // AWS Amplify SSR Fix: Embed environment variables during build
+  // This is required because Amplify doesn't pass env vars to Lambda runtime properly
+  env: {
+    // These will be embedded in the build and available at runtime
+    NEXTAUTH_SECRET: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET || '',
+    NEXTAUTH_URL: process.env.NEXTAUTH_URL || '',
+    AUTH_GOOGLE_ID: process.env.AUTH_GOOGLE_ID || '',
+    AUTH_GOOGLE_SECRET: process.env.AUTH_GOOGLE_SECRET || '',
+    DATABASE_URL: process.env.DATABASE_URL || '',
+    ABLY_API_KEY: process.env.ABLY_API_KEY || '',
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || '',
+    SUPABASE_URL: process.env.SUPABASE_URL || '',
+    SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY || '',
+    REDIS_URL: process.env.REDIS_URL || '',
+    AWS_REGION: process.env.AWS_REGION || '',
+    AWS_ACCESS_KEY_ID: process.env.AWS_ACCESS_KEY_ID || '',
+    AWS_SECRET_ACCESS_KEY: process.env.AWS_SECRET_ACCESS_KEY || '',
+    AWS_S3_BUCKET: process.env.AWS_S3_BUCKET || '',
+  },
+
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "lh3.googleusercontent.com", pathname: "/**" },
