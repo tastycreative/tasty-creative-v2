@@ -119,13 +119,25 @@ async function refreshAccessToken(token: any) {
   }
 }
 
+// Diagnostic logging for AWS Amplify debugging (only in production)
+if (process.env.NODE_ENV === "production" && !process.env.NEXTAUTH_SECRET && !process.env.AUTH_SECRET) {
+  console.error("❌ CRITICAL: Neither NEXTAUTH_SECRET nor AUTH_SECRET environment variables are set!");
+  console.error("Available env vars starting with 'AUTH':", Object.keys(process.env).filter(k => k.startsWith('AUTH')));
+  console.error("Available env vars starting with 'NEXT':", Object.keys(process.env).filter(k => k.startsWith('NEXT')));
+}
+
+const authSecret = process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET;
+if (!authSecret) {
+  throw new Error("NEXTAUTH_SECRET or AUTH_SECRET must be defined. Set one of these environment variables.");
+}
+
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: {
     strategy: "jwt",
   },
   // Explicitly define secret for AWS Amplify compatibility
-  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
+  secret: authSecret,
   trustHost: true,
   providers: [
     Google({
