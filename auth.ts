@@ -124,6 +124,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   session: {
     strategy: "jwt",
   },
+  // Explicitly define secret for AWS Amplify compatibility
+  secret: process.env.NEXTAUTH_SECRET || process.env.AUTH_SECRET,
   trustHost: true,
   providers: [
     Google({

@@ -1,22 +1,26 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { PrismaClient } from '@prisma/client';
-import { trackTaskChanges, createTaskActivity } from '@/lib/taskActivityHelper';
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { parseUserDate } from '@/lib/dateUtils';
-import { publishTaskCreated, publishTaskUpdated, publishTaskDeleted } from '@/lib/boardSync';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { PrismaClient } from "@prisma/client";
+import { trackTaskChanges, createTaskActivity } from "@/lib/taskActivityHelper";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { parseUserDate } from "@/lib/dateUtils";
+import {
+  publishTaskCreated,
+  publishTaskUpdated,
+  publishTaskDeleted,
+} from "@/lib/boardSync";
 
 const prisma = new PrismaClient();
 
 // Configure S3 client for task/comment attachments (primary bucket)
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: process.env.S3_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
 });
-const BUCKET_NAME = process.env.AWS_S3_BUCKET!;
+const BUCKET_NAME = process.env.S3_BUCKET!;
 
 async function deleteFromS3(s3Key: string): Promise<void> {
   try {
@@ -26,7 +30,7 @@ async function deleteFromS3(s3Key: string): Promise<void> {
     });
     await s3Client.send(command);
   } catch (err) {
-    console.error('Error deleting from S3:', err);
+    console.error("Error deleting from S3:", err);
     // Don't throw here; upstream callers may choose to ignore failures
   }
 }
@@ -39,15 +43,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { title, description, priority, assignedTo, dueDate, teamId, teamName, status, attachments } = await request.json();
+    const {
+      title,
+      description,
+      priority,
+      assignedTo,
+      dueDate,
+      teamId,
+      teamName,
+      status,
+      attachments,
+    } = await request.json();
 
     if (!title || !teamId) {
       return NextResponse.json(
-        { error: 'Title and teamId are required' },
+        { error: "Title and teamId are required" },
         { status: 400 }
       );
     }
-
 
     let jobAssignedTo = assignedTo;
 
@@ -55,8 +68,8 @@ export async function POST(request: NextRequest) {
       data: {
         title: title.trim(),
         description: description?.trim() || null,
-        priority: priority || 'MEDIUM',
-        status: status || 'NOT_STARTED',
+        priority: priority || "MEDIUM",
+        status: status || "NOT_STARTED",
         assignedTo: assignedTo || null,
         dueDate: dueDate ? parseUserDate(dueDate)?.toJSDate() : null,
         attachments: attachments || null,
@@ -89,7 +102,7 @@ export async function POST(request: NextRequest) {
                 email: true,
                 name: true,
                 image: true,
-              }
+              },
             },
             thumbnailEditorUser: {
               select: {
@@ -97,18 +110,18 @@ export async function POST(request: NextRequest) {
                 email: true,
                 name: true,
                 image: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         wallPostSubmission: {
           include: {
             photos: {
               orderBy: {
-                position: 'asc',
-              }
-            }
-          }
+                position: "asc",
+              },
+            },
+          },
         },
       },
     });
@@ -117,8 +130,8 @@ export async function POST(request: NextRequest) {
     await createTaskActivity({
       taskId: task.id,
       userId: session.user.id,
-      actionType: 'CREATED',
-      description: `${session.user.name || session.user.email} created this task`
+      actionType: "CREATED",
+      description: `${session.user.name || session.user.email} created this task`,
     });
 
     // Fetch assigned user information
@@ -141,19 +154,23 @@ export async function POST(request: NextRequest) {
     };
 
     // Publish real-time update via Ably (non-blocking)
-    publishTaskCreated(teamId, task.id, session.user.id, taskWithAssignedUser).catch((err) => {
-      console.error('Failed to publish task creation to Ably:', err);
+    publishTaskCreated(
+      teamId,
+      task.id,
+      session.user.id,
+      taskWithAssignedUser
+    ).catch((err) => {
+      console.error("Failed to publish task creation to Ably:", err);
     });
 
     return NextResponse.json({
       success: true,
       task: taskWithAssignedUser,
     });
-
   } catch (error) {
-    console.error('Error creating task:', error);
+    console.error("Error creating task:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -168,11 +185,11 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const teamId = searchParams.get('teamId');
+    const teamId = searchParams.get("teamId");
 
     if (!teamId) {
       return NextResponse.json(
-        { error: 'teamId is required' },
+        { error: "teamId is required" },
         { status: 400 }
       );
     }
@@ -234,7 +251,7 @@ export async function GET(request: NextRequest) {
                 email: true,
                 name: true,
                 image: true,
-              }
+              },
             },
             thumbnailEditorUser: {
               select: {
@@ -242,62 +259,68 @@ export async function GET(request: NextRequest) {
                 email: true,
                 name: true,
                 image: true,
-              }
-            }
-          }
+              },
+            },
+          },
         },
         wallPostSubmission: {
           include: {
             photos: {
               orderBy: {
-                position: 'asc',
-              }
-            }
-          }
+                position: "asc",
+              },
+            },
+          },
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        createdAt: "desc",
       },
     });
 
     // Batch fetch assigned users to avoid N+1 query problem
     // Collect unique emails from all tasks
-    const uniqueEmails = [...new Set(
-      tasks.map(t => t.assignedTo).filter((email): email is string => Boolean(email))
-    )];
+    const uniqueEmails = [
+      ...new Set(
+        tasks
+          .map((t) => t.assignedTo)
+          .filter((email): email is string => Boolean(email))
+      ),
+    ];
 
     // Single batch query for all users
-    const users = uniqueEmails.length > 0
-      ? await prisma.user.findMany({
-          where: { email: { in: uniqueEmails } },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            image: true,
-          },
-        })
-      : [];
+    const users =
+      uniqueEmails.length > 0
+        ? await prisma.user.findMany({
+            where: { email: { in: uniqueEmails } },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              image: true,
+            },
+          })
+        : [];
 
     // Create email-to-user map for O(1) lookup
-    const userMap = new Map(users.map(u => [u.email, u]));
+    const userMap = new Map(users.map((u) => [u.email, u]));
 
     // Map users to tasks (OFTV editor user data already included via relations in the query above)
-    const tasksWithAssignedUsers = tasks.map(task => ({
+    const tasksWithAssignedUsers = tasks.map((task) => ({
       ...task,
-      assignedUser: task.assignedTo ? (userMap.get(task.assignedTo) || null) : null
+      assignedUser: task.assignedTo
+        ? userMap.get(task.assignedTo) || null
+        : null,
     }));
 
     return NextResponse.json({
       success: true,
       tasks: tasksWithAssignedUsers,
     });
-
   } catch (error) {
-    console.error('Error fetching tasks:', error);
+    console.error("Error fetching tasks:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -311,13 +334,31 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { id, status, assignedTo, priority, title, description, dueDate, attachments } = await request.json();
+    const {
+      id,
+      status,
+      assignedTo,
+      priority,
+      title,
+      description,
+      dueDate,
+      attachments,
+    } = await request.json();
 
-    console.log('PUT /api/tasks - Request data:', { id, status, assignedTo, priority, title, description, dueDate, attachments });
+    console.log("PUT /api/tasks - Request data:", {
+      id,
+      status,
+      assignedTo,
+      priority,
+      title,
+      description,
+      dueDate,
+      attachments,
+    });
 
     if (!id) {
       return NextResponse.json(
-        { error: 'Task ID is required' },
+        { error: "Task ID is required" },
         { status: 400 }
       );
     }
@@ -338,25 +379,21 @@ export async function PUT(request: NextRequest) {
     });
 
     if (!currentTask) {
-      return NextResponse.json(
-        { error: 'Task not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-
     const updateData: any = {
-      updatedBy: session.user.email // Always set updatedBy to current user's email
+      updatedBy: session.user.email, // Always set updatedBy to current user's email
     };
     // Automatic transition: Flyer Completed -> QA
-    if (status === 'CUSTOM_FLYER_COMPLETED_1761147678038') {
-      updateData.status = 'CUSTOM_QA__1761147691672';
+    if (status === "CUSTOM_FLYER_COMPLETED_1761147678038") {
+      updateData.status = "CUSTOM_QA__1761147691672";
     }
 
     const effectiveStatus = updateData.status || status;
 
     // Ensure the effective status is written to the update payload so status changes persist
-    if (typeof effectiveStatus !== 'undefined') {
+    if (typeof effectiveStatus !== "undefined") {
       updateData.status = effectiveStatus;
     }
 
@@ -367,24 +404,32 @@ export async function PUT(request: NextRequest) {
     // 3. Task is currently unassigned
     // 4. Task is in OTP-PTR team (verified via DB fetch)
     // 5. Task title has 'PTR'
-    if (effectiveStatus === 'CUSTOM_QA__1761147691672') {
+    if (effectiveStatus === "CUSTOM_QA__1761147691672") {
       const taskInDb = currentTask as any;
       const isUnassigned = !taskInDb.assignedTo && !assignedTo;
-      
+
       if (isUnassigned && taskInDb.podTeamId) {
         try {
-           const team = await prisma.podTeam.findUnique({
-             where: { id: taskInDb.podTeamId },
-             select: { name: true }
-           });
-           
-           if (team?.name === 'OTP-PTR' && typeof taskInDb.title === 'string' && taskInDb.title.toUpperCase().includes('PTR')) {
-              const qaEmails = ['maryjoeopon.tastymedia@gmail.com', 'condrei.pineda122@gmail.com'];
-              // Assign one randomly
-              updateData.assignedTo = qaEmails[Math.floor(Math.random() * qaEmails.length)];
-           }
+          const team = await prisma.podTeam.findUnique({
+            where: { id: taskInDb.podTeamId },
+            select: { name: true },
+          });
+
+          if (
+            team?.name === "OTP-PTR" &&
+            typeof taskInDb.title === "string" &&
+            taskInDb.title.toUpperCase().includes("PTR")
+          ) {
+            const qaEmails = [
+              "maryjoeopon.tastymedia@gmail.com",
+              "condrei.pineda122@gmail.com",
+            ];
+            // Assign one randomly
+            updateData.assignedTo =
+              qaEmails[Math.floor(Math.random() * qaEmails.length)];
+          }
         } catch (err) {
-           console.error('Error during auto-QA assignment in PUT:', err);
+          console.error("Error during auto-QA assignment in PUT:", err);
         }
       }
     }
@@ -393,10 +438,14 @@ export async function PUT(request: NextRequest) {
     if (priority !== undefined) updateData.priority = priority;
     if (title !== undefined) updateData.title = title;
     if (description !== undefined) updateData.description = description;
-    if (dueDate !== undefined) updateData.dueDate = dueDate ? parseUserDate(dueDate)?.toJSDate() : null;
+    if (dueDate !== undefined)
+      updateData.dueDate = dueDate ? parseUserDate(dueDate)?.toJSDate() : null;
     if (attachments !== undefined) updateData.attachments = attachments;
 
-    console.log('PUT /api/tasks - Update data being sent to Prisma:', updateData);
+    console.log(
+      "PUT /api/tasks - Update data being sent to Prisma:",
+      updateData
+    );
 
     const updatedTask = await prisma.task.update({
       where: { id },
@@ -418,9 +467,17 @@ export async function PUT(request: NextRequest) {
     await trackTaskChanges(
       id,
       session.user.id,
-      session.user.name || session.user.email || 'Unknown User',
+      session.user.name || session.user.email || "Unknown User",
       currentTask,
-      { status, assignedTo, priority, title, description, dueDate, attachments },
+      {
+        status,
+        assignedTo,
+        priority,
+        title,
+        description,
+        dueDate,
+        attachments,
+      },
       (currentTask as any).podTeamId
     );
 
@@ -451,7 +508,7 @@ export async function PUT(request: NextRequest) {
         session.user.id,
         taskWithAssignedUser
       ).catch((err) => {
-        console.error('Failed to publish task update to Ably:', err);
+        console.error("Failed to publish task update to Ably:", err);
       });
     }
 
@@ -459,11 +516,10 @@ export async function PUT(request: NextRequest) {
       success: true,
       task: taskWithAssignedUser,
     });
-
   } catch (error) {
-    console.error('Error updating task:', error);
+    console.error("Error updating task:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -478,11 +534,11 @@ export async function DELETE(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const taskId = searchParams.get('id');
+    const taskId = searchParams.get("id");
 
     if (!taskId) {
       return NextResponse.json(
-        { error: 'Task ID is required' },
+        { error: "Task ID is required" },
         { status: 400 }
       );
     }
@@ -497,8 +553,8 @@ export async function DELETE(request: NextRequest) {
     await createTaskActivity({
       taskId,
       userId: session.user.id,
-      actionType: 'DELETED',
-      description: `${session.user.name || session.user.email} deleted this task`
+      actionType: "DELETED",
+      description: `${session.user.name || session.user.email} deleted this task`,
     });
 
     // Best-effort: delete S3 files for task attachments and its comments' attachments
@@ -511,7 +567,9 @@ export async function DELETE(request: NextRequest) {
 
       const taskAttachments: any[] = (existingTask?.attachments as any[]) || [];
       const taskKeys = taskAttachments
-        .map((att) => (att && typeof att === 'object' ? (att as any).s3Key : null))
+        .map((att) =>
+          att && typeof att === "object" ? (att as any).s3Key : null
+        )
         .filter((k): k is string => !!k);
 
       // Get comment attachments under this task
@@ -533,7 +591,7 @@ export async function DELETE(request: NextRequest) {
       }
     } catch (cleanupErr) {
       // Log and continue; do not block task deletion on cleanup failures
-      console.error('Error during S3 cleanup for task deletion:', cleanupErr);
+      console.error("Error during S3 cleanup for task deletion:", cleanupErr);
     }
 
     await prisma.task.delete({
@@ -542,20 +600,21 @@ export async function DELETE(request: NextRequest) {
 
     // Publish real-time update via Ably (non-blocking)
     if (taskToDelete?.podTeamId) {
-      publishTaskDeleted(taskToDelete.podTeamId, taskId, session.user.id).catch((err) => {
-        console.error('Failed to publish task deletion to Ably:', err);
-      });
+      publishTaskDeleted(taskToDelete.podTeamId, taskId, session.user.id).catch(
+        (err) => {
+          console.error("Failed to publish task deletion to Ably:", err);
+        }
+      );
     }
 
     return NextResponse.json({
       success: true,
-      message: 'Task deleted successfully',
+      message: "Task deleted successfully",
     });
-
   } catch (error) {
-    console.error('Error deleting task:', error);
+    console.error("Error deleting task:", error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

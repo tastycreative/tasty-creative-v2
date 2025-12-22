@@ -1,34 +1,39 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
-import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { v4 as uuidv4 } from "uuid";
 
 // Configure S3 client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: process.env.S3_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
 });
 
-const BUCKET_NAME = process.env.AWS_S3_BUCKET!;
+const BUCKET_NAME = process.env.S3_BUCKET!;
 
 // Helper function to get file extension
 function getFileExtension(filename: string): string {
-  return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2);
+  return filename.slice(((filename.lastIndexOf(".") - 1) >>> 0) + 2);
 }
 
 // Helper function to generate S3 key
-function generateS3Key(originalName: string, userId: string, folder: string = 'task-attachments'): string {
+function generateS3Key(
+  originalName: string,
+  userId: string,
+  folder: string = "task-attachments"
+): string {
   const timestamp = Date.now();
   const uuid = uuidv4();
   const extension = getFileExtension(originalName);
-  const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, '_');
+  const sanitizedName = originalName.replace(/[^a-zA-Z0-9.-]/g, "_");
 
   // Ensure folder is not empty or undefined
-  const safeFolder = folder && folder.trim() !== '' ? folder.trim() : 'task-attachments';
+  const safeFolder =
+    folder && folder.trim() !== "" ? folder.trim() : "task-attachments";
 
   return `${safeFolder}/${userId}/${timestamp}-${uuid}-${sanitizedName}`;
 }
@@ -37,20 +42,20 @@ function generateS3Key(originalName: string, userId: string, folder: string = 't
 function getContentType(filename: string): string {
   const extension = getFileExtension(filename).toLowerCase();
   const mimeTypes: Record<string, string> = {
-    'jpg': 'image/jpeg',
-    'jpeg': 'image/jpeg',
-    'png': 'image/png',
-    'gif': 'image/gif',
-    'webp': 'image/webp',
-    'pdf': 'application/pdf',
-    'txt': 'text/plain',
-    'doc': 'application/msword',
-    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'xls': 'application/vnd.ms-excel',
-    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    jpg: "image/jpeg",
+    jpeg: "image/jpeg",
+    png: "image/png",
+    gif: "image/gif",
+    webp: "image/webp",
+    pdf: "application/pdf",
+    txt: "text/plain",
+    doc: "application/msword",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    xls: "application/vnd.ms-excel",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   };
-  
-  return mimeTypes[extension] || 'application/octet-stream';
+
+  return mimeTypes[extension] || "application/octet-stream";
 }
 
 export async function POST(request: NextRequest) {
@@ -62,10 +67,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if all required environment variables are set
-    if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY || !process.env.AWS_REGION || !process.env.AWS_S3_BUCKET) {
-      console.error('Missing required AWS environment variables');
+    if (
+      !process.env.S3_ACCESS_KEY_ID ||
+      !process.env.S3_SECRET_ACCESS_KEY ||
+      !process.env.S3_REGION ||
+      !process.env.S3_BUCKET
+    ) {
+      console.error("Missing required AWS environment variables");
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: "Server configuration error" },
         { status: 500 }
       );
     }
@@ -73,11 +83,14 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { fileName, fileType, fileSize } = body;
     // Use task-attachments if folder is not provided or is empty/whitespace
-    const folder = body.folder && body.folder.trim() !== '' ? body.folder.trim() : 'task-attachments';
+    const folder =
+      body.folder && body.folder.trim() !== ""
+        ? body.folder.trim()
+        : "task-attachments";
 
     if (!fileName || !fileType || !fileSize) {
       return NextResponse.json(
-        { error: 'File name, type, and size are required' },
+        { error: "File name, type, and size are required" },
         { status: 400 }
       );
     }
@@ -86,22 +99,28 @@ export async function POST(request: NextRequest) {
     const maxSize = 10 * 1024 * 1024; // 10MB
     if (fileSize > maxSize) {
       return NextResponse.json(
-        { error: 'File too large. Maximum size is 10MB.' },
+        { error: "File too large. Maximum size is 10MB." },
         { status: 400 }
       );
     }
 
     // Validate file type
     const allowedTypes = [
-      'image/jpeg', 'image/png', 'image/gif', 'image/webp',
-      'application/pdf', 'text/plain',
-      'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+      "text/plain",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "application/vnd.ms-excel",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     ];
 
     if (!allowedTypes.includes(fileType)) {
       return NextResponse.json(
-        { error: 'File type not allowed' },
+        { error: "File type not allowed" },
         { status: 400 }
       );
     }
@@ -112,7 +131,7 @@ export async function POST(request: NextRequest) {
 
     // Sanitize metadata values (remove invalid characters for HTTP headers)
     const sanitizeMetadata = (value: string): string => {
-      return value.replace(/[^\x20-\x7E]/g, '').replace(/[\r\n]/g, '');
+      return value.replace(/[^\x20-\x7E]/g, "").replace(/[\r\n]/g, "");
     };
 
     // Create PutObjectCommand for generating pre-signed URL
@@ -131,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     // Generate pre-signed PUT URL for upload (valid for 15 minutes)
     const presignedUrl = await getSignedUrl(s3Client, putObjectCommand, {
-      expiresIn: 15 * 60 // 15 minutes
+      expiresIn: 15 * 60, // 15 minutes
     });
 
     // IMPORTANT: Return attachment without URL - the client must call /api/upload/s3/signed-url
@@ -151,28 +170,24 @@ export async function POST(request: NextRequest) {
       presignedUrl, // This is for PUT only, never use for viewing
       attachment: attachmentData,
     });
-
   } catch (error) {
-    console.error('Error generating pre-signed URL:', error);
-    
+    console.error("Error generating pre-signed URL:", error);
+
     // Handle specific S3 errors
     if (error instanceof Error) {
-      if (error.message.includes('credentials')) {
+      if (error.message.includes("credentials")) {
         return NextResponse.json(
-          { error: 'AWS credentials error' },
+          { error: "AWS credentials error" },
           { status: 500 }
         );
       }
-      if (error.message.includes('bucket')) {
-        return NextResponse.json(
-          { error: 'S3 bucket error' },
-          { status: 500 }
-        );
+      if (error.message.includes("bucket")) {
+        return NextResponse.json({ error: "S3 bucket error" }, { status: 500 });
       }
     }
 
     return NextResponse.json(
-      { error: 'Failed to generate pre-signed URL' },
+      { error: "Failed to generate pre-signed URL" },
       { status: 500 }
     );
   }

@@ -1,18 +1,18 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/auth';
-import { prisma } from '@/lib/prisma';
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
-import { createTaskActivity } from '@/lib/taskActivityHelper';
+import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+import { prisma } from "@/lib/prisma";
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
+import { createTaskActivity } from "@/lib/taskActivityHelper";
 
 // Configure S3 client
 const s3Client = new S3Client({
-  region: process.env.AWS_REGION!,
+  region: process.env.S3_REGION!,
   credentials: {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+    accessKeyId: process.env.S3_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.S3_SECRET_ACCESS_KEY!,
   },
 });
-const BUCKET_NAME = process.env.AWS_S3_BUCKET!;
+const BUCKET_NAME = process.env.S3_BUCKET!;
 
 // PATCH - Update wall post photo (caption, status)
 export async function PATCH(
@@ -23,7 +23,7 @@ export async function PATCH(
     const session = await auth();
 
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { photoId } = await params;
@@ -47,19 +47,16 @@ export async function PATCH(
     });
 
     if (!photo) {
-      return NextResponse.json(
-        { error: 'Photo not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Photo not found" }, { status: 404 });
     }
 
     // Check user access
     const user = await prisma.user.findUnique({
       where: { id: session.user.id! },
-      select: { role: true }
+      select: { role: true },
     });
 
-    if (user?.role !== 'ADMIN') {
+    if (user?.role !== "ADMIN") {
       const teamMember = await prisma.podTeamMember.findUnique({
         where: {
           podTeamId_userId: {
@@ -71,7 +68,7 @@ export async function PATCH(
 
       if (!teamMember) {
         return NextResponse.json(
-          { error: 'User does not have access to this team' },
+          { error: "User does not have access to this team" },
           { status: 403 }
         );
       }
@@ -88,7 +85,7 @@ export async function PATCH(
       updateData.status = status;
 
       // Set postedAt timestamp when status changes to POSTED
-      if (status === 'POSTED' && photo.status !== 'POSTED') {
+      if (status === "POSTED" && photo.status !== "POSTED") {
         updateData.postedAt = new Date();
       }
 
@@ -104,7 +101,8 @@ export async function PATCH(
 
     // Track activity for caption changes
     if (caption !== undefined && photo.caption !== caption) {
-      const userName = session.user.name || session.user.email || 'Unknown User';
+      const userName =
+        session.user.name || session.user.email || "Unknown User";
       const taskId = photo.wallPostSubmission.task.id;
       const photoPosition = photo.position + 1; // 1-indexed for display
 
@@ -117,7 +115,7 @@ export async function PATCH(
       await createTaskActivity({
         taskId,
         userId: session.user.id!,
-        actionType: 'UPDATED',
+        actionType: "UPDATED",
         fieldName: `photo_${photoId}_caption`,
         oldValue: photo.caption,
         newValue: caption,
@@ -125,23 +123,28 @@ export async function PATCH(
         metadata: {
           photoId,
           photoPosition,
-          activityType: 'photo_caption',
-          changeType: caption ? (photo.caption ? 'updated' : 'added') : 'removed'
-        }
+          activityType: "photo_caption",
+          changeType: caption
+            ? photo.caption
+              ? "updated"
+              : "added"
+            : "removed",
+        },
       });
     }
 
     // Track activity for status changes
     if (status !== undefined && photo.status !== status) {
-      const userName = session.user.name || session.user.email || 'Unknown User';
+      const userName =
+        session.user.name || session.user.email || "Unknown User";
       const taskId = photo.wallPostSubmission.task.id;
       const photoPosition = photo.position + 1;
 
       const statusLabels: Record<string, string> = {
-        PENDING_REVIEW: 'Pending Review',
-        READY_TO_POST: 'Ready to Post',
-        POSTED: 'Posted',
-        REJECTED: 'Rejected',
+        PENDING_REVIEW: "Pending Review",
+        READY_TO_POST: "Ready to Post",
+        POSTED: "Posted",
+        REJECTED: "Rejected",
       };
 
       const oldStatusLabel = statusLabels[photo.status] || photo.status;
@@ -150,7 +153,7 @@ export async function PATCH(
       await createTaskActivity({
         taskId,
         userId: session.user.id!,
-        actionType: 'STATUS_CHANGED',
+        actionType: "STATUS_CHANGED",
         fieldName: `photo_${photoId}_status`,
         oldValue: photo.status,
         newValue: status,
@@ -158,10 +161,10 @@ export async function PATCH(
         metadata: {
           photoId,
           photoPosition,
-          activityType: 'photo_status',
+          activityType: "photo_status",
           oldStatusLabel,
-          newStatusLabel
-        }
+          newStatusLabel,
+        },
       });
     }
 
@@ -169,11 +172,10 @@ export async function PATCH(
       success: true,
       photo: updatedPhoto,
     });
-
   } catch (error) {
-    console.error('Error updating wall post photo:', error);
+    console.error("Error updating wall post photo:", error);
     return NextResponse.json(
-      { error: 'Failed to update wall post photo' },
+      { error: "Failed to update wall post photo" },
       { status: 500 }
     );
   }
@@ -188,7 +190,7 @@ export async function DELETE(
     const session = await auth();
 
     if (!session || !session.user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const { photoId } = await params;
@@ -210,19 +212,16 @@ export async function DELETE(
     });
 
     if (!photo) {
-      return NextResponse.json(
-        { error: 'Photo not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Photo not found" }, { status: 404 });
     }
 
     // Check user access
     const user = await prisma.user.findUnique({
       where: { id: session.user.id! },
-      select: { role: true }
+      select: { role: true },
     });
 
-    if (user?.role !== 'ADMIN') {
+    if (user?.role !== "ADMIN") {
       const teamMember = await prisma.podTeamMember.findUnique({
         where: {
           podTeamId_userId: {
@@ -234,7 +233,7 @@ export async function DELETE(
 
       if (!teamMember) {
         return NextResponse.json(
-          { error: 'User does not have access to this team' },
+          { error: "User does not have access to this team" },
           { status: 403 }
         );
       }
@@ -248,7 +247,7 @@ export async function DELETE(
       });
       await s3Client.send(deleteCommand);
     } catch (s3Error) {
-      console.error('Error deleting from S3:', s3Error);
+      console.error("Error deleting from S3:", s3Error);
       // Continue with database deletion even if S3 deletion fails
     }
 
@@ -259,13 +258,12 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: 'Photo deleted successfully',
+      message: "Photo deleted successfully",
     });
-
   } catch (error) {
-    console.error('Error deleting wall post photo:', error);
+    console.error("Error deleting wall post photo:", error);
     return NextResponse.json(
-      { error: 'Failed to delete wall post photo' },
+      { error: "Failed to delete wall post photo" },
       { status: 500 }
     );
   }

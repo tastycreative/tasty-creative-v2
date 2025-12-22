@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
-import { S3Client, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, DeleteObjectCommand } from "@aws-sdk/client-s3";
 
 // Helper function to convert Google Drive links to direct image URLs
 const convertGoogleDriveLink = (url: string | null): string | null => {
   if (!url) return null;
 
   // Check if it's a Google Drive link
-  if (url.includes('drive.google.com')) {
+  if (url.includes("drive.google.com")) {
     try {
       // Try to extract file ID from /file/d/ pattern
       const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
@@ -19,7 +19,7 @@ const convertGoogleDriveLink = (url: string | null): string | null => {
       } else {
         // Try to extract from URL parameters
         const urlObj = new URL(url);
-        driveId = urlObj.searchParams.get('id');
+        driveId = urlObj.searchParams.get("id");
       }
 
       if (driveId) {
@@ -36,12 +36,17 @@ const convertGoogleDriveLink = (url: string | null): string | null => {
 
 // Create an S3 client factory (only if env vars present)
 function createS3ClientIfConfigured() {
-  if (process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY && process.env.AWS_REGION && process.env.AWS_S3_BUCKET) {
+  if (
+    process.env.S3_ACCESS_KEY_ID &&
+    process.env.S3_SECRET_ACCESS_KEY &&
+    process.env.S3_REGION &&
+    process.env.S3_BUCKET
+  ) {
     return new S3Client({
-      region: process.env.AWS_REGION,
+      region: process.env.S3_REGION,
       credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+        accessKeyId: process.env.S3_ACCESS_KEY_ID,
+        secretAccessKey: process.env.S3_SECRET_ACCESS_KEY,
       },
     });
   }
@@ -86,10 +91,15 @@ export async function GET(
     const transformedEvent = {
       ...event,
       color: event.color ? event.color.toLowerCase() : event.color,
-      creator: event.ClientModel ? {
-        ...event.ClientModel,
-        profilePicture: convertGoogleDriveLink(event.ClientModel.profileLink) || convertGoogleDriveLink(event.ClientModel.profilePicture) || null,
-      } : null,
+      creator: event.ClientModel
+        ? {
+            ...event.ClientModel,
+            profilePicture:
+              convertGoogleDriveLink(event.ClientModel.profileLink) ||
+              convertGoogleDriveLink(event.ClientModel.profilePicture) ||
+              null,
+          }
+        : null,
       createdBy: event.User || null,
     };
 
@@ -170,9 +180,11 @@ export async function PATCH(
     if (color !== undefined) updateData.color = color;
     if (creatorId !== undefined) updateData.creatorId = creatorId;
     if (tags !== undefined) updateData.tags = tags;
-    if (price !== undefined) updateData.price = price ? parseFloat(price) : null;
+    if (price !== undefined)
+      updateData.price = price ? parseFloat(price) : null;
     if (contentLink !== undefined) updateData.contentLink = contentLink;
-    if (editedVideoLink !== undefined) updateData.editedVideoLink = editedVideoLink;
+    if (editedVideoLink !== undefined)
+      updateData.editedVideoLink = editedVideoLink;
     if (flyerLink !== undefined) updateData.flyerLink = flyerLink;
     if (liveType !== undefined) updateData.liveType = liveType;
     if (platform !== undefined) updateData.platform = platform;
@@ -180,15 +192,23 @@ export async function PATCH(
     if (attachments !== undefined) updateData.attachments = attachments;
 
     // Fetch existing event to detect removed attachments
-    const existingEvent = await prisma.contentEvent.findUnique({ where: { id } });
+    const existingEvent = await prisma.contentEvent.findUnique({
+      where: { id },
+    });
     const existingAttachments = (existingEvent?.attachments as any[]) || [];
 
     // Compute removed attachments (present before, not in incoming attachments list)
     const removedAttachments: any[] = [];
-    const incomingAttachments = Array.isArray(attachments) ? attachments : undefined;
+    const incomingAttachments = Array.isArray(attachments)
+      ? attachments
+      : undefined;
     if (incomingAttachments !== undefined) {
-      const incomingIds = new Set(incomingAttachments.map((a: any) => a?.id).filter(Boolean));
-      const incomingS3Keys = new Set(incomingAttachments.map((a: any) => a?.s3Key).filter(Boolean));
+      const incomingIds = new Set(
+        incomingAttachments.map((a: any) => a?.id).filter(Boolean)
+      );
+      const incomingS3Keys = new Set(
+        incomingAttachments.map((a: any) => a?.s3Key).filter(Boolean)
+      );
       for (const att of existingAttachments) {
         const hasId = att && att.id && incomingIds.has(att.id);
         const hasKey = att && att.s3Key && incomingS3Keys.has(att.s3Key);
@@ -198,9 +218,11 @@ export async function PATCH(
       }
 
       // If client sent attachments array but it has no image attachments, make sure color becomes PINK
-      const hasImageInIncoming = incomingAttachments.some((a: any) => a?.type?.startsWith?.('image/'));
+      const hasImageInIncoming = incomingAttachments.some((a: any) =>
+        a?.type?.startsWith?.("image/")
+      );
       if (!hasImageInIncoming) {
-        updateData.color = 'PINK';
+        updateData.color = "PINK";
       }
     }
 
@@ -235,20 +257,31 @@ export async function PATCH(
               if (!key) continue;
               // Basic safety: only delete keys that include the user's id
               if (!key.includes(session.user.id)) {
-                console.warn(`Skipping delete of s3 key not owned by user: ${key}`);
+                console.warn(
+                  `Skipping delete of s3 key not owned by user: ${key}`
+                );
                 continue;
               }
-              const cmd = new DeleteObjectCommand({ Bucket: process.env.AWS_S3_BUCKET!, Key: key });
+              const cmd = new DeleteObjectCommand({
+                Bucket: process.env.S3_BUCKET!,
+                Key: key,
+              });
               await s3Client.send(cmd);
             } catch (innerErr) {
-              console.error('Failed to delete S3 object for attachment', att, innerErr);
+              console.error(
+                "Failed to delete S3 object for attachment",
+                att,
+                innerErr
+              );
             }
           }
         } else {
-          console.warn('AWS env vars missing; skipping S3 deletions for removed attachments');
+          console.warn(
+            "AWS env vars missing; skipping S3 deletions for removed attachments"
+          );
         }
       } catch (err) {
-        console.error('Error during S3 deletions of removed attachments:', err);
+        console.error("Error during S3 deletions of removed attachments:", err);
       }
     }
 
@@ -256,10 +289,15 @@ export async function PATCH(
     const transformedEvent = {
       ...event,
       color: event.color ? event.color.toLowerCase() : event.color,
-      creator: event.ClientModel ? {
-        ...event.ClientModel,
-        profilePicture: convertGoogleDriveLink(event.ClientModel.profileLink) || convertGoogleDriveLink(event.ClientModel.profilePicture) || null,
-      } : null,
+      creator: event.ClientModel
+        ? {
+            ...event.ClientModel,
+            profilePicture:
+              convertGoogleDriveLink(event.ClientModel.profileLink) ||
+              convertGoogleDriveLink(event.ClientModel.profilePicture) ||
+              null,
+          }
+        : null,
       createdBy: event.User || null,
     };
 
@@ -303,7 +341,10 @@ export async function DELETE(
 
     return NextResponse.json({ success: true, event }, { status: 200 });
   } catch (error) {
-  console.error("Error deleting content event:", error);
-  return NextResponse.json({ error: "Failed to delete content event" }, { status: 500 });
+    console.error("Error deleting content event:", error);
+    return NextResponse.json(
+      { error: "Failed to delete content event" },
+      { status: 500 }
+    );
   }
 }
