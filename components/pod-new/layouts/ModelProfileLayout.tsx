@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useSearchParams } from "next/navigation";
+import React, { useState, useEffect, useCallback } from "react";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
 import { ExtendedModelDetails } from "@/lib/mock-data/model-profile";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
@@ -23,6 +23,8 @@ export function ModelProfileLayout({
   children,
 }: ModelProfileLayoutProps) {
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
   const [activeTab, setActiveTab] = useState("information");
 
   useEffect(() => {
@@ -33,6 +35,18 @@ export function ModelProfileLayout({
       }
     }
   }, [searchParams]);
+
+  // Handler that updates both state AND URL
+  const handleTabChange = useCallback(
+    (tab: string) => {
+      setActiveTab(tab);
+      // Update URL without full page reload
+      const params = new URLSearchParams(searchParams?.toString() || "");
+      params.set("tab", tab);
+      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
+    },
+    [pathname, router, searchParams]
+  );
 
   const renderContent = () => {
     switch (activeTab) {
@@ -84,7 +98,7 @@ export function ModelProfileLayout({
           <ModelProfileSidebar
             modelData={modelData}
             activeTab={activeTab}
-            onTabChange={setActiveTab}
+            onTabChange={handleTabChange}
           />
           <SidebarInset className="flex-1 overflow-hidden">
             <main className="h-full overflow-y-auto">

@@ -62,13 +62,16 @@ const SearchInput = ({
   }, [onChange]);
 
   return (
-    <div className={cn("relative transition-all duration-200", className)}>
-      <div className="relative">
+    <div className={cn("relative transition-all duration-300 group", className)}>
+      <div className={cn(
+        "relative rounded-2xl transition-all duration-300",
+        isFocused ? "shadow-lg shadow-primary-500/10" : "shadow-sm"
+      )}>
         <Search
           className={cn(
-            "absolute left-3 top-1/2 -translate-y-1/2 transition-colors duration-200",
-            "w-4 h-4",
-            isFocused ? "text-primary-500" : "text-gray-400"
+            "absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300",
+            "w-5 h-5",
+            isFocused ? "text-pink-500" : "text-gray-400 group-hover:text-gray-500"
           )}
         />
         <input
@@ -79,12 +82,12 @@ const SearchInput = ({
           onBlur={() => setIsFocused(false)}
           placeholder={placeholder}
           className={cn(
-            "w-full pl-10 pr-10 py-3 rounded-xl border transition-all duration-200",
-            "bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100",
-            "border-gray-200 dark:border-gray-700",
+            "w-full pl-12 pr-10 py-3.5 rounded-2xl border transition-all duration-300",
+            "bg-white/50 dark:bg-black/20 backdrop-blur-md text-gray-900 dark:text-gray-100",
+            "border-white/20 dark:border-white/5",
             "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-            "focus:outline-none focus:border-primary-300 dark:focus:border-primary-600",
-            "hover:border-gray-300 dark:hover:border-gray-600"
+            "focus:outline-none focus:bg-white/80 dark:focus:bg-black/40 focus:border-pink-500/50",
+            "hover:bg-white/60 dark:hover:bg-black/30 hover:border-white/40"
           )}
           autoComplete="off"
           spellCheck="false"
@@ -92,7 +95,7 @@ const SearchInput = ({
         {localValue && (
           <button
             onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors duration-200"
             aria-label="Clear search"
           >
             <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
@@ -153,30 +156,28 @@ const QuickFilters = ({
             key={filter.id}
             onClick={() => onFilterChange(filter.id)}
             className={cn(
-              "inline-flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 touch-target",
+              "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 touch-target border",
               isActive
-                ? "bg-gradient-to-r from-pink-300 to-purple-300 dark:from-pink-500 dark:to-purple-500 text-gray-800 dark:text-white shadow-lg shadow-pink-300/25 dark:shadow-pink-500/25"
-                : "bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-300 border border-gray-300 dark:border-gray-700 hover:border-primary-300 dark:hover:border-primary-700 hover:bg-primary-50 dark:hover:bg-primary-900/10"
+                ? "bg-gradient-to-br from-gray-900 to-gray-800 dark:from-white dark:to-gray-100 text-white dark:text-gray-900 border-transparent shadow-lg shadow-gray-900/20 dark:shadow-white/20 transform scale-[1.02]"
+                : "bg-white/40 dark:bg-black/20 backdrop-blur-md text-gray-600 dark:text-gray-300 border-white/20 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 hover:border-white/30 hover:-translate-y-0.5"
             )}
           >
             {Icon && (
               <Icon className={cn(
                 "w-4 h-4",
-                isActive ? "text-gray-800 dark:text-white" : "text-gray-700 dark:text-gray-300"
+                isActive ? "text-white dark:text-gray-900" : "text-gray-500 dark:text-gray-400"
               )} />
             )}
-            <span className={cn(
-              isActive ? "text-gray-800 dark:text-white" : "text-gray-700 dark:text-gray-300"
-            )}>
+            <span>
               {filter.label}
             </span>
             {filter.count !== undefined && (
               <span
                 className={cn(
-                  "px-1.5 py-0.5 rounded-full text-xs font-bold",
+                  "px-1.5 py-0.5 rounded-md text-[10px] font-bold ml-1",
                   isActive
-                    ? "bg-white/30 text-gray-800 dark:bg-white/20 dark:text-white"
-                    : "bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-400"
+                    ? "bg-white/20 text-white dark:bg-black/10 dark:text-gray-900"
+                    : "bg-gray-100/50 dark:bg-white/10 text-gray-500 dark:text-gray-400"
                 )}
               >
                 {filter.count}

@@ -56,130 +56,76 @@ const StatsCard = ({
   progressPercent,
   progressLabel,
 }: StatsCardProps) => {
-  const colorClasses = {
+  const colorConfigs = {
     primary: {
-      bg: "bg-gradient-to-br from-pink-50 to-pink-100 dark:from-pink-900/20 dark:to-pink-800/30",
-      border: "border-white/50 dark:border-gray-700/50",
-      icon: "text-pink-600 dark:text-pink-400",
-      iconBg: "bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20",
-      iconBorder: "border-pink-200/50 dark:border-pink-500/30",
-      text: "text-gray-900 dark:text-white",
-      bar: "bg-pink-500",
-      pattern: "rgba(236,72,153,0.3)",
+      gradient: "from-pink-600 to-purple-600 dark:from-pink-400 dark:to-purple-400",
+      iconBg: "bg-pink-500/10",
+      iconColor: "text-pink-600 dark:text-pink-400",
     },
     success: {
-      bg: "bg-gradient-to-br from-emerald-50 to-emerald-100 dark:from-emerald-900/20 dark:to-emerald-800/30",
-      border: "border-white/50 dark:border-gray-700/50",
-      icon: "text-emerald-600 dark:text-emerald-400",
-      iconBg: "bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20",
-      iconBorder: "border-emerald-200/50 dark:border-emerald-500/30",
-      text: "text-gray-900 dark:text-white",
-      bar: "bg-emerald-500",
-      pattern: "rgba(16,185,129,0.3)",
+      gradient: "from-emerald-600 to-teal-600 dark:from-emerald-400 dark:to-teal-400",
+      iconBg: "bg-emerald-500/10",
+      iconColor: "text-emerald-600 dark:text-emerald-400",
     },
     warning: {
-      bg: "bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-900/20 dark:to-amber-800/30",
-      border: "border-white/50 dark:border-gray-700/50",
-      icon: "text-amber-600 dark:text-amber-400",
-      iconBg: "bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-400/20 dark:to-orange-400/20",
-      iconBorder: "border-amber-200/50 dark:border-amber-500/30",
-      text: "text-gray-900 dark:text-white",
-      bar: "bg-amber-500",
-      pattern: "rgba(245,158,11,0.3)",
+      gradient: "from-amber-500 to-orange-600 dark:from-amber-400 dark:to-orange-400",
+      iconBg: "bg-amber-500/10",
+      iconColor: "text-amber-600 dark:text-amber-400",
     },
     info: {
-      bg: "bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30",
-      border: "border-white/50 dark:border-gray-700/50",
-      icon: "text-blue-600 dark:text-blue-400",
-      iconBg: "bg-gradient-to-br from-blue-500/10 to-sky-500/10 dark:from-blue-400/20 dark:to-sky-400/20",
-      iconBorder: "border-blue-200/50 dark:border-blue-500/30",
-      text: "text-gray-900 dark:text-white",
-      bar: "bg-blue-500",
-      pattern: "rgba(59,130,246,0.3)",
+      gradient: "from-blue-600 to-cyan-600 dark:from-blue-400 dark:to-cyan-400",
+      iconBg: "bg-blue-500/10",
+      iconColor: "text-blue-600 dark:text-blue-400",
     },
   };
 
-  const classes = colorClasses[color];
+  const config = colorConfigs[color];
 
   return (
-    <div
-      className={cn(
-        "relative group overflow-hidden rounded-2xl border transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25",
-        classes.bg,
-        classes.border
-      )}
-    >
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
-      </div>
-
-      <div className="relative p-6">
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <p className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
-              {title}
-            </p>
-            <p className={cn("text-3xl font-black", classes.text)}>
-              {typeof value === "number" ? value.toLocaleString() : value}
-            </p>
-          </div>
-          <div
-            className={cn(
-              "p-3 rounded-xl border",
-              classes.iconBg,
-              classes.iconBorder
-            )}
-          >
-            <Icon className={cn("w-6 h-6", classes.icon)} />
-          </div>
+    <div className="relative group p-6 rounded-3xl bg-white/40 dark:bg-black/20 backdrop-blur-xl border border-white/20 dark:border-white/5 shadow-sm hover:shadow-lg transition-all duration-300 hover:-translate-y-1">
+      <div className="flex items-start justify-between mb-4">
+        <div className={cn("p-3 rounded-2xl transition-transform duration-300 group-hover:scale-110", config.iconBg)}>
+          <Icon className={cn("w-6 h-6", config.iconColor)} />
         </div>
-
         {change && (
-          <div className="flex items-center gap-1 mt-4">
-            <TrendingUp
-              className={cn(
-                "w-4 h-4",
-                change.type === "increase"
-                  ? "text-success-500"
-                  : "text-error-500 rotate-180"
-              )}
-            />
-            <span
-              className={cn(
-                "text-sm font-medium",
-                change.type === "increase"
-                  ? "text-emerald-600 dark:text-emerald-400"
-                  : "text-red-600 dark:text-red-400"
-              )}
-            >
-              {change.value > 0 ? "+" : ""}
-              {change.value}%
-            </span>
-            <span className="text-sm text-gray-400">vs last month</span>
+          <div className={cn(
+            "flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border backdrop-blur-md",
+            change.type === "increase"
+              ? "bg-emerald-50/50 text-emerald-700 border-emerald-100 dark:bg-emerald-500/10 dark:text-emerald-400 dark:border-emerald-500/20"
+              : "bg-red-50/50 text-red-700 border-red-100 dark:bg-red-500/10 dark:text-red-400 dark:border-red-500/20"
+          )}>
+            <TrendingUp className={cn("w-3 h-3", change.type === "decrease" && "rotate-180")} />
+            {change.value}%
           </div>
         )}
-
-        {typeof (progressPercent ?? -1) === "number" &&
-          progressPercent !== undefined && (
-            <div className="mt-4">
-              <div className="h-2 w-full rounded-full bg-black/10 dark:bg-white/10 overflow-hidden">
-                <div
-                  className={cn("h-full rounded-full", classes.bar)}
-                  style={{
-                    width: `${Math.max(0, Math.min(100, progressPercent))}%`,
-                  }}
-                />
-              </div>
-              {progressLabel && (
-                <p className="mt-2 text-xs text-gray-600 dark:text-gray-300">
-                  {progressLabel}
-                </p>
-              )}
-            </div>
-          )}
       </div>
+
+      <div className="space-y-1">
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-widest pl-1">
+          {title}
+        </h3>
+        <p className={cn(
+          "text-4xl font-black bg-gradient-to-r bg-clip-text text-transparent drop-shadow-sm",
+          config.gradient
+        )}>
+          {typeof value === "number" ? value.toLocaleString() : value}
+        </p>
+      </div>
+
+      {typeof (progressPercent ?? -1) === "number" && progressPercent !== undefined && (
+        <div className="mt-5 space-y-2">
+          <div className="flex justify-between text-xs font-medium text-gray-500 dark:text-gray-400 px-1">
+            <span>{progressLabel}</span>
+            <span>{progressPercent}%</span>
+          </div>
+          <div className="h-1.5 w-full rounded-full bg-gray-200/50 dark:bg-gray-700/50 overflow-hidden backdrop-blur-sm">
+            <div
+              className={cn("h-full rounded-full bg-gradient-to-r", config.gradient)}
+              style={{ width: `${Math.max(0, Math.min(100, progressPercent))}%` }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 };
