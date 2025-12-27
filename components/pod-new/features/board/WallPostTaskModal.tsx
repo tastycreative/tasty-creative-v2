@@ -69,6 +69,9 @@ export default function WallPostTaskModal({
   const photos = filteredPhotos;
   const selectedPhoto = photos[selectedPhotoIndex];
 
+  // Check if there are any Google Drive photos in the current view
+  const hasGoogleDrivePhotos = photos.some(photo => photo.url && isGoogleDriveUrl(photo.url));
+
   // Get the column label for the current task status
   const getStatusLabel = (status: string) => {
     const column = columns.find(col => col.status === status);
@@ -790,8 +793,10 @@ export default function WallPostTaskModal({
           </div>
         ) : (
           // Photos Tab - YouTube-style layout
-          <PermissionGoogle apiEndpoint="/api/google-drive/list">
-            <div className="flex flex-col lg:flex-row h-[calc(100vh-300px)]">
+          // Only require Google permission if there are Google Drive photos
+          hasGoogleDrivePhotos ? (
+            <PermissionGoogle apiEndpoint="/api/google-drive/list">
+              <div className="flex flex-col lg:flex-row h-[calc(100vh-300px)]">
             {/* Left Section - Photo Viewer and Comments */}
             <div className="flex-1 flex flex-col">
               {/* Main Photo Viewer */}
@@ -1232,7 +1237,423 @@ export default function WallPostTaskModal({
               </div>
             </div>
             </div>
-          </PermissionGoogle>
+            </PermissionGoogle>
+          ) : (
+            // No Google Drive photos - render without permission check
+            <div className="flex flex-col lg:flex-row h-[calc(100vh-300px)]">
+            {/* Left Section - Photo Viewer and Comments */}
+            <div className="flex-1 flex flex-col">
+              {/* Main Photo Viewer */}
+              <div className="bg-black flex items-center justify-center p-4 sm:p-8 relative" style={{ height: '60%' }}>
+                {selectedPhoto && selectedPhoto.url ? (
+                  <>
+                    <img
+                      src={selectedPhoto.url}
+                      alt={`Photo ${selectedPhotoIndex + 1}`}
+                      className="max-w-full max-h-full object-contain"
+                      onError={(e) => {
+                        console.error('Failed to load image:', selectedPhoto.url);
+                        // Show placeholder on error
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                    {/* Quick External Link Button */}
+                    {selectedPhoto.url && (
+                      <a
+                        href={selectedPhoto.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="absolute top-4 right-4 p-2 bg-white/90 dark:bg-gray-800/90 hover:bg-white dark:hover:bg-gray-800 rounded-lg shadow-lg transition-all hover:scale-105"
+                        title="Open in new tab"
+                      >
+                        <ExternalLink className="h-4 w-4 text-gray-700 dark:text-gray-300" />
+                      </a>
+                    )}
+                  </>
+                ) : (
+                  <div className="text-gray-400 text-center">
+                    <ImageIcon className="h-16 w-16 mx-auto mb-4 opacity-50" />
+                    <p>No photo selected</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Comments Section */}
+              <div className="border-t border-gray-200 dark:border-gray-700 bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)] overflow-y-auto" style={{ height: '40%' }}>
+                <div className="p-4">
+                  <TaskComments
+                    taskId={task.id}
+                    teamId={task.podTeamId || undefined}
+                    currentUser={session?.user ? {
+                      id: session.user.id!,
+                      name: session.user.name,
+                      email: session.user.email!,
+                      image: session.user.image
+                    } : null}
+                    isViewOnly={false}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Right Sidebar - Photo List (YouTube-style) */}
+            <div className="w-full lg:w-96 lg:flex-shrink-0 bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 flex flex-col">
+              {/* Photo Details Section */}
+              {selectedPhoto && (
+                <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+                  <div className="space-y-2">
+                    {/* Photo Number and Status */}
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                        Photo {selectedPhotoIndex + 1} of {photos.length}
+                      </h3>
+                      <div className="relative">
+                        <select
+                          value={selectedPhoto.status}
+                          onChange={(e) => handleStatusChange(selectedPhoto.id, e.target.value)}
+                          disabled={isUpdatingStatus}
+                          className={`text-xs px-2 py-1 rounded-full border bg-white dark:bg-gray-800 ${
+                            isUpdatingStatus ? 'opacity-50 cursor-not-allowed' : ''
+                          }`}
+                        >
+                          <option value="PENDING_REVIEW">Pending Review</option>
+                          <option value="READY_TO_POST">Ready to Post</option>
+                          <option value="POSTED">Posted</option>
+                          <option value="REJECTED">Rejected</option>
+                        </select>
+                        {isUpdatingStatus && (
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                            <div className="animate-spin rounded-full h-3 w-3 border-2 border-pink-500 border-t-transparent"></div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Caption Editor */}
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300">
+                          Caption
+                        </label>
+                        <button
+                          onClick={() => setIsEditingPhotos(!isEditingPhotos)}
+                          className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+                          title={isEditingPhotos ? 'Done editing' : 'Edit caption'}
+                        >
+                          {isEditingPhotos ? (
+                            <Check className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                          ) : (
+                            <Edit3 className="h-3.5 w-3.5 text-gray-600 dark:text-gray-400" />
+                          )}
+                        </button>
+                      </div>
+                      {isEditingPhotos ? (
+                        <>
+                          <textarea
+                            value={editedCaption}
+                            onChange={(e) => setEditedCaption(e.target.value)}
+                            placeholder="Enter caption..."
+                            rows={4}
+                            disabled={isSavingCaption}
+                            className={`w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none ${
+                              isSavingCaption ? 'opacity-50 cursor-not-allowed' : ''
+                            }`}
+                          />
+                          {editedCaption !== (selectedPhoto.caption || '') && (
+                            <div className="flex items-center space-x-2">
+                              <button
+                                onClick={() => handleSaveCaption(selectedPhoto.id)}
+                                disabled={isSavingCaption}
+                                className="flex items-center space-x-1 px-3 py-1.5 bg-pink-600 hover:bg-pink-700 text-white text-xs font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                {isSavingCaption ? (
+                                  <>
+                                    <div className="animate-spin rounded-full h-3 w-3 border-2 border-white border-t-transparent"></div>
+                                    <span>Saving...</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Save className="h-3 w-3" />
+                                    <span>Save</span>
+                                  </>
+                                )}
+                              </button>
+                              <button
+                                onClick={() => setEditedCaption(selectedPhoto.caption || '')}
+                                disabled={isSavingCaption}
+                                className="px-3 py-1.5 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 text-xs font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          )}
+                        </>
+                      ) : selectedPhoto.caption ? (
+                        <div className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap max-h-16 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent pr-1">
+                          {selectedPhoto.caption}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-gray-400 dark:text-gray-600 italic">No caption</p>
+                      )}
+                    </div>
+
+                    {/* External Link for Non-Google Drive Photos */}
+                    {selectedPhoto.url && (
+                      <div className="pt-2 border-t border-gray-200 dark:border-gray-700">
+                        <a
+                          href={selectedPhoto.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center space-x-2 px-3 py-2 text-xs font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-900/20 hover:bg-blue-100 dark:hover:bg-blue-900/30 rounded-lg transition-colors"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5" />
+                          <span>Open in new tab</span>
+                        </a>
+                      </div>
+                    )}
+
+                    {/* Photo Metadata */}
+                    {selectedPhoto.postedAt && (
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        <Check className="h-3 w-3 inline mr-1" />
+                        Posted: {new Date(selectedPhoto.postedAt).toLocaleString()}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Photo Filter Buttons and Download All */}
+              <div className="p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 flex-shrink-0">
+                <div className="flex items-center justify-between mb-1">
+                  <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('ALL');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'ALL'
+                        ? 'bg-pink-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    All ({localPhotos.length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('PENDING_REVIEW');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'PENDING_REVIEW'
+                        ? 'bg-gray-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Pending ({localPhotos.filter(p => p.status === 'PENDING_REVIEW').length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('READY_TO_POST');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'READY_TO_POST'
+                        ? 'bg-blue-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Ready ({localPhotos.filter(p => p.status === 'READY_TO_POST').length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('POSTED');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'POSTED'
+                        ? 'bg-green-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Posted ({localPhotos.filter(p => p.status === 'POSTED').length})
+                  </button>
+                  <button
+                    onClick={() => {
+                      setPhotoFilter('REJECTED');
+                      setSelectedPhotoIndex(0);
+                    }}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all ${
+                      photoFilter === 'REJECTED'
+                        ? 'bg-red-600 text-white shadow-sm'
+                        : 'bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                    }`}
+                  >
+                    Rejected ({localPhotos.filter(p => p.status === 'REJECTED').length})
+                  </button>
+                  </div>
+
+                  {/* Download All Icon - Subtle */}
+                  {photos.length > 0 && (
+                    <button
+                      onClick={handleDownloadAllPhotos}
+                      disabled={isDownloading}
+                      className={`relative p-2 rounded-lg transition-colors ${
+                        isDownloading
+                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/20 cursor-wait'
+                          : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20'
+                      }`}
+                      title={isDownloading ? `Downloading ${downloadProgress.current}/${downloadProgress.total}...` : `Download all ${photos.length} photos`}
+                    >
+                      {isDownloading ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Download className="h-5 w-5" />
+                      )}
+                      {/* Progress indicator */}
+                      {isDownloading && (
+                        <div className="absolute -bottom-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                          {downloadProgress.current}
+                        </div>
+                      )}
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Download Progress Bar */}
+              {isDownloading && (
+                <div className="px-2 py-1.5 bg-blue-50 dark:bg-blue-900/20 border-b border-blue-200 dark:border-blue-800 flex-shrink-0">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-xs font-medium text-blue-700 dark:text-blue-300">
+                      Downloading photos...
+                    </span>
+                    <span className="text-xs font-bold text-blue-600 dark:text-blue-400">
+                      {downloadProgress.current} / {downloadProgress.total}
+                    </span>
+                  </div>
+                  {/* Progress bar */}
+                  <div className="w-full bg-blue-200 dark:bg-blue-800 rounded-full h-2 overflow-hidden">
+                    <div
+                      className="bg-blue-600 dark:bg-blue-400 h-full transition-all duration-300 ease-out"
+                      style={{ width: `${(downloadProgress.current / downloadProgress.total) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Photo Thumbnails List */}
+              <div className="flex-1 overflow-y-auto">
+                <div className="p-2 space-y-2">
+                  {photos.length > 0 ? photos.map((photo, index) => (
+                    <div
+                      key={photo.id}
+                      className={`w-full flex items-start space-x-3 p-2 rounded-lg transition-colors ${
+                        selectedPhotoIndex === index
+                          ? 'bg-pink-100 dark:bg-pink-900/30 border-2 border-pink-500'
+                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {/* Thumbnail with Download Icon */}
+                      <div className="flex-shrink-0 relative group">
+                        <button
+                          onClick={() => setSelectedPhotoIndex(index)}
+                          className="block"
+                        >
+                          {photo.url ? (
+                            <img
+                              src={photo.url}
+                              alt={`Photo ${index + 1}`}
+                              className="w-20 h-20 object-cover rounded"
+                              onError={(e) => {
+                                // Hide on error
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
+                          ) : (
+                            <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
+                              <ImageIcon className="h-8 w-8 text-gray-400" />
+                            </div>
+                          )}
+                        </button>
+
+                        {/* Download Icon - Shows on hover or when downloading */}
+                        {photo.url && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadPhoto(photo.url!, index, photo.id);
+                            }}
+                            disabled={downloadingPhotoId === photo.id}
+                            className={`absolute top-1 right-1 p-1.5 rounded-md transition-opacity ${
+                              downloadingPhotoId === photo.id
+                                ? 'bg-blue-600 text-white opacity-100'
+                                : 'bg-black/60 hover:bg-black/80 text-white opacity-0 group-hover:opacity-100'
+                            }`}
+                            title={downloadingPhotoId === photo.id ? 'Downloading...' : 'Download photo'}
+                          >
+                            <Download className={`h-3.5 w-3.5 ${downloadingPhotoId === photo.id ? 'animate-bounce' : ''}`} />
+                          </button>
+                        )}
+                      </div>
+
+                      {/* Info */}
+                      <button
+                        onClick={() => setSelectedPhotoIndex(index)}
+                        className="flex-1 min-w-0 text-left"
+                      >
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            Photo {index + 1}
+                          </span>
+                          {selectedPhotoIndex === index && (
+                            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
+                          )}
+                        </div>
+                        <div className="text-xs text-gray-600 dark:text-gray-400 max-h-10 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 scrollbar-track-transparent pr-1">
+                          {photo.caption || 'No caption'}
+                        </div>
+                        <div className="mt-1">
+                          <span className={`text-xs px-1.5 py-0.5 rounded ${
+                            photo.status === 'POSTED' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                            photo.status === 'READY_TO_POST' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400' :
+                            photo.status === 'REJECTED' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' :
+                            'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400'
+                          }`}>
+                            {photo.status.replace('_', ' ')}
+                          </span>
+                        </div>
+                      </button>
+                    </div>
+                  )) : (
+                    <div className="flex flex-col items-center justify-center p-8 text-center">
+                      <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-3" />
+                      <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
+                        No photos found
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500">
+                        {photoFilter === 'ALL'
+                          ? 'No photos available'
+                          : `No photos with status: ${photoFilter.replace('_', ' ').toLowerCase()}`
+                        }
+                      </p>
+                      <button
+                        onClick={() => {
+                          setPhotoFilter('ALL');
+                          setSelectedPhotoIndex(0);
+                        }}
+                        className="mt-4 px-4 py-2 text-xs font-medium text-pink-600 dark:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 rounded-lg transition-colors"
+                      >
+                        Show all photos
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+            </div>
+          )
         )}
       </div>
     </div>
