@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Session } from 'next-auth';
-import { Image as ImageIcon, Filter, Download, Grid3X3, Search, ExternalLink, Calendar, User, CheckCircle2, Clock, XCircle, AlertCircle, Link2 } from 'lucide-react';
+import { Image as ImageIcon, Filter, Download, Grid3X3, Search, ExternalLink, Calendar, User, CheckCircle2, Clock, XCircle, AlertCircle, Link2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import Image from 'next/image';
@@ -13,6 +13,114 @@ import { extractGoogleDriveFileId, isGoogleDriveUrl } from '@/lib/utils/googleDr
 import PermissionGoogle from '@/components/PermissionGoogle';
 import WallPostTaskModal from '../WallPostTaskModal';
 import type { Task, BoardColumn } from '@/lib/stores/boardStore';
+import { signIn } from 'next-auth/react';
+import { usePathname } from 'next/navigation';
+
+// Wrapper component for Google Drive images that shows permission UI inline
+const GoogleDriveImage = ({
+  src,
+  alt,
+  fill = false,
+  className,
+  sizes,
+  loading,
+  priority,
+  onError,
+  isModalView = false
+}: {
+  src: string;
+  alt: string;
+  fill?: boolean;
+  className?: string;
+  sizes?: string;
+  loading?: 'lazy' | 'eager';
+  priority?: boolean;
+  onError?: (e: React.SyntheticEvent<HTMLImageElement>) => void;
+  isModalView?: boolean;
+}) => {
+  const [hasPermission, setHasPermission] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  React.useEffect(() => {
+    const checkPermission = async () => {
+      try {
+        const response = await fetch('/api/google-drive/list');
+        if (response.ok) {
+          setHasPermission(true);
+          setError(false);
+        } else {
+          setHasPermission(false);
+          setError(true);
+        }
+      } catch {
+        setError(true);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkPermission();
+  }, []);
+
+  // For grid thumbnails, show a simple icon if no permission
+  if (!isModalView) {
+    if (isLoading) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+          <Loader2 className="h-8 w-8 text-gray-400 animate-spin" />
+        </div>
+      );
+    }
+    if (error || !hasPermission) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+          <div className="text-center">
+            <svg className="h-12 w-12 text-gray-400 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            <span className="text-xs text-gray-500">GDrive</span>
+          </div>
+        </div>
+      );
+    }
+  }
+
+  // For modal view or if permission is granted, show the full PermissionGoogle wrapper
+  return (
+    <>
+      {hasPermission ? (
+        <Image
+          src={src}
+          alt={alt}
+          fill={fill}
+          className={className}
+          sizes={sizes}
+          loading={loading}
+          priority={priority}
+          unoptimized
+          onError={onError}
+        />
+      ) : (
+        <PermissionGoogle apiEndpoint="/api/google-drive/list">
+          <Image
+            src={src}
+            alt={alt}
+            fill={fill}
+            className={className}
+            sizes={sizes}
+            loading={loading}
+            priority={priority}
+            unoptimized
+            onError={onError}
+          />
+        </PermissionGoogle>
+      )}
+    </>
+  );
+};
 
 interface WallPostPhoto {
   id: string;
@@ -90,6 +198,7 @@ export default function WallPostGallery({
 }: WallPostGalleryProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const pathname = usePathname();
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('all');
@@ -97,6 +206,36 @@ export default function WallPostGallery({
   const [selectedPhoto, setSelectedPhoto] = useState<WallPostPhoto | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(20);
+  const [hasGooglePermission, setHasGooglePermission] = useState(false);
+  const [checkingPermission, setCheckingPermission] = useState(true);
+  const [isSignedIn, setIsSignedIn] = useState(false);
+
+  // Check Google Drive permission
+  useEffect(() => {
+    const checkPermission = async () => {
+      try {
+        const response = await fetch('/api/google-drive/list');
+        if (response.ok) {
+          setHasGooglePermission(true);
+          setIsSignedIn(true);
+        } else if (response.status === 401) {
+          // User not signed in
+          setHasGooglePermission(false);
+          setIsSignedIn(false);
+        } else {
+          // User signed in but no permission
+          setHasGooglePermission(false);
+          setIsSignedIn(true);
+        }
+      } catch {
+        setHasGooglePermission(false);
+        setIsSignedIn(false);
+      } finally {
+        setCheckingPermission(false);
+      }
+    };
+    checkPermission();
+  }, []);
 
   // Debounce search query
   useEffect(() => {
@@ -224,8 +363,7 @@ export default function WallPostGallery({
   };
 
   return (
-    <PermissionGoogle apiEndpoint="/api/google-drive/list">
-      <div className="space-y-6">
+    <div className="space-y-6">
         {/* Header with Stats */}
         <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
         <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
@@ -335,6 +473,47 @@ export default function WallPostGallery({
         </div>
       </div>
 
+      {/* Google Drive Sign-In Banner */}
+      {!checkingPermission && !hasGooglePermission && photos.some(photo => photo.url && isGoogleDriveUrl(photo.url)) && (
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border border-blue-200 dark:border-blue-700 rounded-xl p-3 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <svg className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
+              {isSignedIn
+                ? "Some photos are from Google Drive. Grant access to view them."
+                : "Some photos are from Google Drive. Sign in to view them."
+              }
+            </span>
+          </div>
+          <Button
+            onClick={async () => {
+              await signIn("google", {
+                callbackUrl: pathname,
+              }, {
+                prompt: "consent",
+                access_type: "offline",
+                scope: "openid profile email https://www.googleapis.com/auth/spreadsheets https://www.googleapis.com/auth/drive",
+              });
+            }}
+            size="sm"
+            className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white border-0 shadow-md flex-shrink-0"
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+              <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+              <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+              <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+            </svg>
+            {isSignedIn ? "Grant Access" : "Sign in with Google"}
+          </Button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="flex-1 relative">
@@ -439,10 +618,12 @@ export default function WallPostGallery({
                   {(() => {
                     // Determine image URL based on source type
                     let imageUrl: string | null = null;
+                    let isGoogleDrive = false;
 
                     if (photo.url) {
                       // Check if it's a Google Drive URL
                       if (isGoogleDriveUrl(photo.url)) {
+                        isGoogleDrive = true;
                         const fileId = extractGoogleDriveFileId(photo.url);
                         imageUrl = fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=800` : null;
                       } else {
@@ -451,7 +632,41 @@ export default function WallPostGallery({
                       }
                     }
 
-                    return imageUrl ? (
+                    if (!imageUrl) {
+                      return (
+                        <div className="flex items-center justify-center h-full">
+                          <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                        </div>
+                      );
+                    }
+
+                    // Use GoogleDriveImage for Google Drive URLs, regular Image for others
+                    return isGoogleDrive ? (
+                      <GoogleDriveImage
+                        src={imageUrl}
+                        alt={photo.caption || 'Wall post photo'}
+                        fill
+                        className="object-cover"
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, 25vw"
+                        loading="lazy"
+                        isModalView={false}
+                        onError={(e) => {
+                          // Fallback to a placeholder on error
+                          const target = e.target as HTMLImageElement;
+                          if (!target.dataset.errorHandled) {
+                            target.dataset.errorHandled = 'true';
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'flex items-center justify-center h-full bg-gray-200 dark:bg-gray-700';
+                              fallback.innerHTML = `<div class="text-center"><svg class="w-16 h-16 mx-auto text-gray-400 dark:text-gray-500 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><span class="text-xs text-gray-500 dark:text-gray-400">Image unavailable</span></div>`;
+                              parent.appendChild(fallback);
+                            }
+                          }
+                        }}
+                      />
+                    ) : (
                       <Image
                         src={imageUrl}
                         alt={photo.caption || 'Wall post photo'}
@@ -476,10 +691,6 @@ export default function WallPostGallery({
                           }
                         }}
                       />
-                    ) : (
-                      <div className="flex items-center justify-center h-full">
-                        <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
-                      </div>
                     );
                   })()}
 
@@ -698,10 +909,12 @@ export default function WallPostGallery({
                 {(() => {
                   // Determine image URL based on source type
                   let imageUrl: string | null = null;
+                  let isGoogleDrive = false;
 
                   if (selectedPhoto.url) {
                     // Check if it's a Google Drive URL
                     if (isGoogleDriveUrl(selectedPhoto.url)) {
+                      isGoogleDrive = true;
                       const fileId = extractGoogleDriveFileId(selectedPhoto.url);
                       imageUrl = fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=2000` : null;
                     } else {
@@ -710,7 +923,40 @@ export default function WallPostGallery({
                     }
                   }
 
-                  return imageUrl ? (
+                  if (!imageUrl) {
+                    return (
+                      <div className="flex items-center justify-center h-full">
+                        <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
+                      </div>
+                    );
+                  }
+
+                  // Use GoogleDriveImage for Google Drive URLs, regular Image for others
+                  return isGoogleDrive ? (
+                    <GoogleDriveImage
+                      src={imageUrl}
+                      alt={selectedPhoto.caption || 'Wall post photo'}
+                      fill
+                      className="object-contain"
+                      sizes="(max-width: 768px) 100vw, 50vw"
+                      priority
+                      isModalView={true}
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        if (!target.dataset.errorHandled) {
+                          target.dataset.errorHandled = 'true';
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'flex flex-col items-center justify-center h-full bg-gray-200 dark:bg-gray-700 p-8';
+                            fallback.innerHTML = `<div class="text-center"><svg class="w-24 h-24 mx-auto text-gray-400 dark:text-gray-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg><p class="text-sm text-gray-600 dark:text-gray-300 mb-2">Image unavailable</p><p class="text-xs text-gray-500 dark:text-gray-400">Unable to load image.</p></div>`;
+                            parent.appendChild(fallback);
+                          }
+                        }
+                      }}
+                    />
+                  ) : (
                     <Image
                       src={imageUrl}
                       alt={selectedPhoto.caption || 'Wall post photo'}
@@ -734,10 +980,6 @@ export default function WallPostGallery({
                         }
                       }}
                     />
-                  ) : (
-                    <div className="flex items-center justify-center h-full">
-                      <ImageIcon className="w-16 h-16 text-gray-300 dark:text-gray-600" />
-                    </div>
                   );
                 })()}
               </div>
@@ -843,7 +1085,6 @@ export default function WallPostGallery({
           onRefresh={onRefresh}
         />
       )}
-      </div>
-    </PermissionGoogle>
+    </div>
   );
 }
