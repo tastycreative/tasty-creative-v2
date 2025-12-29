@@ -31,6 +31,7 @@ const GoogleDriveImage = ({
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [imageError, setImageError] = useState(false);
 
   React.useEffect(() => {
     const checkPermission = async () => {
@@ -52,7 +53,12 @@ const GoogleDriveImage = ({
     checkPermission();
   }, []);
 
-  // For thumbnails, show a simple icon if no permission
+  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    setImageError(true);
+    onError?.(e);
+  };
+
+  // For thumbnails, show a simple icon if no permission or image error
   if (!isMainViewer) {
     if (isLoading) {
       return (
@@ -61,7 +67,7 @@ const GoogleDriveImage = ({
         </div>
       );
     }
-    if (error || !hasPermission) {
+    if (error || !hasPermission || imageError) {
       return (
         <div className="w-20 h-20 bg-gray-200 dark:bg-gray-700 rounded flex items-center justify-center">
           <div className="text-center">
@@ -71,11 +77,29 @@ const GoogleDriveImage = ({
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            <span className="text-xs text-gray-500">GDrive</span>
+            <span className="text-xs text-gray-500">{imageError ? 'No Access' : 'GDrive'}</span>
           </div>
         </div>
       );
     }
+  }
+
+  // Show error state for main viewer if image failed to load
+  if (isMainViewer && imageError) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-900">
+        <div className="text-center">
+          <svg className="h-16 w-16 text-gray-400 mx-auto mb-4" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+            <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+          </svg>
+          <p className="text-gray-400 text-sm">Image not accessible</p>
+          <p className="text-gray-500 text-xs mt-1">You don't have permission to view this file</p>
+        </div>
+      </div>
+    );
   }
 
   // For main viewer or if permission is granted, show the full PermissionGoogle wrapper
@@ -86,7 +110,7 @@ const GoogleDriveImage = ({
           src={src}
           alt={alt}
           className={className}
-          onError={onError}
+          onError={handleImageError}
         />
       ) : (
         <PermissionGoogle apiEndpoint="/api/google-drive/list">
@@ -94,7 +118,7 @@ const GoogleDriveImage = ({
             src={src}
             alt={alt}
             className={className}
-            onError={onError}
+            onError={handleImageError}
           />
         </PermissionGoogle>
       )}
@@ -883,6 +907,26 @@ export default function WallPostTaskModal({
             <div className="flex-1 flex flex-col">
               {/* Main Photo Viewer */}
               <div className="bg-black flex items-center justify-center p-4 sm:p-8 relative" style={{ height: '60%' }}>
+                {/* External Link Button - Upper Right */}
+                {selectedPhoto && selectedPhoto.url && (
+                  <a
+                    href={(() => {
+                      if (isGoogleDriveUrl(selectedPhoto.url!)) {
+                        const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
+                        return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
+                      }
+                      // For S3 or other URLs, open directly
+                      return selectedPhoto.url!;
+                    })()}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="absolute top-4 right-4 z-10 p-2.5 bg-black/60 hover:bg-black/80 text-white rounded-lg transition-all hover:scale-110 backdrop-blur-sm border border-white/20"
+                    title={isGoogleDriveUrl(selectedPhoto.url) ? "Open in Google Drive" : "Open in new tab"}
+                  >
+                    <ExternalLink className="h-5 w-5" />
+                  </a>
+                )}
+
                 {selectedPhoto && selectedPhoto.url ? (
                   <>
                     {/* Only wrap Google Drive images with PermissionGoogle */}
@@ -1038,28 +1082,6 @@ export default function WallPostTaskModal({
                         <p className="text-sm text-gray-400 dark:text-gray-600 italic">No caption</p>
                       )}
                     </div>
-
-                    {/* External Link Icon Only */}
-                    {selectedPhoto.url && (
-                      <div className="pt-2 border-t border-gray-200 dark:border-gray-700 flex justify-end">
-                        <a
-                          href={(() => {
-                            if (isGoogleDriveUrl(selectedPhoto.url!)) {
-                              const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
-                              return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
-                            }
-                            // For S3 or other URLs, open directly
-                            return selectedPhoto.url!;
-                          })()}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
-                          title={isGoogleDriveUrl(selectedPhoto.url) ? "Open in Google Drive" : "Open in new tab"}
-                        >
-                          <ExternalLink className="h-4 w-4" />
-                        </a>
-                      </div>
-                    )}
 
                     {/* Photo Metadata */}
                     {selectedPhoto.postedAt && (

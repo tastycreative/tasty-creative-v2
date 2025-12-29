@@ -1289,6 +1289,27 @@ enum ContentType {
   FEET
 }
 
+model ContentTypeOption {
+  id          String   @id @default(cuid())
+  value       String
+  label       String
+  category    String   // "CHEAP_PORN", "EXPENSIVE_PORN", "GF_ACCURATE"
+  priceType   String?  // "FIXED", "RANGE", "MINIMUM"
+  priceFixed  Float?   // For exact prices like $19.99
+  priceMin    Float?   // For ranges like $14.99-19.99 or minimum $19.99+
+  priceMax    Float?   // For ranges like $14.99-19.99
+  description String?  // Optional description
+  isActive    Boolean  @default(true)
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([value, category])
+  @@index([isActive])
+  @@index([order])
+  @@index([category])
+}
+
 enum WorkflowStatus {
   PENDING
   PROCESSING
