@@ -668,50 +668,55 @@ model ContentSubmission {
 }
 
 model ModularWorkflow {
-  id                   String             @id @default(cuid())
-  submissionType       SubmissionType
-  contentStyle         ContentStyle
-  selectedComponents   Json
-  componentData        Json?
-  workflowTemplate     String?
-  modelName            String
-  priority             SubmissionPriority
-  driveLink            String
-  attachments          Json?
-  estimatedDuration    Int?
-  teamAssignments      Json?
-  createdById          String
-  teamId               String?
-  taskId               String?            @unique
-  status               WorkflowStatus     @default(PENDING)
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  processedAt          DateTime?
-  timezone             String?
-  basePriceDescription String?
-  contentCount         String?            @db.VarChar(50)
-  contentLength        String?            @db.VarChar(20)
-  contentType          ContentType?
-  externalCreatorTags  String?            @db.VarChar(500)
-  internalModelTags    String[]
-  pricing              String?            @db.VarChar(100)
-  referenceAttachments Json?
-  releaseDate          String?            @db.VarChar(20)
-  releaseTime          String?            @db.VarChar(10)
-  gifUrl               String?            @db.VarChar(500)
-  notes                String?
-  contentDescription   String?
-  caption              String?
-  isFinal              Boolean?           @default(false)
-  contentTags          String[]
-  createdBy            User               @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
-  task                 Task?              @relation("ModularWorkflowTask", fields: [taskId], references: [id])
-  notifications        Notification[]
+  id                    String              @id @default(cuid())
+  submissionType        SubmissionType
+  contentStyle          ContentStyle
+  selectedComponents    Json
+  componentData         Json?
+  workflowTemplate      String?
+  modelName             String
+  priority              SubmissionPriority
+  driveLink             String
+  attachments           Json?
+  estimatedDuration     Int?
+  teamAssignments       Json?
+  createdById           String
+  teamId                String?
+  taskId                String?             @unique
+  status                WorkflowStatus      @default(PENDING)
+  createdAt             DateTime            @default(now())
+  updatedAt             DateTime            @updatedAt
+  processedAt           DateTime?
+  timezone              String?
+  basePriceDescription  String?
+  contentCount          String?             @db.VarChar(50)
+  contentLength         String?             @db.VarChar(20)
+  contentType           ContentType?
+  contentTypeOptionId   String?             // NEW: Foreign key to ContentTypeOption
+  pricingCategory       String?             // NEW: CHEAP_PORN, EXPENSIVE_PORN, GF_ACCURATE
+  externalCreatorTags   String?             @db.VarChar(500)
+  internalModelTags     String[]
+  pricing               String?             @db.VarChar(100)
+  referenceAttachments  Json?
+  releaseDate           String?             @db.VarChar(20)
+  releaseTime           String?             @db.VarChar(10)
+  gifUrl                String?             @db.VarChar(500)
+  notes                 String?
+  contentDescription    String?
+  caption               String?
+  isFinal               Boolean?            @default(false)
+  contentTags           String[]
+  createdBy             User                @relation("ModularWorkflowCreator", fields: [createdById], references: [id])
+  task                  Task?               @relation("ModularWorkflowTask", fields: [taskId], references: [id])
+  contentTypeOption     ContentTypeOption?  @relation("WorkflowContentType", fields: [contentTypeOptionId], references: [id])
+  notifications         Notification[]
 
   @@index([createdAt])
   @@index([createdById])
   @@index([modelName])
   @@index([contentType])
+  @@index([contentTypeOptionId])
+  @@index([pricingCategory])
   @@index([priority])
   @@index([status])
   @@index([submissionType])
@@ -1290,19 +1295,20 @@ enum ContentType {
 }
 
 model ContentTypeOption {
-  id          String   @id @default(cuid())
-  value       String
-  label       String
-  category    String   // "CHEAP_PORN", "EXPENSIVE_PORN", "GF_ACCURATE"
-  priceType   String?  // "FIXED", "RANGE", "MINIMUM"
-  priceFixed  Float?   // For exact prices like $19.99
-  priceMin    Float?   // For ranges like $14.99-19.99 or minimum $19.99+
-  priceMax    Float?   // For ranges like $14.99-19.99
-  description String?  // Optional description
-  isActive    Boolean  @default(true)
-  order       Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String            @id @default(cuid())
+  value            String
+  label            String
+  category         String            // "CHEAP_PORN", "EXPENSIVE_PORN", "GF_ACCURATE"
+  priceType        String?           // "FIXED", "RANGE", "MINIMUM"
+  priceFixed       Float?            // For exact prices like $19.99
+  priceMin         Float?            // For ranges like $14.99-19.99 or minimum $19.99+
+  priceMax         Float?            // For ranges like $14.99-19.99
+  description      String?           // Optional description
+  isActive         Boolean           @default(true)
+  order            Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  workflows        ModularWorkflow[] @relation("WorkflowContentType")
 
   @@unique([value, category])
   @@index([isActive])

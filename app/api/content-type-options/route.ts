@@ -40,6 +40,7 @@ export async function POST(req: NextRequest) {
     const {
       value,
       label,
+      category,
       priceType,
       priceFixed,
       priceMin,
@@ -49,11 +50,11 @@ export async function POST(req: NextRequest) {
     } = body;
 
     // Validate required fields
-    if (!value || !label) {
+    if (!value || !label || !category) {
       return NextResponse.json(
         {
           success: false,
-          error: "Value and label are required",
+          error: "Value, label, and category are required",
         },
         { status: 400 }
       );
@@ -94,6 +95,7 @@ export async function POST(req: NextRequest) {
       data: {
         value,
         label,
+        category,
         priceType,
         priceFixed,
         priceMin,

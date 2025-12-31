@@ -44,6 +44,8 @@ interface ModularWorkflowData {
 
   // NEW FIELDS - Content Details
   contentType?: 'BG' | 'BGG' | 'GG' | 'GGG' | 'ORGY' | 'SOLO' | 'COMPILATION' | 'AHEGAO' | 'JOI' | 'THANK_YOU_VIDS' | 'VIP_GIFTS' | 'BJ' | 'FEET';
+  contentTypeOptionId?: string;   // NEW: Relational ID to ContentTypeOption
+  pricingCategory?: string;       // NEW: CHEAP_PORN, EXPENSIVE_PORN, GF_ACCURATE
   contentLength?: string;        // e.g., "8:43" or "8 mins 43 secs"
   contentCount?: string;          // e.g., "1 Video" or "3 Photos"
   contentTags?: string[];         // QA Team content tags (Dildo, Fingering, etc.)
@@ -602,6 +604,8 @@ export async function POST(request: NextRequest) {
           (data.componentData as ReleaseComponentData).releaseTimezone : null,
         // NEW FIELDS - Content Details
         contentType: data.contentType || null,
+        contentTypeOptionId: data.contentTypeOptionId || null, // NEW: Relational ID
+        pricingCategory: data.pricingCategory || null, // NEW: Pricing tier
         contentLength: data.contentLength || null,
         contentCount: data.contentCount || null,
         contentTags: data.contentTags || [],
