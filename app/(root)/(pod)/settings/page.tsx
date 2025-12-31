@@ -819,7 +819,7 @@ const Settings = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="label">Label <span className="text-red-500">*</span></Label>
+              <Label htmlFor="label">Content Type <span className="text-red-500">*</span></Label>
               <Input
                 id="label"
                 value={formData.label}
