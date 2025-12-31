@@ -53,7 +53,6 @@ const Settings = () => {
   // Form state for adding new content types
   const [addFormData, setAddFormData] = useState({
     value: '',
-    label: '',
     category: 'CHEAP_PORN',
     priceType: 'RANGE',
     priceFixed: '',
@@ -189,7 +188,6 @@ const Settings = () => {
       // Reset form
       setAddFormData({
         value: '',
-        label: '',
         category: 'CHEAP_PORN',
         priceType: 'RANGE',
         priceFixed: '',
@@ -243,6 +241,15 @@ const Settings = () => {
       return;
     }
 
+    if (formData.priceType === 'RANGE') {
+      const minPrice = parseFloat(formData.priceMin);
+      const maxPrice = parseFloat(formData.priceMax);
+      if (minPrice > maxPrice) {
+        toast.error('Minimum price cannot be greater than maximum price');
+        return;
+      }
+    }
+
     if (formData.priceType === 'MINIMUM' && !formData.priceMin) {
       toast.error('Minimum price is required');
       return;
@@ -273,12 +280,7 @@ const Settings = () => {
   const handleCreate = () => {
     // Validation
     if (!addFormData.value.trim()) {
-      toast.error('Content type value is required');
-      return;
-    }
-
-    if (!addFormData.label.trim()) {
-      toast.error('Label is required');
+      toast.error('Content type is required');
       return;
     }
 
@@ -292,25 +294,50 @@ const Settings = () => {
       return;
     }
 
+    if (addFormData.priceType === 'RANGE') {
+      const minPrice = parseFloat(addFormData.priceMin);
+      const maxPrice = parseFloat(addFormData.priceMax);
+      if (minPrice > maxPrice) {
+        toast.error('Minimum price cannot be greater than maximum price');
+        return;
+      }
+    }
+
     if (addFormData.priceType === 'MINIMUM' && !addFormData.priceMin) {
       toast.error('Minimum price is required');
       return;
     }
 
-    // Client-side duplicate validation
+    // Extract short code from the input (e.g., "BG (Boy/Girl)" -> "BG")
+    const inputValue = addFormData.value.trim();
+    const shortCode = inputValue.split(/[\s(]/)[0].toUpperCase(); // Get first word/code before space or parenthesis
+
+    // Client-side duplicate validation (check against label field)
     const duplicate = contentTypeOptions.find(
-      option => option.value.toLowerCase() === addFormData.value.toLowerCase() &&
+      option => option.label.toLowerCase() === inputValue.toLowerCase() &&
                 option.category === addFormData.category
     );
 
     if (duplicate) {
-      toast.error(`A content type "${addFormData.value}" already exists in the "${getCategoryName(addFormData.category)}" tier`);
+      toast.error(`Content type "${inputValue}" already exists in the "${getCategoryName(addFormData.category)}" tier`);
       return;
     }
 
+    // Auto-append "+" for minimum price type in description if not already present
+    let finalDescription = addFormData.description.trim();
+    if (addFormData.priceType === 'MINIMUM' && addFormData.priceMin) {
+      const minPrice = parseFloat(addFormData.priceMin);
+      const priceDisplay = `$${minPrice.toFixed(2)}+`;
+      if (!finalDescription) {
+        finalDescription = `Minimum price: ${priceDisplay}`;
+      } else if (!finalDescription.includes('+')) {
+        finalDescription = `${finalDescription} (${priceDisplay})`;
+      }
+    }
+
     const createData = {
-      value: addFormData.value.trim(),
-      label: addFormData.label.trim(),
+      value: shortCode, // Short code (e.g., "BG")
+      label: inputValue, // Full label (e.g., "BG (Boy/Girl)")
       category: addFormData.category,
       priceType: addFormData.priceType,
       priceFixed: addFormData.priceType === 'FIXED' ? parseFloat(addFormData.priceFixed) : null,
@@ -318,7 +345,7 @@ const Settings = () => {
         ? parseFloat(addFormData.priceMin)
         : null,
       priceMax: addFormData.priceType === 'RANGE' ? parseFloat(addFormData.priceMax) : null,
-      description: addFormData.description.trim(),
+      description: finalDescription,
     };
 
     createMutation.mutate(createData);
@@ -612,25 +639,14 @@ const Settings = () => {
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div>
-              <Label htmlFor="add-value">Content Type Value <span className="text-red-500">*</span></Label>
+              <Label htmlFor="add-value">Content Type <span className="text-red-500">*</span></Label>
               <Input
                 id="add-value"
                 value={addFormData.value}
-                onChange={(e) => setAddFormData({ ...addFormData, value: e.target.value.toUpperCase() })}
-                placeholder="e.g., BG, BGG, SOLO"
-                className="uppercase"
+                onChange={(e) => setAddFormData({ ...addFormData, value: e.target.value })}
+                placeholder="e.g., BG (Boy/Girl), BGG, SOLO"
               />
-              <p className="text-xs text-gray-500 mt-1">Short code for the content type (e.g., BG, BGG)</p>
-            </div>
-
-            <div>
-              <Label htmlFor="add-label">Label <span className="text-red-500">*</span></Label>
-              <Input
-                id="add-label"
-                value={addFormData.label}
-                onChange={(e) => setAddFormData({ ...addFormData, label: e.target.value })}
-                placeholder="e.g., BG (Boy/Girl)"
-              />
+              <p className="text-xs text-gray-500 mt-1">Enter the content type name. You can include a description in parentheses.</p>
             </div>
 
             <div>
@@ -677,6 +693,11 @@ const Settings = () => {
                   min="0"
                   value={addFormData.priceFixed}
                   onChange={(e) => setAddFormData({ ...addFormData, priceFixed: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="19.99"
                 />
               </div>
@@ -684,16 +705,34 @@ const Settings = () => {
 
             {(addFormData.priceType === 'RANGE' || addFormData.priceType === 'MINIMUM') && (
               <div>
-                <Label htmlFor="add-priceMin">Minimum Price ($) <span className="text-red-500">*</span></Label>
-                <Input
-                  id="add-priceMin"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={addFormData.priceMin}
-                  onChange={(e) => setAddFormData({ ...addFormData, priceMin: e.target.value })}
-                  placeholder="14.99"
-                />
+                <Label htmlFor="add-priceMin">
+                  {addFormData.priceType === 'MINIMUM' ? 'Minimum Price ($)' : 'Minimum Price ($)'} <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="add-priceMin"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={addFormData.priceMin}
+                    onChange={(e) => setAddFormData({ ...addFormData, priceMin: e.target.value })}
+                    onKeyDown={(e) => {
+                      if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                        e.preventDefault();
+                      }
+                    }}
+                    placeholder="14.99"
+                    className={addFormData.priceType === 'MINIMUM' ? 'pr-8' : ''}
+                  />
+                  {addFormData.priceType === 'MINIMUM' && addFormData.priceMin && (
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold pointer-events-none">
+                      +
+                    </span>
+                  )}
+                </div>
+                {addFormData.priceType === 'MINIMUM' && (
+                  <p className="text-xs text-gray-500 mt-1">This will be displayed as ${addFormData.priceMin || '0.00'}+</p>
+                )}
               </div>
             )}
 
@@ -707,8 +746,26 @@ const Settings = () => {
                   min="0"
                   value={addFormData.priceMax}
                   onChange={(e) => setAddFormData({ ...addFormData, priceMax: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="19.99"
+                  className={
+                    addFormData.priceMin && addFormData.priceMax &&
+                    parseFloat(addFormData.priceMin) > parseFloat(addFormData.priceMax)
+                      ? 'border-red-500 focus-visible:ring-red-500'
+                      : ''
+                  }
                 />
+                {addFormData.priceMin && addFormData.priceMax &&
+                 parseFloat(addFormData.priceMin) > parseFloat(addFormData.priceMax) && (
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Minimum price cannot be greater than maximum price
+                  </p>
+                )}
               </div>
             )}
 
@@ -798,6 +855,11 @@ const Settings = () => {
                   min="0"
                   value={formData.priceFixed}
                   onChange={(e) => setFormData({ ...formData, priceFixed: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="19.99"
                 />
               </div>
@@ -813,6 +875,11 @@ const Settings = () => {
                   min="0"
                   value={formData.priceMin}
                   onChange={(e) => setFormData({ ...formData, priceMin: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="14.99"
                 />
               </div>
@@ -828,8 +895,26 @@ const Settings = () => {
                   min="0"
                   value={formData.priceMax}
                   onChange={(e) => setFormData({ ...formData, priceMax: e.target.value })}
+                  onKeyDown={(e) => {
+                    if (e.key === '-' || e.key === '+' || e.key === 'e' || e.key === 'E') {
+                      e.preventDefault();
+                    }
+                  }}
                   placeholder="19.99"
+                  className={
+                    formData.priceMin && formData.priceMax &&
+                    parseFloat(formData.priceMin) > parseFloat(formData.priceMax)
+                      ? 'border-red-500 focus-visible:ring-red-500'
+                      : ''
+                  }
                 />
+                {formData.priceMin && formData.priceMax &&
+                 parseFloat(formData.priceMin) > parseFloat(formData.priceMax) && (
+                  <p className="text-xs text-red-500 mt-1 flex items-center gap-1">
+                    <AlertCircle className="w-3 h-3" />
+                    Minimum price cannot be greater than maximum price
+                  </p>
+                )}
               </div>
             )}
 
