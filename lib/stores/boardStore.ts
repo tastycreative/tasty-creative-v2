@@ -63,6 +63,19 @@ export interface Task {
     gifUrl?: string | null;
     notes?: string | null;
     isFinal?: boolean | null;
+    pricingCategory?: string | null;
+    contentTypeOptionId?: string | null;
+    contentTypeOption?: {
+      id: string;
+      value: string;
+      label: string;
+      category: string;
+      priceType: string | null;
+      priceFixed: number | null;
+      priceMin: number | null;
+      priceMax: number | null;
+      description: string | null;
+    } | null;
   } | null;
   // OFTV Task information
   oftvTask?: {

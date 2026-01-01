@@ -729,9 +729,10 @@ export default function ModularWorkflowWizard() {
 
         // Show warnings for optional fields (don't block navigation)
         if (selectedComponents.includes("pricing")) {
-          if (!formData.pricingType && !formData.basePrice) {
+          // Check if content type is selected (which includes pricing info)
+          if (!formData.contentType && !selectedContentTypeOption) {
             toast.info(
-              "💡 Tip: Add pricing information or remove the pricing component",
+              "💡 Tip: Select a content type with pricing or remove the pricing component",
               {
                 duration: 3000,
               }
@@ -1339,7 +1340,7 @@ export default function ModularWorkflowWizard() {
                     Additional Content Details
                   </h4>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {/* Content Type */}
                     <div>
                       <Label
@@ -1384,7 +1385,10 @@ export default function ModularWorkflowWizard() {
                         {loadingContentTypes ? "Loading content types..." : "Select from available content types with pricing"}
                       </p>
                     </div>
+                  </div>
 
+                  {/* Content Length and Count in separate row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Content Length */}
                     <div>
                       <Label
@@ -1865,6 +1869,54 @@ export default function ModularWorkflowWizard() {
                       {formData.priority}
                     </p>
                   </div>
+                  {formData.pricingCategory && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Pricing Tier
+                      </p>
+                      <p className="font-medium">
+                        {formData.pricingCategory === 'CHEAP_PORN' && '💰 Cheap Porn'}
+                        {formData.pricingCategory === 'EXPENSIVE_PORN' && '💎 Expensive Porn'}
+                        {formData.pricingCategory === 'GF_ACCURATE' && '💕 GF Accurate'}
+                      </p>
+                    </div>
+                  )}
+                  {formData.contentType && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Content Type
+                      </p>
+                      <p className="font-medium flex items-center gap-2">
+                        <span>{formData.contentType}</span>
+                        {selectedContentTypeOption && (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {selectedContentTypeOption.priceType === 'FIXED' && selectedContentTypeOption.priceFixed &&
+                              `$${selectedContentTypeOption.priceFixed.toFixed(2)}`}
+                            {selectedContentTypeOption.priceType === 'RANGE' && selectedContentTypeOption.priceMin && selectedContentTypeOption.priceMax &&
+                              `$${selectedContentTypeOption.priceMin.toFixed(2)}-$${selectedContentTypeOption.priceMax.toFixed(2)}`}
+                            {selectedContentTypeOption.priceType === 'MINIMUM' && selectedContentTypeOption.priceMin &&
+                              `$${selectedContentTypeOption.priceMin.toFixed(2)}+`}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {formData.contentLength && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Content Length
+                      </p>
+                      <p className="font-medium">{formData.contentLength}</p>
+                    </div>
+                  )}
+                  {formData.contentCount && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Content Count
+                      </p>
+                      <p className="font-medium">{formData.contentCount}</p>
+                    </div>
+                  )}
                 </div>
 
                 {formData.driveLink && (

@@ -929,6 +929,14 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         // Helper to post assignment notifications via API
         const notifyAssignment = async (assignedToUserId: string, previousAssigneeId: string | null = null) => {
           if (!assignedToUserId || !session?.user?.id) return;
+
+          // Check environment variable to enable/disable notifications (useful for development)
+          const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
+          if (!notificationsEnabled) {
+            console.log('🔕 OFTV assignment notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
+            return;
+          }
+
           try {
             await fetch('/api/notifications/assignment', {
               method: 'POST',
@@ -1102,6 +1110,14 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
         const notifyAssignment = async (assignedToUserId: string, previousAssigneeId: string | null) => {
           if (!assignedToUserId || !session?.user?.id) return;
+
+          // Check environment variable to enable/disable notifications (useful for development)
+          const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
+          if (!notificationsEnabled) {
+            console.log('🔕 OFTV reassignment notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
+            return;
+          }
+
           try {
             await fetch('/api/notifications/assignment', {
               method: 'POST',
@@ -1135,6 +1151,13 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
         // Notify task creator when OFTV editor statuses change
         const notifyCreatorOnStatus = async (editorType: 'video' | 'thumbnail', newStatus: string) => {
+          // Check environment variable to enable/disable notifications (useful for development)
+          const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
+          if (!notificationsEnabled) {
+            console.log('🔕 OFTV status notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
+            return;
+          }
+
           try {
             await fetch('/api/notifications/oftv-status', {
               method: 'POST',
@@ -1371,6 +1394,14 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   // Function to send notifications to column members
   const sendColumnNotifications = async (task: Task, oldStatus: Task['status'], newStatus: Task['status']) => {
     try {
+      // Check environment variable to enable/disable notifications (useful for development)
+      const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
+
+      if (!notificationsEnabled) {
+        console.log('🔕 Notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
+        return;
+      }
+
       // Check if column notifications are enabled for this team
       if (!teamSettings?.columnNotificationsEnabled) {
         console.log('🔕 Column notifications are disabled for this team');

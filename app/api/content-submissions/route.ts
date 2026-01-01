@@ -404,16 +404,23 @@ export async function POST(request: NextRequest) {
     console.log('📝 Task activity history created for task:', task.id);
 
     // Send notifications to PG team column assigned members and OTP-PTR team members
-    await sendPGTeamNotifications({
-      task,
-      taskDescription,
-      submissionType,
-      modelName: data.modelName,
-      teamId: otpPtrTeam.id,
-      teamName: otpPtrTeam.name,
-      createdById: session.user.id!,
-      createdByName: session.user.name || session.user.email || 'Unknown User'
-    });
+    // Check environment variable to enable/disable notifications (useful for development)
+    const notificationsEnabled = process.env.ENABLE_TASK_NOTIFICATIONS !== 'false';
+
+    if (notificationsEnabled) {
+      await sendPGTeamNotifications({
+        task,
+        taskDescription,
+        submissionType,
+        modelName: data.modelName,
+        teamId: otpPtrTeam.id,
+        teamName: otpPtrTeam.name,
+        createdById: session.user.id!,
+        createdByName: session.user.name || session.user.email || 'Unknown User'
+      });
+    } else {
+      console.log('🔕 Notifications disabled via ENABLE_TASK_NOTIFICATIONS env variable');
+    }
 
     // Update submission status
     const updatedSubmission = await (prisma as any).contentSubmission.update({
