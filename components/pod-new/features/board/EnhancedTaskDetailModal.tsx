@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Session } from "next-auth";
 import {
   X,
@@ -23,6 +23,7 @@ import {
   Package,
   Save,
   XCircle,
+  DollarSign,
 } from "lucide-react";
 import { Task, useBoardStore } from "@/lib/stores/boardStore";
 import {
@@ -180,6 +181,22 @@ export default function EnhancedTaskDetailModalRedesigned({
   // OFTV task editing state
   const [editingOFTVData, setEditingOFTVData] = useState<any>(null);
 
+  // Content type options state for editing
+  const [contentTypeOptions, setContentTypeOptions] = useState<
+    Array<{
+      id: string;
+      value: string;
+      label: string;
+      category: string;
+      priceType?: string;
+      priceFixed?: number;
+      priceMin?: number;
+      priceMax?: number;
+      description?: string;
+    }>
+  >([]);
+  const [loadingContentTypes, setLoadingContentTypes] = useState(false);
+
   // Determine if user should have view-only access
   const isViewOnly =
     !session?.user?.role ||
@@ -231,6 +248,36 @@ export default function EnhancedTaskDetailModalRedesigned({
 
     return defaults;
   };
+
+  // Fetch content type options when editing starts
+  useEffect(() => {
+    const fetchContentTypeOptions = async () => {
+      if (!isEditingTask || !hasWorkflow) return;
+      
+      setLoadingContentTypes(true);
+      try {
+        // Get current pricing category from workflow or editing data
+        const currentCategory = 
+          (editingTaskData as any)?.ModularWorkflow?.pricingCategory || 
+          workflowData?.pricingCategory || 
+          "EXPENSIVE_PORN";
+        
+        const url = `/api/content-type-options?category=${encodeURIComponent(currentCategory)}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.success && Array.isArray(data.contentTypeOptions)) {
+          setContentTypeOptions(data.contentTypeOptions);
+        }
+      } catch (error) {
+        console.error("Error fetching content type options:", error);
+      } finally {
+        setLoadingContentTypes(false);
+      }
+    };
+
+    fetchContentTypeOptions();
+  }, [isEditingTask, hasWorkflow, (editingTaskData as any)?.ModularWorkflow?.pricingCategory]);
 
   // Initialize OFTV editing data when edit mode starts
   React.useEffect(() => {
@@ -1958,39 +2005,126 @@ export default function EnhancedTaskDetailModalRedesigned({
                         </div>
                       )}
 
-                      {/* Pricing Tier (compact with emoji only) */}
-                      {workflowData?.pricingCategory && (
+                      {/* Pricing Tier (editable when in edit mode) */}
+                      {(workflowData?.pricingCategory || isEditingTask) && (
                         <div>
                           <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                             Tier
                           </label>
-                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                            {workflowData.pricingCategory === 'CHEAP_PORN' && 'Cheap Porn'}
-                            {workflowData.pricingCategory === 'EXPENSIVE_PORN' && 'Expensive Porn'}
-                            {workflowData.pricingCategory === 'GF_ACCURATE' && 'GF Accurate'}
-                          </div>
+                          {isEditingTask ? (
+                            <select
+                              value={(editingTaskData as any)?.ModularWorkflow?.pricingCategory || workflowData?.pricingCategory || "EXPENSIVE_PORN"}
+                              onChange={(e) => {
+                                onSetEditingTaskData?.({
+                                  ModularWorkflow: {
+                                    ...((editingTaskData as any).ModularWorkflow || {}),
+                                    pricingCategory: e.target.value,
+                                    // Clear content type when tier changes
+                                    contentTypeOptionId: null,
+                                    contentTypeOption: null,
+                                  },
+                                });
+                              }}
+                              className="w-full px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                            >
+                              <option value="CHEAP_PORN">Cheap Porn</option>
+                              <option value="EXPENSIVE_PORN">Expensive Porn</option>
+                              <option value="GF_ACCURATE">GF Accurate</option>
+                            </select>
+                          ) : (
+                            <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                              {workflowData?.pricingCategory === 'CHEAP_PORN' && 'Cheap Porn'}
+                              {workflowData?.pricingCategory === 'EXPENSIVE_PORN' && 'Expensive Porn'}
+                              {workflowData?.pricingCategory === 'GF_ACCURATE' && 'GF Accurate'}
+                            </div>
+                          )}
                         </div>
                       )}
 
-                      {/* Content Type & Pricing (more compact) */}
-                      {workflowData?.contentTypeOption && (
+                      {/* Content Type & Pricing (editable when in edit mode) */}
+                      {(workflowData?.contentTypeOption || isEditingTask) && (
                         <div>
                           <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                             Content & Price
                           </label>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                              {workflowData.contentTypeOption.label || workflowData.contentTypeOption.value}
-                            </span>
-                            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded whitespace-nowrap">
-                              {workflowData.contentTypeOption.priceType === 'FIXED' && workflowData.contentTypeOption.priceFixed &&
-                                `$${workflowData.contentTypeOption.priceFixed.toFixed(2)}`}
-                              {workflowData.contentTypeOption.priceType === 'RANGE' && workflowData.contentTypeOption.priceMin && workflowData.contentTypeOption.priceMax &&
-                                `$${workflowData.contentTypeOption.priceMin.toFixed(2)}-$${workflowData.contentTypeOption.priceMax.toFixed(2)}`}
-                              {workflowData.contentTypeOption.priceType === 'MINIMUM' && workflowData.contentTypeOption.priceMin &&
-                                `$${workflowData.contentTypeOption.priceMin.toFixed(2)}+`}
-                            </span>
-                          </div>
+                          {isEditingTask ? (
+                            <div className="space-y-2">
+                              <select
+                                value={(editingTaskData as any)?.ModularWorkflow?.contentTypeOptionId || workflowData?.contentTypeOptionId || ""}
+                                onChange={(e) => {
+                                  const selectedOption = contentTypeOptions.find(opt => opt.id === e.target.value);
+                                  onSetEditingTaskData?.({
+                                    ModularWorkflow: {
+                                      ...((editingTaskData as any).ModularWorkflow || {}),
+                                      contentTypeOptionId: e.target.value,
+                                      contentTypeOption: selectedOption || null,
+                                    },
+                                  });
+                                }}
+                                disabled={loadingContentTypes}
+                                className="w-full px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
+                              >
+                                <option value="">{loadingContentTypes ? "Loading..." : "Select content type..."}</option>
+                                {contentTypeOptions.map((option) => {
+                                  // Format price display
+                                  let priceDisplay = " - $--.--";
+                                  if (option.priceType === "FIXED" && option.priceFixed) {
+                                    priceDisplay = ` - $${option.priceFixed.toFixed(2)}`;
+                                  } else if (option.priceType === "RANGE" && option.priceMin && option.priceMax) {
+                                    priceDisplay = ` - $${option.priceMin.toFixed(2)}-${option.priceMax.toFixed(2)}`;
+                                  } else if (option.priceType === "MINIMUM" && option.priceMin) {
+                                    priceDisplay = ` - $${option.priceMin.toFixed(2)}+`;
+                                  }
+                                  return (
+                                    <option key={option.id} value={option.id}>
+                                      {option.label}{priceDisplay}
+                                    </option>
+                                  );
+                                })}
+                              </select>
+                              {/* Show current selection price */}
+                              {(() => {
+                                const currentOption = (editingTaskData as any)?.ModularWorkflow?.contentTypeOption || 
+                                  contentTypeOptions.find(opt => opt.id === ((editingTaskData as any)?.ModularWorkflow?.contentTypeOptionId || workflowData?.contentTypeOptionId));
+                                if (currentOption) {
+                                  let priceText = "$--.--";
+                                  if (currentOption.priceType === 'FIXED' && currentOption.priceFixed) {
+                                    priceText = `$${currentOption.priceFixed.toFixed(2)}`;
+                                  } else if (currentOption.priceType === 'RANGE' && currentOption.priceMin && currentOption.priceMax) {
+                                    priceText = `$${currentOption.priceMin.toFixed(2)}-$${currentOption.priceMax.toFixed(2)}`;
+                                  } else if (currentOption.priceType === 'MINIMUM' && currentOption.priceMin) {
+                                    priceText = `$${currentOption.priceMin.toFixed(2)}+`;
+                                  }
+                                  return (
+                                    <div className="flex items-center gap-1">
+                                      <DollarSign className="h-3 w-3 text-emerald-600" />
+                                      <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                        {priceText}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })()}
+                            </div>
+                          ) : workflowData?.contentTypeOption ? (
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                                {workflowData.contentTypeOption.label || workflowData.contentTypeOption.value}
+                              </span>
+                              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded whitespace-nowrap">
+                                {workflowData.contentTypeOption.priceType === 'FIXED' && workflowData.contentTypeOption.priceFixed
+                                  ? `$${workflowData.contentTypeOption.priceFixed.toFixed(2)}`
+                                  : workflowData.contentTypeOption.priceType === 'RANGE' && workflowData.contentTypeOption.priceMin && workflowData.contentTypeOption.priceMax
+                                  ? `$${workflowData.contentTypeOption.priceMin.toFixed(2)}-$${workflowData.contentTypeOption.priceMax.toFixed(2)}`
+                                  : workflowData.contentTypeOption.priceType === 'MINIMUM' && workflowData.contentTypeOption.priceMin
+                                  ? `$${workflowData.contentTypeOption.priceMin.toFixed(2)}+`
+                                  : '$--.--'}
+                              </span>
+                            </div>
+                          ) : (
+                            <div className="text-xs text-gray-500 italic">Not set</div>
+                          )}
                         </div>
                       )}
                     </>

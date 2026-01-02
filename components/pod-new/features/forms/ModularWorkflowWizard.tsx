@@ -1363,8 +1363,8 @@ export default function ModularWorkflowWizard() {
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px] overflow-y-auto">
                           {contentTypeOptions.map((option, index) => {
-                            // Format price display
-                            let priceDisplay = "";
+                            // Format price display - show $--.-- if no price is set
+                            let priceDisplay = " - $--.--";
                             if (option.priceType === "FIXED" && option.priceFixed) {
                               priceDisplay = ` - $${option.priceFixed.toFixed(2)}`;
                             } else if (option.priceType === "RANGE" && option.priceMin && option.priceMax) {
