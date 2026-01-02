@@ -240,6 +240,21 @@ export async function GET(request: NextRequest) {
             pricing: true,
             basePriceDescription: true,
             isFinal: true,
+            pricingCategory: true,
+            contentTypeOptionId: true,
+            contentTypeOption: {
+              select: {
+                id: true,
+                value: true,
+                label: true,
+                category: true,
+                priceType: true,
+                priceFixed: true,
+                priceMin: true,
+                priceMax: true,
+                description: true,
+              },
+            },
           },
         },
         oftvTask: {

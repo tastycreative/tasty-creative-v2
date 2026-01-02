@@ -70,7 +70,6 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
-import { CONTENT_TYPE_OPTIONS } from "./modular-workflow/types";
 import { CONTENT_TAGS } from "@/lib/constants/contentTags";
 import { MultiSelect } from "@/components/ui/multi-select";
 
@@ -111,6 +110,7 @@ interface ModularFormData {
   priority: string;
   driveLink: string;
   caption?: string;
+  pricingCategory?: string; // NEW: CHEAP_PORN, EXPENSIVE_PORN, GF_ACCURATE
 
   // Content Details fields (NEW)
   contentType?: string;
@@ -382,6 +382,7 @@ export default function ModularWorkflowWizard() {
       priority: "normal",
       driveLink: "",
       caption: "",
+      pricingCategory: "EXPENSIVE_PORN", // Default pricing tier
     },
   });
 
@@ -407,12 +408,37 @@ export default function ModularWorkflowWizard() {
   const [selectedInternalModels, setSelectedInternalModels] = useState<
     string[]
   >([]);
+  const [contentTypeOptions, setContentTypeOptions] = useState<
+    Array<{
+      id: string;
+      value: string;
+      label: string;
+      category: string;
+      priceType?: string;
+      priceFixed?: number;
+      priceMin?: number;
+      priceMax?: number;
+      description?: string;
+    }>
+  >([]);
+  const [loadingContentTypes, setLoadingContentTypes] = useState(true);
+  const [selectedContentTypeOption, setSelectedContentTypeOption] = useState<{
+    id: string;
+    value: string;
+    label: string;
+    category: string;
+    priceType?: string;
+    priceFixed?: number;
+    priceMin?: number;
+    priceMax?: number;
+  } | null>(null);
 
   // Watch form values
   const submissionType = watch("submissionType");
   const contentStyle = watch("contentStyle");
   const selectedComponents = watch("selectedComponents") || [];
   const platform = watch("platform");
+  const pricingCategory = watch("pricingCategory");
 
   // Get current team
   const currentTeam = availableTeams.find((team) => team.id === selectedTeamId);
@@ -494,6 +520,30 @@ export default function ModularWorkflowWizard() {
     };
     fetchInternalModels();
   }, []);
+
+  // Load content type options from database (refetch when pricing category changes)
+  useEffect(() => {
+    const fetchContentTypeOptions = async () => {
+      setLoadingContentTypes(true);
+      try {
+        const category = pricingCategory || "EXPENSIVE_PORN";
+        const url = `/api/content-type-options?category=${encodeURIComponent(category)}`;
+
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.success && Array.isArray(data.contentTypeOptions)) {
+          setContentTypeOptions(data.contentTypeOptions);
+          console.log(`📊 Loaded ${data.contentTypeOptions.length} content types for category: ${category}`);
+        }
+      } catch (error) {
+        console.error("Error fetching content type options:", error);
+        toast.error("Failed to load content type options");
+      } finally {
+        setLoadingContentTypes(false);
+      }
+    };
+    fetchContentTypeOptions();
+  }, [pricingCategory]);
 
   // Auto-save draft functionality
   useEffect(() => {
@@ -679,9 +729,10 @@ export default function ModularWorkflowWizard() {
 
         // Show warnings for optional fields (don't block navigation)
         if (selectedComponents.includes("pricing")) {
-          if (!formData.pricingType && !formData.basePrice) {
+          // Check if content type is selected (which includes pricing info)
+          if (!formData.contentType && !selectedContentTypeOption) {
             toast.info(
-              "💡 Tip: Add pricing information or remove the pricing component",
+              "💡 Tip: Select a content type with pricing or remove the pricing component",
               {
                 duration: 3000,
               }
@@ -823,6 +874,8 @@ export default function ModularWorkflowWizard() {
         attachments: uploadedAttachments,
         // Content Details fields
         contentType: data.contentType,
+        contentTypeOptionId: selectedContentTypeOption?.id, // NEW: Store relational ID
+        pricingCategory: data.pricingCategory, // NEW: Store pricing category
         contentLength: data.contentLength,
         contentCount: data.contentCount,
         // Tags fields
@@ -1220,6 +1273,39 @@ export default function ModularWorkflowWizard() {
                 </div>
 
                 <div>
+                  <Label htmlFor="pricingCategory" className="flex items-center gap-2">
+                    Pricing Tier <span className="text-red-500">*</span>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <HelpCircle className="w-4 h-4 text-gray-400" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Select the pricing tier for content types</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </Label>
+                  <Select
+                    onValueChange={(value) => setValue("pricingCategory", value)}
+                    defaultValue="EXPENSIVE_PORN"
+                    value={pricingCategory}
+                  >
+                    <SelectTrigger className="mt-2">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CHEAP_PORN">Cheap Porn / Porn Accurate</SelectItem>
+                      <SelectItem value="EXPENSIVE_PORN">Expensive Porn / Premium</SelectItem>
+                      <SelectItem value="GF_ACCURATE">GF / GF Accurate</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    This determines available content types and pricing
+                  </p>
+                </div>
+
+                <div>
                   <Label htmlFor="priority">Priority Level</Label>
                   <Select
                     onValueChange={(value) => setValue("priority", value)}
@@ -1254,7 +1340,7 @@ export default function ModularWorkflowWizard() {
                     Additional Content Details
                   </h4>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 gap-4">
                     {/* Content Type */}
                     <div>
                       <Label
@@ -1264,26 +1350,45 @@ export default function ModularWorkflowWizard() {
                         Content Type
                       </Label>
                       <Select
-                        onValueChange={(value) =>
-                          setValue("contentType", value)
-                        }
+                        onValueChange={(value) => {
+                          setValue("contentType", value);
+                          // Store the full content type option object
+                          const selectedOption = contentTypeOptions.find(opt => opt.value === value);
+                          setSelectedContentTypeOption(selectedOption || null);
+                        }}
+                        disabled={loadingContentTypes}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder="Select content type..." />
+                          <SelectValue placeholder={loadingContentTypes ? "Loading..." : "Select content type..."} />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px] overflow-y-auto">
-                          {CONTENT_TYPE_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
+                          {contentTypeOptions.map((option, index) => {
+                            // Format price display
+                            let priceDisplay = "";
+                            if (option.priceType === "FIXED" && option.priceFixed) {
+                              priceDisplay = ` - $${option.priceFixed.toFixed(2)}`;
+                            } else if (option.priceType === "RANGE" && option.priceMin && option.priceMax) {
+                              priceDisplay = ` - $${option.priceMin.toFixed(2)}-${option.priceMax.toFixed(2)}`;
+                            } else if (option.priceType === "MINIMUM" && option.priceMin) {
+                              priceDisplay = ` - $${option.priceMin.toFixed(2)}+`;
+                            }
+
+                            return (
+                              <SelectItem key={`${option.value}-${index}`} value={option.value}>
+                                {option.label}{priceDisplay}
+                              </SelectItem>
+                            );
+                          })}
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">
-                        Select from standard content types
+                        {loadingContentTypes ? "Loading content types..." : "Select from available content types with pricing"}
                       </p>
                     </div>
+                  </div>
 
+                  {/* Content Length and Count in separate row */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* Content Length */}
                     <div>
                       <Label
@@ -1764,6 +1869,54 @@ export default function ModularWorkflowWizard() {
                       {formData.priority}
                     </p>
                   </div>
+                  {formData.pricingCategory && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Pricing Tier
+                      </p>
+                      <p className="font-medium">
+                        {formData.pricingCategory === 'CHEAP_PORN' && '💰 Cheap Porn'}
+                        {formData.pricingCategory === 'EXPENSIVE_PORN' && '💎 Expensive Porn'}
+                        {formData.pricingCategory === 'GF_ACCURATE' && '💕 GF Accurate'}
+                      </p>
+                    </div>
+                  )}
+                  {formData.contentType && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Content Type
+                      </p>
+                      <p className="font-medium flex items-center gap-2">
+                        <span>{formData.contentType}</span>
+                        {selectedContentTypeOption && (
+                          <span className="text-emerald-600 dark:text-emerald-400 font-bold">
+                            {selectedContentTypeOption.priceType === 'FIXED' && selectedContentTypeOption.priceFixed &&
+                              `$${selectedContentTypeOption.priceFixed.toFixed(2)}`}
+                            {selectedContentTypeOption.priceType === 'RANGE' && selectedContentTypeOption.priceMin && selectedContentTypeOption.priceMax &&
+                              `$${selectedContentTypeOption.priceMin.toFixed(2)}-$${selectedContentTypeOption.priceMax.toFixed(2)}`}
+                            {selectedContentTypeOption.priceType === 'MINIMUM' && selectedContentTypeOption.priceMin &&
+                              `$${selectedContentTypeOption.priceMin.toFixed(2)}+`}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                  )}
+                  {formData.contentLength && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Content Length
+                      </p>
+                      <p className="font-medium">{formData.contentLength}</p>
+                    </div>
+                  )}
+                  {formData.contentCount && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Content Count
+                      </p>
+                      <p className="font-medium">{formData.contentCount}</p>
+                    </div>
+                  )}
                 </div>
 
                 {formData.driveLink && (

@@ -689,17 +689,46 @@ export default function EnhancedTaskDetailModalRedesigned({
                               </div>
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
-                              {selectedTask.description ? (
-                                <div className="prose prose-sm dark:prose-invert max-w-none">
-                                  <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words">
-                                    {linkifyText(selectedTask.description)}
+                              <div className="space-y-4">
+                                {selectedTask.description ? (
+                                  <div className="prose prose-sm dark:prose-invert max-w-none">
+                                    <p className="text-gray-600 dark:text-gray-400 leading-relaxed whitespace-pre-wrap break-words">
+                                      {linkifyText(selectedTask.description)}
+                                    </p>
+                                  </div>
+                                ) : (
+                                  <p className="text-gray-400 dark:text-gray-500 italic">
+                                    No description provided
                                   </p>
-                                </div>
-                              ) : (
-                                <p className="text-gray-400 dark:text-gray-500 italic">
-                                  No description provided
-                                </p>
-                              )}
+                                )}
+
+                                {/* Content Type & Pricing Info */}
+                                {hasWorkflow && workflowData?.contentTypeOption && (
+                                  <div className="flex items-center justify-between gap-3 pt-3 mt-3 border-t border-gray-200 dark:border-gray-700">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Content Type
+                                      </p>
+                                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300 truncate">
+                                        {workflowData.contentTypeOption.label || workflowData.contentTypeOption.value}
+                                      </p>
+                                    </div>
+                                    <div className="flex-shrink-0 text-right">
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                                        Pricing
+                                      </p>
+                                      <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                                        {workflowData.contentTypeOption.priceType === 'FIXED' && workflowData.contentTypeOption.priceFixed &&
+                                          `$${workflowData.contentTypeOption.priceFixed.toFixed(2)}`}
+                                        {workflowData.contentTypeOption.priceType === 'RANGE' && workflowData.contentTypeOption.priceMin && workflowData.contentTypeOption.priceMax &&
+                                          `$${workflowData.contentTypeOption.priceMin.toFixed(2)}-$${workflowData.contentTypeOption.priceMax.toFixed(2)}`}
+                                        {workflowData.contentTypeOption.priceType === 'MINIMUM' && workflowData.contentTypeOption.priceMin &&
+                                          `$${workflowData.contentTypeOption.priceMin.toFixed(2)}+`}
+                                      </p>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
                             </AccordionContent>
                           </AccordionItem>
                         )}
@@ -1782,11 +1811,11 @@ export default function EnhancedTaskDetailModalRedesigned({
               </div>
 
               {/* Sidebar */}
-              <div className="w-full lg:w-80 lg:flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-4 sm:p-6 order-1 lg:order-2">
-                <div className="space-y-4">
+              <div className="w-full lg:w-72 lg:flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/30 border-t lg:border-t-0 lg:border-l border-gray-200/50 dark:border-gray-700/50 p-3 sm:p-4 order-1 lg:order-2">
+                <div className="space-y-3">
                   {/* Status */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                    <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                       Status
                     </label>
                     {canEditTask(selectedTask) ? (
@@ -1819,11 +1848,11 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* Priority */}
                   {!isEditingTask && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                         Priority
                       </label>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs">
                           {selectedTask.priority === "URGENT"
                             ? "🚨"
                             : selectedTask.priority === "HIGH"
@@ -1832,7 +1861,7 @@ export default function EnhancedTaskDetailModalRedesigned({
                                 ? "🟡"
                                 : "🟢"}
                         </span>
-                        <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                        <span className="text-xs font-medium text-gray-900 dark:text-gray-100">
                           {selectedTask.priority}
                         </span>
                       </div>
@@ -1844,22 +1873,19 @@ export default function EnhancedTaskDetailModalRedesigned({
                     !isEditingTask &&
                     selectedTask.assignedUser && (
                       <div>
-                        <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                        <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                           Assignee
                         </label>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <UserProfile
                             user={selectedTask.assignedUser}
-                            size="md"
+                            size="sm"
                             showTooltip
                           />
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
                               {selectedTask.assignedUser.name ||
                                 selectedTask.assignedUser.email}
-                            </p>
-                            <p className="text-xs text-gray-500 dark:text-gray-400">
-                              {selectedTask.assignedUser.email}
                             </p>
                           </div>
                         </div>
@@ -1869,10 +1895,10 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* OFTV-specific fields */}
                   {hasOFTVTask && oftvTaskData?.model && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                         Model
                       </label>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
                         {oftvTaskData.model}
                       </div>
                     </div>
@@ -1881,46 +1907,89 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* Workflow-specific fields */}
                   {hasWorkflow && (
                     <>
-                      {workflowData?.submissionType && (
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                            Submission Type
-                          </label>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {workflowData.submissionType}
-                          </div>
+                      {/* Compact: Type & Style in one row */}
+                      {(workflowData?.submissionType || workflowData?.contentStyle) && (
+                        <div className="grid grid-cols-2 gap-2">
+                          {workflowData?.submissionType && (
+                            <div>
+                              <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
+                                Type
+                              </label>
+                              <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                                {workflowData.submissionType}
+                              </div>
+                            </div>
+                          )}
+                          {workflowData?.contentStyle && (
+                            <div>
+                              <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
+                                Style
+                              </label>
+                              <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                                {workflowData.contentStyle}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
-                      {workflowData?.contentStyle && (
-                        <div>
-                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                            Content Style
-                          </label>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {workflowData.contentStyle}
-                          </div>
-                        </div>
-                      )}
+
+                      {/* Model Name */}
                       {workflowData?.modelName && (
                         <div>
-                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                          <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                             Model
                           </label>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
                             {workflowData.modelName}
                           </div>
                         </div>
                       )}
-                      {(workflowData?.releaseDate ||
-                        workflowData?.releaseTime) && (
+
+                      {/* Release Date */}
+                      {(workflowData?.releaseDate || workflowData?.releaseTime) && (
                         <div>
-                          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                            Release Date
+                          <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
+                            Release
                           </label>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
                             {workflowData.releaseDate || "Not set"}
-                            {workflowData.releaseTime &&
-                              ` at ${workflowData.releaseTime}`}
+                            {workflowData.releaseTime && ` ${workflowData.releaseTime}`}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Pricing Tier (compact with emoji only) */}
+                      {workflowData?.pricingCategory && (
+                        <div>
+                          <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
+                            Tier
+                          </label>
+                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
+                            {workflowData.pricingCategory === 'CHEAP_PORN' && 'Cheap Porn'}
+                            {workflowData.pricingCategory === 'EXPENSIVE_PORN' && 'Expensive Porn'}
+                            {workflowData.pricingCategory === 'GF_ACCURATE' && 'GF Accurate'}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Content Type & Pricing (more compact) */}
+                      {workflowData?.contentTypeOption && (
+                        <div>
+                          <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
+                            Content & Price
+                          </label>
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {workflowData.contentTypeOption.label || workflowData.contentTypeOption.value}
+                            </span>
+                            <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded whitespace-nowrap">
+                              {workflowData.contentTypeOption.priceType === 'FIXED' && workflowData.contentTypeOption.priceFixed &&
+                                `$${workflowData.contentTypeOption.priceFixed.toFixed(2)}`}
+                              {workflowData.contentTypeOption.priceType === 'RANGE' && workflowData.contentTypeOption.priceMin && workflowData.contentTypeOption.priceMax &&
+                                `$${workflowData.contentTypeOption.priceMin.toFixed(2)}-$${workflowData.contentTypeOption.priceMax.toFixed(2)}`}
+                              {workflowData.contentTypeOption.priceType === 'MINIMUM' && workflowData.contentTypeOption.priceMin &&
+                                `$${workflowData.contentTypeOption.priceMin.toFixed(2)}+`}
+                            </span>
                           </div>
                         </div>
                       )}
@@ -1930,14 +1999,14 @@ export default function EnhancedTaskDetailModalRedesigned({
                   {/* Due Date */}
                   {!isEditingTask && selectedTask.dueDate && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                         Due Date
                       </label>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="h-4 w-4 text-gray-500" />
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="h-3 w-3 text-gray-500" />
                         <span
                           className={cn(
-                            "text-sm",
+                            "text-xs",
                             formatDueDate(selectedTask.dueDate).className
                           )}
                         >
@@ -1947,26 +2016,26 @@ export default function EnhancedTaskDetailModalRedesigned({
                     </div>
                   )}
 
-                  {/* Created Info */}
+                  {/* Created Info - Compact */}
                   {!isEditingTask && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                         Created
                       </label>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Clock className="h-4 w-4 text-gray-500" />
-                          <span className="text-xs text-gray-600 dark:text-gray-400">
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <Clock className="h-3 w-3 text-gray-500" />
+                          <span className="text-[10px] text-gray-600 dark:text-gray-400">
                             {formatForTaskDetail(selectedTask.createdAt)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
                           <UserProfile
                             user={selectedTask.createdBy}
                             size="sm"
                             showTooltip
                           />
-                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300 truncate">
                             {selectedTask.createdBy.name ||
                               selectedTask.createdBy.email}
                           </p>
@@ -1975,15 +2044,15 @@ export default function EnhancedTaskDetailModalRedesigned({
                     </div>
                   )}
 
-                  {/* Updated Info */}
+                  {/* Updated Info - Compact */}
                   {!isEditingTask && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">
-                        Last Updated
+                      <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
+                        Updated
                       </label>
-                      <div className="flex items-center gap-2">
-                        <Clock className="h-4 w-4 text-gray-500" />
-                        <span className="text-xs text-gray-600 dark:text-gray-400">
+                      <div className="flex items-center gap-1.5">
+                        <Clock className="h-3 w-3 text-gray-500" />
+                        <span className="text-[10px] text-gray-600 dark:text-gray-400">
                           {formatForTaskDetail(selectedTask.updatedAt)}
                         </span>
                       </div>
