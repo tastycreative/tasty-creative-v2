@@ -4,10 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 // PUT - Update content type option
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await req.json();
     const {
       label,
@@ -110,10 +110,10 @@ export async function PUT(
 // DELETE - Soft delete content type option (set isActive to false)
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if content type option exists
     const existingOption = await prisma.contentTypeOption.findUnique({
@@ -167,10 +167,10 @@ export async function DELETE(
 // GET - Get single content type option by ID
 export async function GET(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const contentTypeOption = await prisma.contentTypeOption.findUnique({
       where: { id },
