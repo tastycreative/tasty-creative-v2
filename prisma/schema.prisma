@@ -54,6 +54,7 @@ model User {
   verificationTokens         VerificationToken[]
   voiceNoteHistory           VoiceNoteHistory[]
   voiceNoteSales             VoiceNoteSale[]
+  contentTypePricingHistory  ContentTypePricingHistory[]   @relation("ContentTypePricingHistoryChangedBy")
 }
 
 model Account {
@@ -1299,7 +1300,8 @@ model ContentTypeOption {
   value            String
   label            String
   category         String            // "CHEAP_PORN", "EXPENSIVE_PORN", "GF_ACCURATE"
-  priceType        String?           // "FIXED", "RANGE", "MINIMUM"
+  isFree           Boolean           @default(false) // If true, this content type has no charge
+  priceType        String?           // "FIXED", "RANGE", "MINIMUM" (ignored if isFree is true)
   priceFixed       Float?            // For exact prices like $19.99
   priceMin         Float?            // For ranges like $14.99-19.99 or minimum $19.99+
   priceMax         Float?            // For ranges like $14.99-19.99
@@ -1309,11 +1311,52 @@ model ContentTypeOption {
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
   workflows        ModularWorkflow[] @relation("WorkflowContentType")
+  pricingHistory   ContentTypePricingHistory[] @relation("ContentTypePricingHistory")
 
   @@unique([value, category])
   @@index([isActive])
   @@index([order])
   @@index([category])
+  @@index([isFree])
+}
+
+// Content Type Pricing History Audit Log
+model ContentTypePricingHistory {
+  id                    String            @id @default(cuid())
+  contentTypeOptionId   String
+  contentTypeOption     ContentTypeOption @relation("ContentTypePricingHistory", fields: [contentTypeOptionId], references: [id], onDelete: Cascade)
+  
+  // What changed
+  changeType            String            // "PRICE_UPDATE", "LABEL_UPDATE", "CREATED", "DEACTIVATED", "REACTIVATED"
+  
+  // Previous values (null for new records)
+  oldIsFree             Boolean?
+  oldPriceType          String?
+  oldPriceFixed         Float?
+  oldPriceMin           Float?
+  oldPriceMax           Float?
+  oldLabel              String?
+  
+  // New values
+  newIsFree             Boolean?
+  newPriceType          String?
+  newPriceFixed         Float?
+  newPriceMin           Float?
+  newPriceMax           Float?
+  newLabel              String?
+  
+  // Audit info - linked to User model
+  changedById           String?           // Foreign key to User
+  changedBy             User?             @relation("ContentTypePricingHistoryChangedBy", fields: [changedById], references: [id], onDelete: SetNull)
+  reason                String?           // Optional reason for change
+  ipAddress             String?           // For additional security tracking
+  
+  createdAt             DateTime          @default(now())
+
+  @@index([contentTypeOptionId])
+  @@index([createdAt])
+  @@index([changeType])
+  @@index([changedById])
 }
 
 enum WorkflowStatus {

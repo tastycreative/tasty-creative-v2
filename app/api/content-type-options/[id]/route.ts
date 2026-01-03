@@ -1,5 +1,30 @@
 import { prisma } from "@/lib/prisma";
 import { NextRequest, NextResponse } from "next/server";
+import { auth } from "@/auth";
+
+// Helper function to determine what changed
+function getChangeType(
+  existingOption: any,
+  newData: { label: string; priceType: string | null; priceFixed: number | null; priceMin: number | null; priceMax: number | null; isFree: boolean }
+): string {
+  const priceChanged =
+    existingOption.priceType !== newData.priceType ||
+    existingOption.priceFixed !== newData.priceFixed ||
+    existingOption.priceMin !== newData.priceMin ||
+    existingOption.priceMax !== newData.priceMax ||
+    existingOption.isFree !== newData.isFree;
+
+  const labelChanged = existingOption.label !== newData.label;
+
+  if (priceChanged && labelChanged) {
+    return "PRICE_AND_LABEL_UPDATE";
+  } else if (priceChanged) {
+    return "PRICE_UPDATE";
+  } else if (labelChanged) {
+    return "LABEL_UPDATE";
+  }
+  return "UPDATE";
+}
 
 // PUT - Update content type option
 export async function PUT(
@@ -16,7 +41,13 @@ export async function PUT(
       priceMin,
       priceMax,
       description,
+      reason, // Optional reason for the change
+      isFree,
     } = body;
+
+    // Get current user session for audit
+    const session = await auth();
+    const userId = session?.user?.id || null;
 
     // Validate required fields
     if (!label) {
@@ -29,35 +60,37 @@ export async function PUT(
       );
     }
 
-    // Validate price data based on priceType
-    if (priceType === "FIXED" && !priceFixed) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Fixed price is required for FIXED price type",
-        },
-        { status: 400 }
-      );
-    }
+    // Validate price data based on priceType (skip validation if isFree or priceType is null)
+    if (!isFree && priceType) {
+      if (priceType === "FIXED" && !priceFixed && priceFixed !== 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Fixed price is required for FIXED price type",
+          },
+          { status: 400 }
+        );
+      }
 
-    if (priceType === "RANGE" && (!priceMin || !priceMax)) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Min and max prices are required for RANGE price type",
-        },
-        { status: 400 }
-      );
-    }
+      if (priceType === "RANGE" && ((!priceMin && priceMin !== 0) || (!priceMax && priceMax !== 0))) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Min and max prices are required for RANGE price type",
+          },
+          { status: 400 }
+        );
+      }
 
-    if (priceType === "MINIMUM" && !priceMin) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: "Minimum price is required for MINIMUM price type",
-        },
-        { status: 400 }
-      );
+      if (priceType === "MINIMUM" && !priceMin && priceMin !== 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Minimum price is required for MINIMUM price type",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if content type option exists
@@ -75,23 +108,66 @@ export async function PUT(
       );
     }
 
-    // Update content type option
-    const updatedOption = await prisma.contentTypeOption.update({
-      where: { id },
-      data: {
-        label,
-        priceType,
-        priceFixed,
-        priceMin,
-        priceMax,
-        description,
-        updatedAt: new Date(),
-      },
+    // Determine effective values based on isFree
+    const effectivePriceType = isFree ? null : priceType;
+    const effectivePriceFixed = isFree ? null : (priceFixed ?? null);
+    const effectivePriceMin = isFree ? null : (priceMin ?? null);
+    const effectivePriceMax = isFree ? null : (priceMax ?? null);
+
+    // Determine what changed
+    const changeType = getChangeType(existingOption, {
+      label,
+      priceType: effectivePriceType,
+      priceFixed: effectivePriceFixed,
+      priceMin: effectivePriceMin,
+      priceMax: effectivePriceMax,
+      isFree: isFree || false,
     });
+
+    // Update content type option and create history record in a transaction
+    const [updatedOption, historyRecord] = await prisma.$transaction([
+      prisma.contentTypeOption.update({
+        where: { id },
+        data: {
+          label,
+          priceType: effectivePriceType,
+          priceFixed: effectivePriceFixed,
+          priceMin: effectivePriceMin,
+          priceMax: effectivePriceMax,
+          description,
+          isFree: isFree || false,
+          updatedAt: new Date(),
+        },
+      }),
+      prisma.contentTypePricingHistory.create({
+        data: {
+          contentTypeOptionId: id,
+          changeType,
+          // Old values
+          oldPriceType: existingOption.priceType,
+          oldPriceFixed: existingOption.priceFixed,
+          oldPriceMin: existingOption.priceMin,
+          oldPriceMax: existingOption.priceMax,
+          oldLabel: existingOption.label,
+          oldIsFree: existingOption.isFree,
+          // New values
+          newPriceType: effectivePriceType,
+          newPriceFixed: effectivePriceFixed,
+          newPriceMin: effectivePriceMin,
+          newPriceMax: effectivePriceMax,
+          newLabel: label,
+          newIsFree: isFree || false,
+          // Audit info - linked to User
+          changedById: userId,
+          reason: reason || null,
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
       contentTypeOption: updatedOption,
+      historyRecord,
       message: "Content type option updated successfully",
     });
   } catch (error: any) {
@@ -115,6 +191,10 @@ export async function DELETE(
   try {
     const { id } = await params;
 
+    // Get current user session for audit
+    const session = await auth();
+    const userId = session?.user?.id || null;
+
     // Check if content type option exists
     const existingOption = await prisma.contentTypeOption.findUnique({
       where: { id },
@@ -135,15 +215,36 @@ export async function DELETE(
       );
     }
 
-    // Soft delete by setting isActive to false
-    // This preserves existing workflows that reference this content type
-    const updatedOption = await prisma.contentTypeOption.update({
-      where: { id },
-      data: {
-        isActive: false,
-        updatedAt: new Date(),
-      },
-    });
+    // Soft delete and create history record in a transaction
+    const [updatedOption] = await prisma.$transaction([
+      prisma.contentTypeOption.update({
+        where: { id },
+        data: {
+          isActive: false,
+          updatedAt: new Date(),
+        },
+      }),
+      prisma.contentTypePricingHistory.create({
+        data: {
+          contentTypeOptionId: id,
+          changeType: "DEACTIVATED",
+          oldPriceType: existingOption.priceType,
+          oldPriceFixed: existingOption.priceFixed,
+          oldPriceMin: existingOption.priceMin,
+          oldPriceMax: existingOption.priceMax,
+          oldLabel: existingOption.label,
+          oldIsFree: existingOption.isFree,
+          newPriceType: existingOption.priceType,
+          newPriceFixed: existingOption.priceFixed,
+          newPriceMin: existingOption.priceMin,
+          newPriceMax: existingOption.priceMax,
+          newLabel: existingOption.label,
+          newIsFree: existingOption.isFree,
+          changedById: userId,
+          reason: "Content type deactivated",
+        },
+      }),
+    ]);
 
     return NextResponse.json({
       success: true,
@@ -164,7 +265,7 @@ export async function DELETE(
   }
 }
 
-// GET - Get single content type option by ID
+// GET - Get single content type option by ID (with price history)
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -182,6 +283,20 @@ export async function GET(
             modelName: true,
             createdAt: true,
             status: true,
+          },
+        },
+        pricingHistory: {
+          orderBy: { createdAt: 'desc' },
+          take: 50, // Last 50 history records
+          include: {
+            changedBy: {
+              select: {
+                id: true,
+                name: true,
+                email: true,
+                image: true,
+              },
+            },
           },
         },
       },
