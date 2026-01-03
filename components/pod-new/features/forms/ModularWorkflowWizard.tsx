@@ -67,11 +67,13 @@ import {
   BookOpen,
   Command,
   Info,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { CONTENT_TAGS } from "@/lib/constants/contentTags";
 import { MultiSelect } from "@/components/ui/multi-select";
+import Link from "next/link";
 
 // Core Types
 export type SubmissionType = "otp" | "ptr";
@@ -521,29 +523,31 @@ export default function ModularWorkflowWizard() {
     fetchInternalModels();
   }, []);
 
+  // Function to fetch content type options (extracted for reuse with refresh button)
+  const fetchContentTypeOptions = useCallback(async () => {
+    setLoadingContentTypes(true);
+    try {
+      const category = pricingCategory || "EXPENSIVE_PORN";
+      const url = `/api/content-type-options?category=${encodeURIComponent(category)}`;
+
+      const response = await fetch(url);
+      const data = await response.json();
+      if (data.success && Array.isArray(data.contentTypeOptions)) {
+        setContentTypeOptions(data.contentTypeOptions);
+        console.log(`📊 Loaded ${data.contentTypeOptions.length} content types for category: ${category}`);
+      }
+    } catch (error) {
+      console.error("Error fetching content type options:", error);
+      toast.error("Failed to load content type options");
+    } finally {
+      setLoadingContentTypes(false);
+    }
+  }, [pricingCategory]);
+
   // Load content type options from database (refetch when pricing category changes)
   useEffect(() => {
-    const fetchContentTypeOptions = async () => {
-      setLoadingContentTypes(true);
-      try {
-        const category = pricingCategory || "EXPENSIVE_PORN";
-        const url = `/api/content-type-options?category=${encodeURIComponent(category)}`;
-
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.success && Array.isArray(data.contentTypeOptions)) {
-          setContentTypeOptions(data.contentTypeOptions);
-          console.log(`📊 Loaded ${data.contentTypeOptions.length} content types for category: ${category}`);
-        }
-      } catch (error) {
-        console.error("Error fetching content type options:", error);
-        toast.error("Failed to load content type options");
-      } finally {
-        setLoadingContentTypes(false);
-      }
-    };
     fetchContentTypeOptions();
-  }, [pricingCategory]);
+  }, [fetchContentTypeOptions]);
 
   // Auto-save draft functionality
   useEffect(() => {
@@ -1343,12 +1347,23 @@ export default function ModularWorkflowWizard() {
                   <div className="grid grid-cols-1 gap-4">
                     {/* Content Type */}
                     <div>
-                      <Label
-                        htmlFor="contentType"
-                        className="block mb-2 font-medium"
-                      >
-                        Content Type
-                      </Label>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label
+                          htmlFor="contentType"
+                          className="font-medium"
+                        >
+                          Content Type
+                        </Label>
+                        <button
+                          type="button"
+                          onClick={() => fetchContentTypeOptions()}
+                          disabled={loadingContentTypes}
+                          className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 transition-colors"
+                          title="Refresh content types"
+                        >
+                          <RefreshCw className={`h-4 w-4 ${loadingContentTypes ? 'animate-spin' : ''}`} />
+                        </button>
+                      </div>
                       <Select
                         onValueChange={(value) => {
                           setValue("contentType", value);
@@ -1383,6 +1398,12 @@ export default function ModularWorkflowWizard() {
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">
                         {loadingContentTypes ? "Loading content types..." : "Select from available content types with pricing"}
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                        💡 Need to update prices?{" "}
+                        <Link href="/settings" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800 dark:hover:text-blue-300">
+                          Go to Settings
+                        </Link>
                       </p>
                     </div>
                   </div>
