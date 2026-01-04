@@ -186,6 +186,13 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const teamId = searchParams.get("teamId");
+    const pageParam = searchParams.get("page");
+    const pageSizeParam = searchParams.get("pageSize");
+    
+    // Only apply pagination if both page and pageSize are provided
+    const usePagination = pageParam !== null && pageSizeParam !== null;
+    const page = usePagination ? parseInt(pageParam, 10) : 1;
+    const pageSize = usePagination ? parseInt(pageSizeParam, 10) : 0;
 
     if (!teamId) {
       return NextResponse.json(
@@ -194,10 +201,23 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Get total count for pagination (only when pagination is used)
+    const totalItems = usePagination ? await prisma.task.count({
+      where: {
+        podTeamId: teamId,
+      } as any,
+    }) : 0;
+
+    // Calculate pagination offset
+    const skip = usePagination ? (page - 1) * pageSize : undefined;
+    const take = usePagination ? pageSize : undefined;
+
     const tasks = await prisma.task.findMany({
       where: {
         podTeamId: teamId,
       } as any,
+      ...(skip !== undefined && { skip }),
+      ...(take !== undefined && { take }),
       include: {
         createdBy: {
           select: {
@@ -328,10 +348,26 @@ export async function GET(request: NextRequest) {
         : null,
     }));
 
-    return NextResponse.json({
+    // Build response - only include pagination if it was requested
+    const response: {
+      success: boolean;
+      tasks: typeof tasksWithAssignedUsers;
+      pagination?: { page: number; pageSize: number; totalItems: number; totalPages: number };
+    } = {
       success: true,
       tasks: tasksWithAssignedUsers,
-    });
+    };
+
+    if (usePagination) {
+      response.pagination = {
+        page,
+        pageSize,
+        totalItems,
+        totalPages: Math.ceil(totalItems / pageSize),
+      };
+    }
+
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error fetching tasks:", error);
     return NextResponse.json(

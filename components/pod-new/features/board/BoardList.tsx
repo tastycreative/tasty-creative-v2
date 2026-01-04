@@ -7,6 +7,17 @@ import { formatForTaskCard, formatDueDate } from '@/lib/dateUtils';
 import { Calendar, User, AlertCircle } from 'lucide-react';
 import UserProfile from '@/components/ui/UserProfile';
 import OtpPtrList from './lists/OtpPtrList';
+import Pagination from '@/components/ui/Pagination';
+
+interface PaginationProps {
+  currentPage: number;
+  totalPages: number;
+  totalItems: number;
+  pageSize: number;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
+  isLoading?: boolean;
+}
 
 interface BoardListProps {
   tasks: Task[];
@@ -14,9 +25,10 @@ interface BoardListProps {
   session: Session | null;
   onTaskClick: (task: Task) => void;
   teamName: string;
+  pagination?: PaginationProps;
 }
 
-export default function BoardList({ tasks, columns, session, onTaskClick, teamName }: BoardListProps) {
+export default function BoardList({ tasks, columns, session, onTaskClick, teamName, pagination }: BoardListProps) {
   const getPriorityIcon = (priority: string) => {
     switch (priority) {
       case 'URGENT': return '🚨';
@@ -312,6 +324,17 @@ export default function BoardList({ tasks, columns, session, onTaskClick, teamNa
             </tbody>
           </table>
         </div>
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.onPageChange}
+            onPageSizeChange={pagination.onPageSizeChange}
+            isLoading={pagination.isLoading}
+          />
+        )}
       </div>
     );
   }
@@ -319,11 +342,24 @@ export default function BoardList({ tasks, columns, session, onTaskClick, teamNa
   // Render ModularWorkflow-specific table (for PGT/OTP-PTR teams)
   if (isPGTTeam || tasks.some(t => (t as any).ModularWorkflow)) {
     return (
-      <OtpPtrList 
-        tasks={tasks} 
-        onTaskClick={onTaskClick} 
-        getPriorityIcon={getPriorityIcon} 
-      />
+      <div className="flex flex-col">
+        <OtpPtrList 
+          tasks={tasks} 
+          onTaskClick={onTaskClick} 
+          getPriorityIcon={getPriorityIcon} 
+        />
+        {pagination && (
+          <Pagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            totalItems={pagination.totalItems}
+            pageSize={pagination.pageSize}
+            onPageChange={pagination.onPageChange}
+            onPageSizeChange={pagination.onPageSizeChange}
+            isLoading={pagination.isLoading}
+          />
+        )}
+      </div>
     );
   }
 
@@ -457,6 +493,17 @@ export default function BoardList({ tasks, columns, session, onTaskClick, teamNa
           </tbody>
         </table>
       </div>
+      {pagination && (
+        <Pagination
+          currentPage={pagination.currentPage}
+          totalPages={pagination.totalPages}
+          totalItems={pagination.totalItems}
+          pageSize={pagination.pageSize}
+          onPageChange={pagination.onPageChange}
+          onPageSizeChange={pagination.onPageSizeChange}
+          isLoading={pagination.isLoading}
+        />
+      )}
     </div>
   );
 }

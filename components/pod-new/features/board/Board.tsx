@@ -12,7 +12,7 @@ import { useMarkAsFinal } from '@/hooks/useMarkAsFinal';
 import { useMarkAsPublished } from '@/hooks/useMarkAsPublished';
 import { useMarkAsPosted } from '@/hooks/useMarkAsPosted';
 import { useBoardStore, useBoardTasks, useBoardFilters, useBoardTaskActions, useBoardColumns, type Task, type BoardColumn, type NewTaskData } from '@/lib/stores/boardStore';
-import { useTasksQuery, useColumnsQuery, useTeamMembersQuery, useTeamSettingsQuery, boardQueryKeys, useUpdateTaskMutation, useUpdateTaskStatusMutation, useUpdateOFTVTaskMutation } from '@/hooks/useBoardQueries';
+import { useTasksQuery, useTasksQueryPaginated, useColumnsQuery, useTeamMembersQuery, useTeamSettingsQuery, boardQueryKeys, useUpdateTaskMutation, useUpdateTaskStatusMutation, useUpdateOFTVTaskMutation } from '@/hooks/useBoardQueries';
 import { useBoardSync } from '@/hooks/useBoardSync';
 import { formatForDisplay, formatForTaskCard, formatDueDate, formatForTaskDetail, toLocalDateTimeString, parseUserDate } from '@/lib/dateUtils';
 import { getTaskErrorMessage } from '@/lib/utils/errorMessages';
@@ -85,8 +85,34 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   const { createTask, updateTaskStatus, updateTask, deleteTask } = useBoardTaskActions();
   const { showColumnSettings, setShowColumnSettings } = useBoardColumns();
 
+  // Tab state (must be before queries to determine which query to use)
+  const [activeTab, setActiveTab] = useState<TabType>('board');
+
+  // Pagination state (only used for list view)
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+
+  // Reset pagination when team changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [teamId]);
+
+  // Pagination handlers
+  const handlePageChange = useCallback((page: number) => {
+    setCurrentPage(page);
+  }, []);
+
+  const handlePageSizeChange = useCallback((newPageSize: number) => {
+    setPageSize(newPageSize);
+    setCurrentPage(1); // Reset to first page when changing page size
+  }, []);
+
   // TanStack Query data sources
+  // Board view fetches all tasks (no pagination)
   const tasksQuery = useTasksQuery(teamId);
+  // List view fetches paginated tasks
+  const tasksQueryPaginated = useTasksQueryPaginated(teamId, currentPage, pageSize);
+  
   const columnsQuery = useColumnsQuery(teamId);
   const membersQuery = useTeamMembersQuery(teamId);
   const settingsQuery = useTeamSettingsQuery(teamId);
@@ -98,9 +124,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   
   // Team settings state
   const [teamSettings, setTeamSettings] = useState<{columnNotificationsEnabled: boolean} | null>(null);
-  
-  // Tab state
-  const [activeTab, setActiveTab] = useState<TabType>('board');
   
   // OFTV Filters state
   const [oftvFilters, setOftvFilters] = useState<OFTVFilters>({
@@ -227,8 +250,13 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
   // Effect to ensure skeleton shows for minimum time
   // Use tasks/columns loading states from queries
-  const qIsLoadingTasks = tasksQuery.isLoading;
-  const qTasks = (tasksQuery.data?.tasks ?? []) as Task[];
+  // Board view uses all tasks, list view uses paginated tasks
+  const isListView = activeTab === 'list';
+  const qIsLoadingTasks = isListView ? tasksQueryPaginated.isLoading : tasksQuery.isLoading;
+  const qTasks = (isListView 
+    ? (tasksQueryPaginated.data?.tasks ?? []) 
+    : (tasksQuery.data?.tasks ?? [])) as Task[];
+  const qPagination = isListView ? tasksQueryPaginated.data?.pagination : undefined;
   const qIsLoadingColumns = columnsQuery.isLoading;
   const qColumns = (columnsQuery.data?.columns ?? []) as BoardColumn[];
 
@@ -1761,13 +1789,16 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     );
   }
 
+  // Calculate total tasks count - use server-side pagination total when in list view
+  const totalTasksCount = isListView && qPagination ? qPagination.totalItems : qTasks.length;
+
   return (
     <div className="space-y-6">
       {/* Board Header */}
       <BoardHeader
         teamName={teamName}
-  totalTasks={qTasks.length}
-        filteredTasksCount={filteredAndSortedTasks.length}
+  totalTasks={totalTasksCount}
+        filteredTasksCount={isListView ? qTasks.length : filteredAndSortedTasks.length}
   isLoading={qIsLoadingTasks}
         activeTab={activeTab}
         onTabChange={setActiveTab}
@@ -1857,6 +1888,15 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
             session={session}
             onTaskClick={openTaskDetail}
             teamName={teamName}
+            pagination={qPagination ? {
+              currentPage: qPagination.page,
+              totalPages: qPagination.totalPages,
+              totalItems: qPagination.totalItems,
+              pageSize: qPagination.pageSize,
+              onPageChange: handlePageChange,
+              onPageSizeChange: handlePageSizeChange,
+              isLoading: qIsLoadingTasks,
+            } : undefined}
           />
         </>
       ) : (

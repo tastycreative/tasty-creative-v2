@@ -5,6 +5,7 @@ export const boardQueryKeys = {
   all: ["board"] as const,
   team: (teamId: string) => [...boardQueryKeys.all, teamId] as const,
   tasks: (teamId: string) => [...boardQueryKeys.team(teamId), "tasks"] as const,
+  tasksPaginated: (teamId: string, page: number, pageSize: number) => [...boardQueryKeys.team(teamId), "tasks", "paginated", page, pageSize] as const,
   columns: (teamId: string) => [...boardQueryKeys.team(teamId), "columns"] as const,
   members: (teamId: string) => [...boardQueryKeys.team(teamId), "members"] as const,
   settings: (teamId: string) => [...boardQueryKeys.team(teamId), "settings"] as const,
@@ -15,11 +16,45 @@ export const boardQueryKeys = {
   strikes: (teamId: string) => [...boardQueryKeys.team(teamId), "strikes"] as const,
 };
 
+export interface PaginationInfo {
+  page: number;
+  pageSize: number;
+  totalItems: number;
+  totalPages: number;
+}
+
+export interface TasksQueryResult {
+  success: boolean;
+  tasks: Task[];
+  pagination?: PaginationInfo;
+}
+
+// Fetch all tasks (no pagination) - for Board view
 export function useTasksQuery(teamId: string) {
-  return useQuery<{ success: boolean; tasks: Task[] }>({
+  return useQuery<TasksQueryResult>({
     queryKey: boardQueryKeys.tasks(teamId),
     queryFn: async () => {
       const res = await fetch(`/api/tasks?teamId=${encodeURIComponent(teamId)}`);
+      if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.statusText}`);
+      return res.json();
+    },
+    enabled: !!teamId,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+// Fetch paginated tasks - for List view
+export function useTasksQueryPaginated(teamId: string, page: number = 1, pageSize: number = 25) {
+  return useQuery<TasksQueryResult>({
+    queryKey: boardQueryKeys.tasksPaginated(teamId, page, pageSize),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        teamId,
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      const res = await fetch(`/api/tasks?${params.toString()}`);
       if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.statusText}`);
       return res.json();
     },

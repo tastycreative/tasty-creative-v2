@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Link from "next/link";
 import { Session } from "next-auth";
 import {
   X,
@@ -24,6 +25,7 @@ import {
   Save,
   XCircle,
   DollarSign,
+  Settings,
 } from "lucide-react";
 import { Task, useBoardStore } from "@/lib/stores/boardStore";
 import {
@@ -2125,6 +2127,15 @@ export default function EnhancedTaskDetailModalRedesigned({
                           ) : (
                             <div className="text-xs text-gray-500 italic">Not set</div>
                           )}
+                          {/* Settings hint link */}
+                          <Link
+                            href="/settings"
+                            className="flex items-center gap-1 text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline mt-1.5"
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <Settings className="h-3 w-3" />
+                            <span>Manage content types</span>
+                          </Link>
                         </div>
                       )}
                     </>
