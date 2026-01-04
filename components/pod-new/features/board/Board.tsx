@@ -92,10 +92,24 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
 
+  // Column lazy loading state (for board view - "Load More" per column)
+  const [columnVisibleLimits, setColumnVisibleLimits] = useState<Record<string, number>>({});
+  const INITIAL_TASKS_PER_COLUMN = 25;
+  const LOAD_MORE_INCREMENT = 25;
+
   // Reset pagination when team changes
   useEffect(() => {
     setCurrentPage(1);
+    setColumnVisibleLimits({}); // Reset column limits on team change
   }, [teamId]);
+
+  // Handler to load more tasks in a column
+  const handleLoadMoreInColumn = useCallback((status: string) => {
+    setColumnVisibleLimits(prev => ({
+      ...prev,
+      [status]: (prev[status] ?? INITIAL_TASKS_PER_COLUMN) + LOAD_MORE_INCREMENT,
+    }));
+  }, []);
 
   // Pagination handlers
   const handlePageChange = useCallback((page: number) => {
@@ -1963,6 +1977,8 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         getTasksForStatus={getTasksForStatus}
         getGridClasses={getGridClasses}
         getGridStyles={getGridStyles}
+        columnVisibleLimits={columnVisibleLimits}
+        onLoadMore={handleLoadMoreInColumn}
       />
 
       {/* Task Detail Modal - Default */}

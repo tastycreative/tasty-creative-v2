@@ -6,6 +6,7 @@ export const boardQueryKeys = {
   team: (teamId: string) => [...boardQueryKeys.all, teamId] as const,
   tasks: (teamId: string) => [...boardQueryKeys.team(teamId), "tasks"] as const,
   tasksPaginated: (teamId: string, page: number, pageSize: number) => [...boardQueryKeys.team(teamId), "tasks", "paginated", page, pageSize] as const,
+  tasksByStatus: (teamId: string, status: string, page: number, pageSize: number) => [...boardQueryKeys.team(teamId), "tasks", "status", status, page, pageSize] as const,
   columns: (teamId: string) => [...boardQueryKeys.team(teamId), "columns"] as const,
   members: (teamId: string) => [...boardQueryKeys.team(teamId), "members"] as const,
   settings: (teamId: string) => [...boardQueryKeys.team(teamId), "settings"] as const,
@@ -59,6 +60,33 @@ export function useTasksQueryPaginated(teamId: string, page: number = 1, pageSiz
       return res.json();
     },
     enabled: !!teamId,
+    staleTime: 60_000,
+    gcTime: 5 * 60_000,
+  });
+}
+
+// Fetch tasks by status with pagination - for Board view columns with lazy loading
+export function useTasksByStatusQuery(
+  teamId: string, 
+  status: string, 
+  page: number = 1, 
+  pageSize: number = 25,
+  enabled: boolean = true
+) {
+  return useQuery<TasksQueryResult>({
+    queryKey: boardQueryKeys.tasksByStatus(teamId, status, page, pageSize),
+    queryFn: async () => {
+      const params = new URLSearchParams({
+        teamId,
+        status,
+        page: String(page),
+        pageSize: String(pageSize),
+      });
+      const res = await fetch(`/api/tasks?${params.toString()}`);
+      if (!res.ok) throw new Error(`Failed to fetch tasks: ${res.statusText}`);
+      return res.json();
+    },
+    enabled: !!teamId && !!status && enabled,
     staleTime: 60_000,
     gcTime: 5 * 60_000,
   });

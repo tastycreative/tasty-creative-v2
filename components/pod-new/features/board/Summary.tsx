@@ -127,7 +127,7 @@ export default function Summary({
     </div>
   );
 
-  // Circle chart component
+  // Circle chart component with flat edges (no rounded ends)
   const CircleChart = ({ data, size = 120 }: { data: Array<{label: string, value: number, color: string}>, size?: number }) => {
     const total = data.reduce((sum, item) => sum + item.value, 0);
     if (total === 0) {
@@ -159,7 +159,7 @@ export default function Summary({
             strokeWidth={strokeWidth}
             className="dark:stroke-gray-700"
           />
-          {/* Data segments */}
+          {/* Data segments - flat edges for better visibility with many items */}
           {data.map((item, index) => {
             const percentage = (item.value / total) * 100;
             const circumference = 2 * Math.PI * radius;
@@ -179,7 +179,7 @@ export default function Summary({
                 strokeWidth={strokeWidth}
                 strokeDasharray={strokeDasharray}
                 strokeDashoffset={strokeDashoffset}
-                strokeLinecap="round"
+                strokeLinecap="butt"
               />
             );
           })}
@@ -235,7 +235,7 @@ export default function Summary({
 
     return (
       <div className="flex flex-col lg:flex-row items-start lg:items-center gap-6">
-        <div className="flex-shrink-0">
+        <div className="shrink-0">
           <CircleChart data={statusData} size={160} />
         </div>
         <div className="flex-1 w-full">
@@ -245,7 +245,7 @@ export default function Summary({
               {statusData.map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
+                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }}></div>
                     <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{item.label}</span>
                   </div>
                   <span className="text-sm font-medium ml-2">{item.value}</span>
@@ -258,7 +258,7 @@ export default function Summary({
               {statusData.map((item, index) => (
                 <div key={index} className="flex items-center justify-between">
                   <div className="flex items-center gap-2 min-w-0 flex-1">
-                    <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
+                    <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: item.color }}></div>
                     <span className="text-sm text-gray-600 dark:text-gray-400 truncate">{item.label}</span>
                   </div>
                   <span className="text-sm font-medium ml-2">{item.value}</span>

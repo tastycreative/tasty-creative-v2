@@ -188,6 +188,7 @@ export async function GET(request: NextRequest) {
     const teamId = searchParams.get("teamId");
     const pageParam = searchParams.get("page");
     const pageSizeParam = searchParams.get("pageSize");
+    const statusFilter = searchParams.get("status"); // Filter by status for column-based lazy loading
     
     // Only apply pagination if both page and pageSize are provided
     const usePagination = pageParam !== null && pageSizeParam !== null;
@@ -201,11 +202,19 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Build where clause
+    const whereClause: any = {
+      podTeamId: teamId,
+    };
+    
+    // Add status filter if provided
+    if (statusFilter) {
+      whereClause.status = statusFilter;
+    }
+
     // Get total count for pagination (only when pagination is used)
     const totalItems = usePagination ? await prisma.task.count({
-      where: {
-        podTeamId: teamId,
-      } as any,
+      where: whereClause,
     }) : 0;
 
     // Calculate pagination offset
@@ -213,9 +222,7 @@ export async function GET(request: NextRequest) {
     const take = usePagination ? pageSize : undefined;
 
     const tasks = await prisma.task.findMany({
-      where: {
-        podTeamId: teamId,
-      } as any,
+      where: whereClause,
       ...(skip !== undefined && { skip }),
       ...(take !== undefined && { take }),
       include: {

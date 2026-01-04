@@ -34,6 +34,10 @@ interface BoardGridProps {
   getGridStyles: () => { gridTemplateColumns: string };
   columns: any[];
   teamName?: string;
+  // Lazy loading props
+  columnVisibleLimits?: Record<string, number>;
+  onLoadMore?: (status: string) => void;
+  isLoadingMore?: Record<string, boolean>;
 }
 
 export default function BoardGrid({
@@ -64,6 +68,9 @@ export default function BoardGrid({
   getGridStyles,
   columns,
   teamName,
+  columnVisibleLimits = {},
+  onLoadMore,
+  isLoadingMore = {},
 }: BoardGridProps) {
   // Enable draggable scroll for mobile
   const mobileScrollRef = useDraggableScroll<HTMLDivElement>({
@@ -88,6 +95,7 @@ export default function BoardGrid({
         >
           {getColumnConfig().map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task["status"]);
+            const visibleLimit = columnVisibleLimits[status] ?? 25;
 
             return (
               <TaskColumn
@@ -119,6 +127,9 @@ export default function BoardGrid({
                 teamName={teamName}
                 isMobile={true}
                 isLastColumn={index === getColumnConfig().length - 1}
+                visibleTasksLimit={visibleLimit}
+                onLoadMore={onLoadMore}
+                isLoadingMore={isLoadingMore[status] ?? false}
               />
             );
           })}
@@ -137,6 +148,7 @@ export default function BoardGrid({
         >
           {getColumnConfig().map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task["status"]);
+            const visibleLimit = columnVisibleLimits[status] ?? 25;
 
             return (
               <TaskColumn
@@ -169,6 +181,9 @@ export default function BoardGrid({
                 isMobile={false}
                 isLastColumn={index === getColumnConfig().length - 1}
                 includeHeader={true}
+                visibleTasksLimit={visibleLimit}
+                onLoadMore={onLoadMore}
+                isLoadingMore={isLoadingMore[status] ?? false}
               />
             );
           })}

@@ -2,11 +2,14 @@
 
 import React from "react";
 import { Session } from "next-auth";
-import { Plus } from "lucide-react";
+import { Plus, Loader2, ChevronDown } from "lucide-react";
 import { Task, NewTaskData } from "@/lib/stores/boardStore";
 import TaskCard from "./TaskCard";
 import { TaskSkeleton } from "./BoardSkeleton";
 import UserDropdown from "@/components/UserDropdown";
+
+// Default number of tasks to show initially per column
+const INITIAL_TASKS_LIMIT = 25;
 
 interface TaskColumnProps {
   status: string;
@@ -42,6 +45,11 @@ interface TaskColumnProps {
   isMobile?: boolean;
   isLastColumn?: boolean;
   includeHeader?: boolean;
+  // Lazy loading props
+  totalTasksCount?: number;
+  visibleTasksLimit?: number;
+  onLoadMore?: (status: string) => void;
+  isLoadingMore?: boolean;
 }
 
 export default function TaskColumn({
@@ -73,10 +81,20 @@ export default function TaskColumn({
   isMobile = false,
   isLastColumn = false,
   includeHeader = false,
+  totalTasksCount,
+  visibleTasksLimit = INITIAL_TASKS_LIMIT,
+  onLoadMore,
+  isLoadingMore = false,
 }: TaskColumnProps) {
+  const hasMoreTasks = totalTasksCount !== undefined && tasks.length < totalTasksCount;
+  const remainingTasks = totalTasksCount !== undefined ? totalTasksCount - tasks.length : 0;
+  const visibleTasks = tasks.slice(0, visibleTasksLimit);
+  const hasHiddenTasks = tasks.length > visibleTasksLimit;
+  const hiddenCount = tasks.length - visibleTasksLimit;
+
   return (
     <div
-      className={`${isMobile ? "flex-shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0" : `${!isLastColumn ? "border-r-2 border-gray-200 dark:border-gray-600" : ""}`} transition-colors duration-300 ${
+      className={`${isMobile ? "shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0" : `${!isLastColumn ? "border-r-2 border-gray-200 dark:border-gray-600" : ""}`} transition-colors duration-300 ${
         draggedTask && draggedTask.status !== status
           ? "bg-pink-50/30 dark:bg-pink-900/10 border-pink-200 dark:border-pink-500"
           : ""
@@ -84,7 +102,6 @@ export default function TaskColumn({
       onDragOver={onDragOver}
       onDrop={(e) => onDrop(e, status as Task["status"])}
     >
-      {/* Desktop Column Header - Only when includeHeader is true */}
       {!isMobile && includeHeader && (
         <div className={`p-4 ${config.headerColor} dark:bg-gray-700 border-b-2 border-gray-200 dark:border-gray-600`}>
           <div className="flex items-center justify-between">
@@ -92,8 +109,14 @@ export default function TaskColumn({
               <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
                 {config.label}
               </h3>
-              <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">
-                {tasks.length}
+              <span className={`text-xs px-2 py-0.5 rounded-full ${
+                (totalTasksCount ?? tasks.length) > 50
+                  ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
+                  : (totalTasksCount ?? tasks.length) > 20
+                  ? "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300"
+                  : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+              }`}>
+                {totalTasksCount !== undefined ? `${visibleTasks.length}/${totalTasksCount}` : tasks.length}
               </span>
             </div>
             <button
@@ -104,26 +127,20 @@ export default function TaskColumn({
               <Plus className="h-4 w-4" />
             </button>
           </div>
-
-          {/* New Task Form in Header */}
           {showNewTaskForm === status && (
             <div className="mt-4 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg">
               <input
                 type="text"
                 placeholder="Task title..."
                 value={newTaskData.title}
-                onChange={(e) =>
-                  onSetNewTaskData({ title: e.target.value })
-                }
+                onChange={(e) => onSetNewTaskData({ title: e.target.value })}
                 className="w-full p-2 border border-gray-200 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
                 autoFocus
               />
               <textarea
                 placeholder="Description (optional)..."
                 value={newTaskData.description}
-                onChange={(e) =>
-                  onSetNewTaskData({ description: e.target.value })
-                }
+                onChange={(e) => onSetNewTaskData({ description: e.target.value })}
                 className="w-full p-2 mt-2 border border-gray-200 dark:border-gray-600 rounded-md text-sm bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500"
                 rows={2}
               />
@@ -147,15 +164,20 @@ export default function TaskColumn({
         </div>
       )}
 
-      {/* Mobile Column Header */}
       {isMobile && (
-        <div className="flex items-center justify-between mb-4 sticky top-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-2 -m-2 rounded-lg">
+        <div className="flex items-center justify-between mb-4 sticky top-0 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm p-2 -m-2 rounded-lg z-10">
           <div className="flex items-center space-x-2">
             <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
               {config.label}
             </h3>
-            <span className="bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300 text-xs px-2 py-0.5 rounded-full">
-              {tasks.length}
+            <span className={`text-xs px-2 py-0.5 rounded-full ${
+              (totalTasksCount ?? tasks.length) > 50
+                ? "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
+                : (totalTasksCount ?? tasks.length) > 20
+                ? "bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300"
+                : "bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-300"
+            }`}>
+              {totalTasksCount !== undefined ? `${visibleTasks.length}/${totalTasksCount}` : tasks.length}
             </span>
           </div>
           <button
@@ -168,9 +190,7 @@ export default function TaskColumn({
         </div>
       )}
 
-      {/* Column Body */}
       <div className={`${includeHeader && !isMobile ? 'p-4' : ''}`}>
-        {/* New Task Form (Desktop only, when header is not included) */}
         {!isMobile && !includeHeader && showNewTaskForm === status && (
           <div className="mt-4 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg">
             <input
@@ -212,9 +232,8 @@ export default function TaskColumn({
           </div>
         )}
 
-        {/* Task List */}
         <div className="space-y-3">
-          {tasks.map((task) => (
+          {visibleTasks.map((task) => (
             <TaskCard
               key={task.id}
               task={task}
@@ -236,7 +255,6 @@ export default function TaskColumn({
             />
           ))}
 
-          {/* Empty state */}
           {tasks.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center py-8 text-gray-500 dark:text-gray-400">
               <div className="w-16 h-16 bg-gray-100 dark:bg-gray-700 rounded-full flex items-center justify-center mb-3">
@@ -251,7 +269,6 @@ export default function TaskColumn({
             </div>
           )}
 
-          {/* Loading skeletons */}
           {tasks.length === 0 && (showMinimumSkeleton || isLoading) && (
             <>
               <TaskSkeleton />
@@ -259,7 +276,6 @@ export default function TaskColumn({
             </>
           )}
 
-          {/* Drop zone indicator */}
           {draggedTask && draggedTask.status !== status && (
             <div className="border-2 border-dashed border-pink-300 dark:border-pink-600 rounded-lg p-4 text-center text-pink-600 dark:text-pink-400 bg-pink-50/50 dark:bg-pink-900/20">
               <div className="text-sm font-medium">
@@ -268,6 +284,46 @@ export default function TaskColumn({
             </div>
           )}
         </div>
+
+        {hasHiddenTasks && onLoadMore && (
+          <button
+            onClick={() => onLoadMore(status)}
+            disabled={isLoadingMore}
+            className="w-full mt-4 py-2 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                Load {Math.min(hiddenCount, 25)} more ({hiddenCount} remaining)
+              </>
+            )}
+          </button>
+        )}
+
+        {!hasHiddenTasks && hasMoreTasks && onLoadMore && (
+          <button
+            onClick={() => onLoadMore(status)}
+            disabled={isLoadingMore}
+            className="w-full mt-4 py-2 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 rounded-lg text-sm font-medium transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+          >
+            {isLoadingMore ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Loading more tasks...
+              </>
+            ) : (
+              <>
+                <ChevronDown className="h-4 w-4" />
+                Load more ({remainingTasks} remaining)
+              </>
+            )}
+          </button>
+        )}
       </div>
     </div>
   );
