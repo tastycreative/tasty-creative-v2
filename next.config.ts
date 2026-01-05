@@ -39,6 +39,9 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "www.betterfans.app", pathname: "/**" },
       { protocol: "https", hostname: "tastycreative-site.s3.us-east-1.amazonaws.com", pathname: "/**" },
     ],
+    localPatterns: [
+      { pathname: "/api/image-proxy", search: "**" },
+    ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },

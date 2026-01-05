@@ -22,6 +22,7 @@ import {
   User,
   LogOut,
   DollarSign,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { handleLogout } from "@/app/actions/sign-out";
@@ -118,6 +119,13 @@ const adminNavItems = [
     href: "/admin/users",
     icon: Shield,
     description: "Manage user accounts",
+    category: "system",
+  },
+  {
+    title: "Feedback",
+    href: "/admin/feedback",
+    icon: MessageSquare,
+    description: "User feedback & suggestions",
     category: "system",
   },
   {

@@ -1827,6 +1827,8 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
           tasks={summaryTasks}
           teamMembers={teamMembers}
           columns={qColumns}
+          teamId={teamId}
+          isActive={true}
         />
       ) : activeTab === 'resources' ? (
         <Resources

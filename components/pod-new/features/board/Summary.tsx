@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useMemo } from "react";
-import { BarChart3, Users, Calendar, CheckSquare, TrendingUp, Clock, Target, Activity } from "lucide-react";
+import React, { useMemo, useEffect, useState } from "react";
+import { BarChart3, Users, Calendar, CheckSquare, TrendingUp, Clock, Target, Activity, DollarSign, Package, Tag } from "lucide-react";
 
 interface Task {
   id: string;
@@ -23,24 +23,75 @@ interface BoardColumn {
   isDefault?: boolean;
 }
 
+interface ContentTypeAnalytics {
+  totalWorkflowsAllTime: number;
+  totalWorkflowsThisMonth: number;
+  totalRevenueAllTime: number;
+  totalRevenueThisMonth: number;
+  topContentTypesAllTime: Array<{ id: string; label: string; category: string; count: number }>;
+  topContentTypesThisMonth: Array<{ id: string; label: string; category: string; count: number }>;
+  categoryBreakdown: Record<string, { count: number; revenue: number }>;
+  modelsCountThisMonth: number;
+  monthName: string;
+}
+
 interface SummaryProps {
   teamName: string;
+  teamId?: string;
   totalTasks: number;
   filteredTasksCount: number;
   tasks: Task[];
   teamMembers: Array<{id: string, email: string, name?: string}>;
   columns: BoardColumn[];
+  isActive?: boolean; // Only load analytics when tab is active
 }
 
 export default function Summary({
   teamName,
+  teamId,
   totalTasks,
   filteredTasksCount,
   tasks,
   teamMembers,
   columns,
+  isActive = true,
 }: SummaryProps) {
   
+  // Content type analytics state
+  const [contentTypeAnalytics, setContentTypeAnalytics] = useState<ContentTypeAnalytics | null>(null);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [hasLoadedAnalytics, setHasLoadedAnalytics] = useState(false);
+
+  // Check if this is an OTP team (OTP-PTR or OTP-Fansly)
+  const isOTPTeam = teamName?.toLowerCase().includes('otp-ptr') || 
+                    teamName?.toLowerCase().includes('otp-fansly') ||
+                    teamName?.toLowerCase() === 'otp ptr' ||
+                    teamName?.toLowerCase() === 'otp fansly';
+
+  // Fetch content type analytics (only for OTP teams, only when tab is active)
+  useEffect(() => {
+    // Only fetch when: active, is OTP team, has teamId, and hasn't loaded yet
+    if (!isActive || !teamId || !isOTPTeam || hasLoadedAnalytics) return;
+    
+    const fetchAnalytics = async () => {
+      setIsLoadingAnalytics(true);
+      try {
+        const response = await fetch(`/api/content-type-analytics?teamId=${teamId}`);
+        const data = await response.json();
+        if (data.success) {
+          setContentTypeAnalytics(data.data);
+          setHasLoadedAnalytics(true);
+        }
+      } catch (error) {
+        console.error("Error fetching content type analytics:", error);
+      } finally {
+        setIsLoadingAnalytics(false);
+      }
+    };
+    
+    fetchAnalytics();
+  }, [teamId, isOTPTeam, isActive, hasLoadedAnalytics]);
+
   // Calculate analytics data
   const analytics = useMemo(() => {
     // Dynamic status counts based on actual board columns
@@ -375,59 +426,57 @@ export default function Summary({
       </div>
 
       {/* Charts and Analytics */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Task Status Distribution */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-lg">
-                <BarChart3 className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Task Status Distribution</h3>
+      {/* Task Status Distribution - Full width when Team Performance is hidden */}
+      <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-lg">
+              <BarChart3 className="w-5 h-5 text-pink-600 dark:text-pink-400" />
             </div>
-            <StatusChart />
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Task Status Distribution</h3>
           </div>
-        </div>
-
-        {/* Team Performance */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-indigo-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
-          <div className="p-6">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="p-2 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-400/20 dark:to-indigo-400/20 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-              </div>
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Team Performance</h3>
-            </div>
-            <div className="space-y-4">
-              {analytics.memberPerformance.slice(0, 5).map((member, index) => (
-                <div key={member.id || index} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                      {member.name || member.email.split('@')[0]}
-                    </span>
-                    <span className="text-sm text-gray-600 dark:text-gray-400">
-                      {member.completedTasks}/{member.totalTasks}
-                    </span>
-                  </div>
-                  <ProgressBar 
-                    value={member.completedTasks} 
-                    max={member.totalTasks} 
-                    color="bg-blue-500" 
-                  />
-                </div>
-              ))}
-              {analytics.memberPerformance.length === 0 && (
-                <div className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
-                  No team member data available
-                </div>
-              )}
-            </div>
-          </div>
+          <StatusChart />
         </div>
       </div>
 
+      {/* Team Performance - Commented out for now */}
+      {/* <div className="relative overflow-hidden bg-gradient-to-br from-white via-blue-50/30 to-indigo-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-indigo-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 dark:from-blue-400/20 dark:to-indigo-400/20 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Team Performance</h3>
+          </div>
+          <div className="space-y-4">
+            {analytics.memberPerformance.slice(0, 5).map((member, index) => (
+              <div key={member.id || index} className="space-y-2">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                    {member.name || member.email.split('@')[0]}
+                  </span>
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    {member.completedTasks}/{member.totalTasks}
+                  </span>
+                </div>
+                <ProgressBar 
+                  value={member.completedTasks} 
+                  max={member.totalTasks} 
+                  color="bg-blue-500" 
+                />
+              </div>
+            ))}
+            {analytics.memberPerformance.length === 0 && (
+              <div className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+                No team member data available
+              </div>
+            )}
+          </div>
+        </div>
+      </div> */}
+
       {/* Priority Distribution */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-green-50/30 to-emerald-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-emerald-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+      {/* <div className="relative overflow-hidden bg-gradient-to-br from-white via-green-50/30 to-emerald-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-emerald-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
         <div className="p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 bg-gradient-to-br from-green-500/10 to-emerald-500/10 dark:from-green-400/20 dark:to-emerald-400/20 rounded-lg">
@@ -437,7 +486,218 @@ export default function Summary({
           </div>
           <PriorityChart />
         </div>
-      </div>
+      </div> */}
+
+      {/* Content Type Analytics Section - Only for OTP Teams (OTP-PTR, OTP-Fansly) */}
+      {isOTPTeam && contentTypeAnalytics && (
+        <>
+          {/* Content Type Revenue Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+            {/* Monthly Revenue */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-emerald-50/30 to-teal-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-teal-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+              <div className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-gradient-to-br from-emerald-500/10 to-teal-500/10 dark:from-emerald-400/20 dark:to-teal-400/20 rounded-lg">
+                    <DollarSign className="w-3 h-3 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">This Month</h4>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400">
+                    ${contentTypeAnalytics.totalRevenueThisMonth.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    {contentTypeAnalytics.monthName}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* All Time Revenue */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-violet-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+              <div className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-gradient-to-br from-violet-500/10 to-purple-500/10 dark:from-violet-400/20 dark:to-purple-400/20 rounded-lg">
+                    <TrendingUp className="w-3 h-3 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">All Time</h4>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-2xl font-black text-violet-600 dark:text-violet-400">
+                    ${contentTypeAnalytics.totalRevenueAllTime.toLocaleString()}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    Total revenue
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Submissions This Month */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-sky-50/30 to-cyan-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-cyan-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+              <div className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-gradient-to-br from-sky-500/10 to-cyan-500/10 dark:from-sky-400/20 dark:to-cyan-400/20 rounded-lg">
+                    <Package className="w-3 h-3 text-sky-600 dark:text-sky-400" />
+                  </div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Submissions</h4>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-2xl font-black text-gray-900 dark:text-gray-100">
+                    {contentTypeAnalytics.totalWorkflowsThisMonth}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    This month
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Models Active */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-rose-50/30 to-pink-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-pink-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+              <div className="p-3">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="p-1.5 bg-gradient-to-br from-rose-500/10 to-pink-500/10 dark:from-rose-400/20 dark:to-pink-400/20 rounded-lg">
+                    <Users className="w-3 h-3 text-rose-600 dark:text-rose-400" />
+                  </div>
+                  <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100">Models</h4>
+                </div>
+                <div className="space-y-1">
+                  <div className="text-2xl font-black text-gray-900 dark:text-gray-100">
+                    {contentTypeAnalytics.modelsCountThisMonth}
+                  </div>
+                  <div className="text-xs text-gray-600 dark:text-gray-400">
+                    Active this month
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Top Content Types */}
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Top Content Types This Month */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-amber-50/30 to-orange-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-orange-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-gradient-to-br from-amber-500/10 to-orange-500/10 dark:from-amber-400/20 dark:to-orange-400/20 rounded-lg">
+                    <Tag className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Top Content Types</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{contentTypeAnalytics.monthName}</p>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {contentTypeAnalytics.topContentTypesThisMonth.length > 0 ? (
+                    contentTypeAnalytics.topContentTypesThisMonth.map((type, index) => {
+                      const maxCount = contentTypeAnalytics.topContentTypesThisMonth[0]?.count || 1;
+                      const percentage = (type.count / maxCount) * 100;
+                      const categoryColors: Record<string, string> = {
+                        CHEAP_PORN: "bg-blue-500",
+                        EXPENSIVE_PORN: "bg-purple-500",
+                        GF_ACCURATE: "bg-pink-500",
+                      };
+                      const barColor = categoryColors[type.category] || "bg-gray-500";
+                      
+                      return (
+                        <div key={type.id} className="group">
+                          <div className="flex items-center justify-between mb-1">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                              <span className="text-xs font-medium text-gray-500 dark:text-gray-400 w-4">
+                                {index + 1}.
+                              </span>
+                              <span className="text-sm text-gray-700 dark:text-gray-300 truncate">
+                                {type.label}
+                              </span>
+                            </div>
+                            <span className="text-sm font-semibold text-gray-900 dark:text-gray-100 ml-2">
+                              {type.count}
+                            </span>
+                          </div>
+                          <div className="w-full bg-gray-100 dark:bg-gray-700/50 rounded-sm h-2 overflow-hidden ml-6">
+                            <div
+                              className={`h-full rounded-sm transition-all duration-300 ${barColor}`}
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="text-sm text-gray-600 dark:text-gray-400 text-center py-4">
+                      No content type data available
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Category Breakdown */}
+            <div className="relative overflow-hidden bg-gradient-to-br from-white via-indigo-50/30 to-blue-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-blue-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+              <div className="p-6">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-gradient-to-br from-indigo-500/10 to-blue-500/10 dark:from-indigo-400/20 dark:to-blue-400/20 rounded-lg">
+                    <BarChart3 className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Category Breakdown</h3>
+                </div>
+                <div className="space-y-4">
+                  {Object.entries(contentTypeAnalytics.categoryBreakdown).map(([category, data]) => {
+                    const categoryLabels: Record<string, string> = {
+                      CHEAP_PORN: "Cheap Porn",
+                      EXPENSIVE_PORN: "Expensive Porn",
+                      GF_ACCURATE: "GF Accurate",
+                    };
+                    const categoryColors: Record<string, string> = {
+                      CHEAP_PORN: "bg-blue-500",
+                      EXPENSIVE_PORN: "bg-purple-500",
+                      GF_ACCURATE: "bg-pink-500",
+                    };
+                    const totalCount = Object.values(contentTypeAnalytics.categoryBreakdown).reduce((sum, d) => sum + d.count, 0) || 1;
+                    const percentage = (data.count / totalCount) * 100;
+                    
+                    return (
+                      <div key={category} className="space-y-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                            {categoryLabels[category] || category}
+                          </span>
+                          <div className="text-right">
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {data.count} items
+                            </span>
+                            <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 ml-2">
+                              ${data.revenue.toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                          <div
+                            className={`h-2 rounded-full ${categoryColors[category] || "bg-gray-500"}`}
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Loading state for content analytics */}
+      {isLoadingAnalytics && (
+        <div className="relative overflow-hidden bg-gradient-to-br from-white via-gray-50/30 to-slate-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-slate-900/30 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-sm backdrop-blur-sm">
+          <div className="p-6 flex items-center justify-center">
+            <div className="animate-pulse text-sm text-gray-500 dark:text-gray-400">
+              Loading content type analytics...
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

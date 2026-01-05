@@ -3,7 +3,6 @@
 import { ActiveUser } from "@/hooks/useAdminUsers";
 import { Users, Clock } from "lucide-react";
 import { formatForDisplay } from "@/lib/dateUtils";
-import Image from "next/image";
 
 interface ActiveUsersTodayProps {
   users: ActiveUser[];
@@ -88,11 +87,10 @@ export function ActiveUsersToday({ users }: ActiveUsersTodayProps) {
                 {/* Avatar */}
                 <div className="relative h-8 w-8 rounded-full overflow-hidden bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/30 dark:to-purple-900/30 flex items-center justify-center flex-shrink-0">
                   {user.image ? (
-                    <Image
-                      src={user.image}
+                    <img
+                      src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                       alt={user.name || user.email || "User"}
-                      fill
-                      className="object-cover"
+                      className="absolute inset-0 w-full h-full object-cover"
                     />
                   ) : (
                     <Users className="h-4 w-4 text-gray-400" />

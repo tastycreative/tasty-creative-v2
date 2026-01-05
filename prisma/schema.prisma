@@ -1536,3 +1536,53 @@ enum WallPostPhotoStatus {
   POSTED
   REJECTED
 }
+
+// User Feedback Model
+model Feedback {
+  id          String         @id @default(cuid())
+  category    FeedbackCategory @default(GENERAL)
+  title       String?
+  message     String
+  rating      Int?           // Optional 1-5 rating
+  status      FeedbackStatus @default(NEW)
+  priority    FeedbackPriority @default(NORMAL)
+  pageUrl     String?        // The page they were on when submitting
+  userAgent   String?        // Browser/device info
+  metadata    Json?          // Any additional data
+  adminNotes  String?        // Internal notes from admin
+  resolvedAt  DateTime?
+  resolvedBy  String?
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  @@index([status])
+  @@index([category])
+  @@index([priority])
+  @@index([createdAt])
+}
+
+enum FeedbackCategory {
+  BUG           // Bug report
+  FEATURE       // Feature request
+  IMPROVEMENT   // Improvement suggestion
+  GENERAL       // General feedback
+  QUESTION      // Question/Help
+  COMPLAINT     // Complaint
+  PRAISE        // Positive feedback
+}
+
+enum FeedbackStatus {
+  NEW           // Just submitted
+  REVIEWING     // Being reviewed
+  IN_PROGRESS   // Being worked on
+  RESOLVED      // Issue resolved
+  CLOSED        // Closed without action
+  WONT_FIX      // Won't be addressed
+}
+
+enum FeedbackPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}

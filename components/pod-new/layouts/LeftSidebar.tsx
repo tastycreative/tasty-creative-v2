@@ -4,7 +4,6 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
-import Image from "next/image";
 import {
   LayoutDashboard,
   Briefcase,
@@ -601,12 +600,10 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                     <div className="space-y-1">
                       <div className="group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900">
                         {session.user.image ? (
-                          <Image
-                            src={session.user.image}
+                          <img
+                            src={`/api/image-proxy?url=${encodeURIComponent(session.user.image)}`}
                             alt={session.user.name || "User avatar"}
-                            width={20}
-                            height={20}
-                            className="w-5 h-5 rounded-full shrink-0"
+                            className="w-5 h-5 rounded-full shrink-0 object-cover"
                           />
                         ) : (
                           <User className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />

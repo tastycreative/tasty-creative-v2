@@ -6,6 +6,7 @@ import { Providers } from "./providers";
 import { SessionMonitor } from "@/components/SessionMonitor";
 import { SessionErrorHandler } from "@/components/auth/SessionErrorHandler";
 import ChatBot from "@/components/ChatBot";
+import FeedbackButton from "@/components/FeedbackButton";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -51,6 +52,7 @@ export default function RootLayout({
           <SessionMonitor />
           <SessionErrorHandler />
           {children}
+          <FeedbackButton />
           {/* <QuicklinksNavigation /> */}
           {/* <ChatBot /> */}
         </Providers>

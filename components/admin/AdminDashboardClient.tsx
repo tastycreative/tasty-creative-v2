@@ -2,7 +2,6 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import Image from "next/image";
 import { formatForDisplay } from "@/lib/dateUtils";
 import {
   XAxis,
@@ -1488,11 +1487,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             {getRankIcon(message.rank)}
                             <div className="flex items-center space-x-3">
                               {message.modelAvatar ? (
-                                <Image
-                                  src={`/api/image-proxy?url=${message.modelAvatar}`}
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(message.modelAvatar)}`}
                                   alt={message.modelName}
-                                  width={32}
-                                  height={32}
                                   className="h-8 w-8 rounded-full object-cover border border-gray-200 dark:border-gray-600"
                                 />
                               ) : (
@@ -1850,11 +1847,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                             {getTrophyIcon(model.rank)}
                             <div className="flex items-center space-x-3 flex-1 min-w-0">
                               {model.avatar ? (
-                                <Image
-                                  src={`/api/image-proxy?url=${model.avatar}`}
+                                <img
+                                  src={`/api/image-proxy?url=${encodeURIComponent(model.avatar)}`}
                                   alt={model.name}
-                                  width={40}
-                                  height={40}
                                   className="h-10 w-10 rounded-full object-cover border border-gray-200 dark:border-gray-600 flex-shrink-0"
                                 />
                               ) : (
@@ -2473,11 +2468,9 @@ export function AdminDashboardClient({ data }: { data: DashboardData }) {
                       <td className="py-3 px-4">
                         <div className="flex items-center space-x-3">
                           {user.image ? (
-                            <Image
-                              src={`/api/image-proxy?url=${user.image}`}
+                            <img
+                              src={`/api/image-proxy?url=${encodeURIComponent(user.image)}`}
                               alt={user.name || ""}
-                              width={32}
-                              height={32}
                               className="h-8 w-8 rounded-full object-cover border border-pink-200 dark:border-pink-500/30"
                             />
                           ) : (
