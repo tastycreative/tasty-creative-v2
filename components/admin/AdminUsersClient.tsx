@@ -141,9 +141,9 @@ export function AdminUsersClient({
     refetch
   } = useAdminUsers(queryParams);
 
-  // Update URL params
-  const updateURL = useCallback((newParams: Partial<typeof queryParams>) => {
-    const urlParams = new URLSearchParams(searchParams?.toString() || "");
+  // Update URL params - memoized to prevent infinite loops
+  const updateURL = useCallback((newParams: { page?: number; limit?: string; search?: string; role?: string }) => {
+    const urlParams = new URLSearchParams(window.location.search);
     
     Object.entries(newParams).forEach(([key, value]) => {
       if (value && value !== "all" && value !== "1" && value !== "10") {
@@ -154,10 +154,10 @@ export function AdminUsersClient({
     });
 
     const newURL = `${window.location.pathname}${urlParams.toString() ? `?${urlParams.toString()}` : ''}`;
-    router.push(newURL, { scroll: false });
-  }, [router, searchParams]);
+    window.history.replaceState(null, '', newURL);
+  }, []);
 
-  // Sync URL when individual params change (not when queryParams object changes)/
+  // Sync URL when individual params change (not when queryParams object changes)
   useEffect(() => {
     updateURL({
       page: page,
@@ -165,7 +165,8 @@ export function AdminUsersClient({
       search: debouncedSearchTerm,
       role: selectedRole,
     });
-  }, [page, pageSize, debouncedSearchTerm, selectedRole, updateURL]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, debouncedSearchTerm, selectedRole]);
 
   // Handle pagination
   const handlePageChange = (newPage: number) => {

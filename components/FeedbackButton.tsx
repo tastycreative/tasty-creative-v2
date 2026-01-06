@@ -1,9 +1,29 @@
 "use client";
 
-import React, { useState } from "react";
-import { MessageSquarePlus, X, Send, Star, Bug, Lightbulb, HelpCircle, ThumbsUp, AlertCircle, Loader2 } from "lucide-react";
+import React, { useState, useRef } from "react";
+import { MessageSquarePlus, X, Send, Star, Bug, Lightbulb, HelpCircle, ThumbsUp, AlertCircle, Loader2, ImagePlus, Trash2 } from "lucide-react";
 
 type FeedbackCategory = "BUG" | "FEATURE" | "IMPROVEMENT" | "GENERAL" | "QUESTION" | "COMPLAINT" | "PRAISE";
+
+// Local preview attachment (before upload)
+interface LocalAttachment {
+  id: string;
+  file: File;
+  previewUrl: string;
+  name: string;
+  size: number;
+  type: string;
+}
+
+// Uploaded attachment (after S3 upload)
+interface UploadedAttachment {
+  id: string;
+  name: string;
+  s3Key: string;
+  url: string;
+  size: number;
+  type: string;
+}
 
 interface FeedbackFormData {
   category: FeedbackCategory;
@@ -23,10 +43,16 @@ const categoryOptions: { value: FeedbackCategory; label: string; icon: React.Rea
   { value: "GENERAL", label: "General", icon: <MessageSquarePlus className="w-4 h-4" />, color: "text-gray-500" },
 ];
 
+const MAX_ATTACHMENTS = 3;
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB per file
+
 export default function FeedbackButton() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
+  const [localAttachments, setLocalAttachments] = useState<LocalAttachment[]>([]);
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState<FeedbackFormData>({
     category: "GENERAL",
     title: "",
@@ -35,6 +61,109 @@ export default function FeedbackButton() {
     email: "",
     name: "",
   });
+
+  // Handle file selection - just preview locally, don't upload yet
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files || files.length === 0) return;
+
+    setUploadError(null);
+
+    // Check attachment limit
+    if (localAttachments.length >= MAX_ATTACHMENTS) {
+      setUploadError(`Maximum ${MAX_ATTACHMENTS} attachments allowed`);
+      return;
+    }
+
+    const file = files[0];
+
+    // Validate file type (images only)
+    if (!file.type.startsWith("image/")) {
+      setUploadError("Only image files are allowed");
+      return;
+    }
+
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
+      setUploadError("File size must be less than 5MB");
+      return;
+    }
+
+    // Create local preview URL
+    const previewUrl = URL.createObjectURL(file);
+    const id = `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+
+    setLocalAttachments((prev) => [
+      ...prev,
+      {
+        id,
+        file,
+        previewUrl,
+        name: file.name,
+        size: file.size,
+        type: file.type,
+      },
+    ]);
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removeAttachment = (id: string) => {
+    setLocalAttachments((prev) => {
+      const attachment = prev.find((a) => a.id === id);
+      if (attachment) {
+        // Revoke the object URL to free memory
+        URL.revokeObjectURL(attachment.previewUrl);
+      }
+      return prev.filter((a) => a.id !== id);
+    });
+  };
+
+  const formatFileSize = (bytes: number): string => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
+  // Upload files to S3 and return the uploaded attachment data
+  const uploadFilesToS3 = async (): Promise<UploadedAttachment[]> => {
+    const uploadedAttachments: UploadedAttachment[] = [];
+
+    for (const localAttachment of localAttachments) {
+      const formDataUpload = new FormData();
+      formDataUpload.append("file", localAttachment.file);
+      formDataUpload.append("folder", "feedback-attachments");
+
+      const response = await fetch("/api/upload/s3", {
+        method: "POST",
+        body: formDataUpload,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to upload file");
+      }
+
+      const data = await response.json();
+      
+      // The S3 API returns the attachment data nested under "attachment"
+      const attachment = data.attachment || data;
+      
+      uploadedAttachments.push({
+        id: attachment.id,
+        name: attachment.name,
+        s3Key: attachment.s3Key,
+        url: attachment.url,
+        size: attachment.size,
+        type: attachment.type,
+      });
+    }
+
+    return uploadedAttachments;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -46,6 +175,13 @@ export default function FeedbackButton() {
     setIsSubmitting(true);
 
     try {
+      // Upload files to S3 first (if any)
+      let uploadedAttachments: UploadedAttachment[] = [];
+      if (localAttachments.length > 0) {
+        uploadedAttachments = await uploadFilesToS3();
+      }
+
+      // Submit feedback with uploaded attachments
       const response = await fetch("/api/feedback", {
         method: "POST",
         headers: {
@@ -53,12 +189,16 @@ export default function FeedbackButton() {
         },
         body: JSON.stringify({
           ...formData,
+          attachments: uploadedAttachments.length > 0 ? uploadedAttachments : null,
           pageUrl: window.location.href,
           userAgent: navigator.userAgent,
         }),
       });
 
       if (response.ok) {
+        // Clean up local preview URLs
+        localAttachments.forEach((a) => URL.revokeObjectURL(a.previewUrl));
+        
         setIsSubmitted(true);
         setTimeout(() => {
           setIsOpen(false);
@@ -71,10 +211,13 @@ export default function FeedbackButton() {
             email: "",
             name: "",
           });
+          setLocalAttachments([]);
+          setUploadError(null);
         }, 2000);
       }
     } catch (error) {
       console.error("Error submitting feedback:", error);
+      setUploadError(error instanceof Error ? error.message : "Failed to submit feedback");
     } finally {
       setIsSubmitting(false);
     }
@@ -85,6 +228,14 @@ export default function FeedbackButton() {
       ...prev,
       rating: prev.rating === rating ? null : rating,
     }));
+  };
+
+  const handleClose = () => {
+    // Clean up local preview URLs when closing
+    localAttachments.forEach((a) => URL.revokeObjectURL(a.previewUrl));
+    setLocalAttachments([]);
+    setIsOpen(false);
+    setUploadError(null);
   };
 
   return (
@@ -107,20 +258,20 @@ export default function FeedbackButton() {
           {/* Backdrop */}
           <div
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={() => setIsOpen(false)}
+            onClick={handleClose}
           />
 
           {/* Modal */}
-          <div className="relative w-full max-w-md bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 border border-gray-200 dark:border-gray-700">
+          <div className="relative w-full max-w-md max-h-[90vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-2xl shadow-2xl animate-in fade-in zoom-in duration-200 border border-gray-200 dark:border-gray-700">
             {/* Header */}
-            <div className="bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-4">
+            <div className="sticky top-0 z-10 bg-gradient-to-r from-pink-500 to-purple-600 px-6 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
                   <MessageSquarePlus className="w-6 h-6 text-white" />
                   <h2 className="text-xl font-bold text-white">Send Feedback</h2>
                 </div>
                 <button
-                  onClick={() => setIsOpen(false)}
+                  onClick={handleClose}
                   className="p-1 rounded-lg hover:bg-white/20 transition-colors"
                 >
                   <X className="w-5 h-5 text-white" />
@@ -205,6 +356,71 @@ export default function FeedbackButton() {
                   />
                 </div>
 
+                {/* Photo Attachments */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Attach Screenshots <span className="text-gray-400">(optional, max {MAX_ATTACHMENTS})</span>
+                  </label>
+                  
+                  {/* Attachment Previews */}
+                  {localAttachments.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2 mb-2">
+                      {localAttachments.map((attachment) => (
+                        <div
+                          key={attachment.id}
+                          className="relative group rounded-lg overflow-hidden border border-gray-200 dark:border-gray-700"
+                        >
+                          <img
+                            src={attachment.previewUrl}
+                            alt={attachment.name}
+                            className="w-full h-20 object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(attachment.id)}
+                              className="p-1.5 bg-red-500 rounded-full text-white hover:bg-red-600 transition-colors"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
+                          </div>
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-1 py-0.5">
+                            <p className="text-xs text-white truncate">{formatFileSize(attachment.size)}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Upload Button */}
+                  {localAttachments.length < MAX_ATTACHMENTS && (
+                    <div>
+                      <input
+                        ref={fileInputRef}
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileSelect}
+                        className="hidden"
+                        id="feedback-file-input"
+                      />
+                      <label
+                        htmlFor="feedback-file-input"
+                        className="flex items-center justify-center gap-2 w-full py-2 px-3 border-2 border-dashed rounded-lg cursor-pointer transition-all border-gray-300 dark:border-gray-600 hover:border-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                      >
+                        <ImagePlus className="w-5 h-5 text-gray-400" />
+                        <span className="text-sm text-gray-500 dark:text-gray-400">
+                          Add screenshot
+                        </span>
+                      </label>
+                    </div>
+                  )}
+
+                  {/* Upload Error */}
+                  {uploadError && (
+                    <p className="text-xs text-red-500 mt-1">{uploadError}</p>
+                  )}
+                </div>
+
                 {/* Rating */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -239,7 +455,7 @@ export default function FeedbackButton() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-5 h-5 animate-spin" />
-                      Submitting...
+                      {localAttachments.length > 0 ? "Uploading & Submitting..." : "Submitting..."}
                     </>
                   ) : (
                     <>

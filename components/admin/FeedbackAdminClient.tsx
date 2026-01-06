@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   MessageSquare,
   Bug,
@@ -19,7 +19,21 @@ import {
   Eye,
   X,
   Filter,
+  Paperclip,
+  PlayCircle,
+  MoreHorizontal,
 } from "lucide-react";
+import AttachmentViewer from "@/components/ui/AttachmentViewer";
+import type { TaskAttachment } from "@/lib/stores/boardStore";
+
+interface Attachment {
+  id: string;
+  name: string;
+  s3Key: string;
+  url?: string;
+  size: number;
+  type: string;
+}
 
 interface Feedback {
   id: string;
@@ -27,6 +41,7 @@ interface Feedback {
   title: string | null;
   message: string;
   rating: number | null;
+  attachments: Attachment[] | null;
   status: string;
   priority: string;
   pageUrl: string | null;
@@ -81,9 +96,12 @@ export default function FeedbackAdminClient() {
     totalPages: 0,
   });
   const [isLoading, setIsLoading] = useState(true);
+  const [isUpdating, setIsUpdating] = useState<string | null>(null);
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("");
   const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [actionMenuOpen, setActionMenuOpen] = useState<string | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number } | null>(null);
 
   const fetchFeedbacks = useCallback(async () => {
     setIsLoading(true);
@@ -112,6 +130,36 @@ export default function FeedbackAdminClient() {
   useEffect(() => {
     fetchFeedbacks();
   }, [fetchFeedbacks]);
+
+  const updateFeedbackStatus = async (id: string, status: string) => {
+    setIsUpdating(id);
+    setActionMenuOpen(null);
+    setMenuPosition(null);
+    try {
+      const response = await fetch("/api/feedback", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, status }),
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Update local state
+        setFeedbacks((prev) =>
+          prev.map((f) => (f.id === id ? { ...f, ...data.data } : f))
+        );
+        // Also update selected feedback if it's open
+        if (selectedFeedback?.id === id) {
+          setSelectedFeedback({ ...selectedFeedback, ...data.data });
+        }
+      }
+    } catch (error) {
+      console.error("Error updating feedback:", error);
+    } finally {
+      setIsUpdating(null);
+    }
+  };
 
   const handlePageChange = (newPage: number) => {
     setPagination((prev) => ({ ...prev, page: newPage }));
@@ -248,6 +296,9 @@ export default function FeedbackAdminClient() {
                     Message
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                    Attachments
+                  </th>
+                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                     Rating
                   </th>
                   <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
@@ -293,6 +344,18 @@ export default function FeedbackAdminClient() {
                         </div>
                       </td>
                       <td className="px-4 py-3">
+                        {feedback.attachments && feedback.attachments.length > 0 ? (
+                          <div className="flex items-center gap-2">
+                            <Paperclip className="w-4 h-4 text-gray-400" />
+                            <span className="text-sm text-gray-600 dark:text-gray-400">
+                              {feedback.attachments.length} file{feedback.attachments.length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
                         {renderStars(feedback.rating)}
                       </td>
                       <td className="px-4 py-3">
@@ -311,13 +374,43 @@ export default function FeedbackAdminClient() {
                         {formatDate(feedback.createdAt)}
                       </td>
                       <td className="px-4 py-3">
-                        <button
-                          onClick={() => setSelectedFeedback(feedback)}
-                          className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                          title="View details"
-                        >
-                          <Eye className="w-4 h-4 text-gray-500" />
-                        </button>
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => setSelectedFeedback(feedback)}
+                            className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                            title="View details"
+                          >
+                            <Eye className="w-4 h-4 text-gray-500" />
+                          </button>
+                          
+                          {/* Quick Status Actions */}
+                          <div className="relative">
+                            <button
+                              onClick={(e) => {
+                                if (actionMenuOpen === feedback.id) {
+                                  setActionMenuOpen(null);
+                                  setMenuPosition(null);
+                                } else {
+                                  const rect = e.currentTarget.getBoundingClientRect();
+                                  setMenuPosition({
+                                    top: rect.bottom + 4,
+                                    left: rect.right - 192, // 192px = w-48
+                                  });
+                                  setActionMenuOpen(feedback.id);
+                                }
+                              }}
+                              disabled={isUpdating === feedback.id}
+                              className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                              title="Update status"
+                            >
+                              {isUpdating === feedback.id ? (
+                                <Loader2 className="w-4 h-4 animate-spin text-gray-500" />
+                              ) : (
+                                <MoreHorizontal className="w-4 h-4 text-gray-500" />
+                              )}
+                            </button>
+                          </div>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -352,6 +445,72 @@ export default function FeedbackAdminClient() {
           </div>
         )}
       </div>
+
+      {/* Fixed Position Dropdown Menu */}
+      {actionMenuOpen && menuPosition && (
+        <>
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => {
+              setActionMenuOpen(null);
+              setMenuPosition(null);
+            }}
+          />
+          <div 
+            className="fixed z-50 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-1"
+            style={{ top: menuPosition.top, left: menuPosition.left }}
+          >
+            <div className="px-3 py-1.5 text-xs font-semibold text-gray-500 uppercase">
+              Set Status
+            </div>
+            {feedbacks.find(f => f.id === actionMenuOpen)?.status !== "REVIEWING" && (
+              <button
+                onClick={() => updateFeedbackStatus(actionMenuOpen, "REVIEWING")}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              >
+                <Clock className="w-4 h-4 text-yellow-500" />
+                Reviewing
+              </button>
+            )}
+            {feedbacks.find(f => f.id === actionMenuOpen)?.status !== "IN_PROGRESS" && (
+              <button
+                onClick={() => updateFeedbackStatus(actionMenuOpen, "IN_PROGRESS")}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              >
+                <PlayCircle className="w-4 h-4 text-purple-500" />
+                In Progress
+              </button>
+            )}
+            {feedbacks.find(f => f.id === actionMenuOpen)?.status !== "RESOLVED" && (
+              <button
+                onClick={() => updateFeedbackStatus(actionMenuOpen, "RESOLVED")}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              >
+                <CheckCircle className="w-4 h-4 text-green-500" />
+                Resolved
+              </button>
+            )}
+            {feedbacks.find(f => f.id === actionMenuOpen)?.status !== "CLOSED" && (
+              <button
+                onClick={() => updateFeedbackStatus(actionMenuOpen, "CLOSED")}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              >
+                <XCircle className="w-4 h-4 text-gray-500" />
+                Closed
+              </button>
+            )}
+            {feedbacks.find(f => f.id === actionMenuOpen)?.status !== "WONT_FIX" && (
+              <button
+                onClick={() => updateFeedbackStatus(actionMenuOpen, "WONT_FIX")}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
+              >
+                <XCircle className="w-4 h-4 text-red-500" />
+                Won&apos;t Fix
+              </button>
+            )}
+          </div>
+        </>
+      )}
 
       {/* Detail Modal */}
       {selectedFeedback && (
@@ -394,6 +553,66 @@ export default function FeedbackAdminClient() {
                 </span>
               </div>
 
+              {/* Status Actions */}
+              <div>
+                <label className="text-xs font-medium text-gray-500 uppercase">Update Status</label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {selectedFeedback.status !== "REVIEWING" && (
+                    <button
+                      onClick={() => updateFeedbackStatus(selectedFeedback.id, "REVIEWING")}
+                      disabled={isUpdating === selectedFeedback.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:text-yellow-400 dark:hover:bg-yellow-900/50 transition-colors disabled:opacity-50"
+                    >
+                      <Clock className="w-4 h-4" />
+                      Reviewing
+                    </button>
+                  )}
+                  {selectedFeedback.status !== "IN_PROGRESS" && (
+                    <button
+                      onClick={() => updateFeedbackStatus(selectedFeedback.id, "IN_PROGRESS")}
+                      disabled={isUpdating === selectedFeedback.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-purple-100 text-purple-700 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:hover:bg-purple-900/50 transition-colors disabled:opacity-50"
+                    >
+                      <PlayCircle className="w-4 h-4" />
+                      In Progress
+                    </button>
+                  )}
+                  {selectedFeedback.status !== "RESOLVED" && (
+                    <button
+                      onClick={() => updateFeedbackStatus(selectedFeedback.id, "RESOLVED")}
+                      disabled={isUpdating === selectedFeedback.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-green-100 text-green-700 hover:bg-green-200 dark:bg-green-900/30 dark:text-green-400 dark:hover:bg-green-900/50 transition-colors disabled:opacity-50"
+                    >
+                      <CheckCircle className="w-4 h-4" />
+                      Resolved
+                    </button>
+                  )}
+                  {selectedFeedback.status !== "CLOSED" && (
+                    <button
+                      onClick={() => updateFeedbackStatus(selectedFeedback.id, "CLOSED")}
+                      disabled={isUpdating === selectedFeedback.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Closed
+                    </button>
+                  )}
+                  {selectedFeedback.status !== "WONT_FIX" && (
+                    <button
+                      onClick={() => updateFeedbackStatus(selectedFeedback.id, "WONT_FIX")}
+                      disabled={isUpdating === selectedFeedback.id}
+                      className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium rounded-lg bg-red-100 text-red-700 hover:bg-red-200 dark:bg-red-900/30 dark:text-red-400 dark:hover:bg-red-900/50 transition-colors disabled:opacity-50"
+                    >
+                      <XCircle className="w-4 h-4" />
+                      Won&apos;t Fix
+                    </button>
+                  )}
+                  {isUpdating === selectedFeedback.id && (
+                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                  )}
+                </div>
+              </div>
+
               {/* Title */}
               {selectedFeedback.title && (
                 <div>
@@ -417,6 +636,20 @@ export default function FeedbackAdminClient() {
                 <label className="text-xs font-medium text-gray-500 uppercase">Rating</label>
                 <div className="mt-1">{renderStars(selectedFeedback.rating)}</div>
               </div>
+
+              {/* Attachments */}
+              {selectedFeedback.attachments && selectedFeedback.attachments.length > 0 && (
+                <div>
+                  <AttachmentViewer 
+                    attachments={selectedFeedback.attachments.map((att): TaskAttachment => ({
+                      ...att,
+                      uploadedAt: selectedFeedback.createdAt, // Use feedback creation date as upload date
+                    }))}
+                    showTitle={true}
+                    compact={false}
+                  />
+                </div>
+              )}
 
               {/* Metadata */}
               <div className="grid grid-cols-2 gap-4">

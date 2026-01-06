@@ -8,7 +8,7 @@ export async function POST(request: NextRequest) {
     const session = await auth();
     const body = await request.json();
 
-    const { category, title, message, rating, pageUrl, userAgent } = body;
+    const { category, title, message, rating, pageUrl, userAgent, attachments } = body;
 
     if (!message || message.trim().length === 0) {
       return NextResponse.json(
@@ -34,6 +34,7 @@ export async function POST(request: NextRequest) {
         title: title || null,
         message: message.trim(),
         rating: rating ? parseInt(rating) : null,
+        attachments: attachments && attachments.length > 0 ? attachments : null,
         pageUrl: pageUrl || null,
         userAgent: userAgent || null,
         status: "NEW",
@@ -109,6 +110,66 @@ export async function GET(request: NextRequest) {
     console.error("Error fetching feedback:", error);
     return NextResponse.json(
       { error: "Failed to fetch feedback" },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH /api/feedback - Update feedback status/priority (admin only)
+export async function PATCH(request: NextRequest) {
+  try {
+    const session = await auth();
+    
+    if (!session?.user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if user is admin
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      select: { role: true },
+    });
+
+    if (user?.role !== "ADMIN") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    const body = await request.json();
+    const { id, status, priority, adminNotes } = body;
+
+    if (!id) {
+      return NextResponse.json(
+        { error: "Feedback ID is required" },
+        { status: 400 }
+      );
+    }
+
+    const updateData: Record<string, unknown> = {};
+    
+    if (status) {
+      updateData.status = status;
+      if (status === "RESOLVED" || status === "CLOSED") {
+        updateData.resolvedAt = new Date();
+        updateData.resolvedBy = session.user.id;
+      }
+    }
+    
+    if (priority) updateData.priority = priority;
+    if (adminNotes !== undefined) updateData.adminNotes = adminNotes;
+
+    const feedback = await prisma.feedback.update({
+      where: { id },
+      data: updateData,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: feedback,
+    });
+  } catch (error) {
+    console.error("Error updating feedback:", error);
+    return NextResponse.json(
+      { error: "Failed to update feedback" },
       { status: 500 }
     );
   }

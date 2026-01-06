@@ -1544,6 +1544,7 @@ model Feedback {
   title       String?
   message     String
   rating      Int?           // Optional 1-5 rating
+  attachments Json?          // Array of {s3Key, name, type, size, url}
   status      FeedbackStatus @default(NEW)
   priority    FeedbackPriority @default(NORMAL)
   pageUrl     String?        // The page they were on when submitting
