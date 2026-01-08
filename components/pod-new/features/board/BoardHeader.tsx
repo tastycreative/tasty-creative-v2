@@ -1,7 +1,15 @@
 "use client";
 
 import React, { useState } from "react";
-import { KanbanSquare, BarChart3, Settings, List, BookOpen, AlertTriangle, Image } from "lucide-react";
+import {
+  KanbanSquare,
+  BarChart3,
+  Settings,
+  List,
+  BookOpen,
+  AlertTriangle,
+  Image,
+} from "lucide-react";
 import { useSession } from "next-auth/react";
 
 interface BoardHeaderProps {
@@ -13,23 +21,31 @@ interface BoardHeaderProps {
   onTabChange?: (tab: TabType) => void;
 }
 
-export type TabType = 'board' | 'list' | 'summary' | 'settings' | 'resources' | 'strikes' | 'gallery';
+export type TabType =
+  | "board"
+  | "list"
+  | "summary"
+  | "settings"
+  | "resources"
+  | "strikes"
+  | "gallery";
 
 export default function BoardHeader({
   teamName,
   totalTasks,
   filteredTasksCount,
   isLoading,
-  activeTab = 'board',
+  activeTab = "board",
   onTabChange,
 }: BoardHeaderProps) {
   const { data: session } = useSession();
-  const isAdmin = session?.user?.role === 'ADMIN' || session?.user?.role === 'MODERATOR';
-  const hasGallery = teamName === 'Wall Post' || teamName === 'OFTV';
+  const isAdmin =
+    session?.user?.role === "ADMIN" || session?.user?.role === "MODERATOR";
+  const hasGallery = teamName === "Wall Post" || teamName === "OFTV";
 
   const handleTabChange = (tab: TabType) => {
     // Prevent settings access for non-admin/moderator users
-    if (tab === 'settings' && !isAdmin) {
+    if (tab === "settings" && !isAdmin) {
       return;
     }
 
@@ -40,38 +56,42 @@ export default function BoardHeader({
 
   const tabs = [
     {
-      id: 'summary' as TabType,
-      label: 'Summary',
+      id: "summary" as TabType,
+      label: "Summary",
       icon: BarChart3,
     },
     {
-      id: 'board' as TabType,
-      label: 'Board',
+      id: "board" as TabType,
+      label: "Board",
       icon: KanbanSquare,
     },
     {
-      id: 'list' as TabType,
-      label: 'List',
+      id: "list" as TabType,
+      label: "List",
       icon: List,
     },
-    ...(hasGallery ? [{
-      id: 'gallery' as TabType,
-      label: 'Gallery',
-      icon: Image,
-    }] : []),
+    ...(hasGallery
+      ? [
+          {
+            id: "gallery" as TabType,
+            label: "Gallery",
+            icon: Image,
+          },
+        ]
+      : []),
     {
-      id: 'resources' as TabType,
-      label: 'Resources',
+      id: "resources" as TabType,
+      label: "Resources",
       icon: BookOpen,
     },
     {
-      id: 'strikes' as TabType,
-      label: 'Strike System',
+      id: "strikes" as TabType,
+      label: "Strike System",
       icon: AlertTriangle,
     },
     {
-      id: 'settings' as TabType,
-      label: 'Settings',
+      id: "settings" as TabType,
+      label: "Settings",
       icon: Settings,
     },
   ];
@@ -119,9 +139,9 @@ export default function BoardHeader({
             {tabs.map((tab) => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
-              const isSettingsTab = tab.id === 'settings';
+              const isSettingsTab = tab.id === "settings";
               const isDisabled = isSettingsTab && !isAdmin;
-              
+
               return (
                 <button
                   key={tab.id}
@@ -129,15 +149,21 @@ export default function BoardHeader({
                   disabled={isDisabled}
                   className={`flex items-center gap-1.5 sm:gap-2 py-2 px-2 sm:px-1 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap ${
                     isDisabled
-                      ? 'border-transparent text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50'
+                      ? "border-transparent text-gray-300 dark:text-gray-600 cursor-not-allowed opacity-50"
                       : isActive
-                      ? 'border-pink-500 text-pink-600 dark:text-pink-400'
-                      : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+                        ? "border-pink-500 text-pink-600 dark:text-pink-400"
+                        : "border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600"
                   }`}
-                  title={isDisabled ? 'Settings access requires Admin or Moderator role' : undefined}
+                  title={
+                    isDisabled
+                      ? "Settings access requires Admin or Moderator role"
+                      : undefined
+                  }
                 >
                   <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
-                  <span className="hidden xs:inline sm:inline">{tab.label}</span>
+                  <span className="hidden xs:inline sm:inline">
+                    {tab.label}
+                  </span>
                 </button>
               );
             })}

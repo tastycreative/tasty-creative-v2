@@ -31,7 +31,13 @@ import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
 type PriorityFilter = "ALL" | "URGENT" | "HIGH" | "MEDIUM" | "LOW";
 type AssigneeFilter = "ALL" | "MY_TASKS" | "ASSIGNED" | "UNASSIGNED";
 type DueDateFilter = "ALL" | "OVERDUE" | "TODAY" | "WEEK";
-type WorkflowFilter = "ALL" | "NORMAL" | "GAME" | "POLL" | "LIVESTREAM" | "LEGACY";
+type WorkflowFilter =
+  | "ALL"
+  | "NORMAL"
+  | "GAME"
+  | "POLL"
+  | "LIVESTREAM"
+  | "LEGACY";
 type SortBy = "title" | "priority" | "dueDate" | "createdAt" | "updatedAt";
 type SortOrder = "asc" | "desc";
 
@@ -62,7 +68,7 @@ const FilterChip = ({
   label,
   value,
   onRemove,
-  color = "purple"
+  color = "purple",
 }: {
   label: string;
   value: string;
@@ -70,11 +76,14 @@ const FilterChip = ({
   color?: "purple" | "pink" | "blue" | "amber" | "emerald";
 }) => {
   const colorClasses = {
-    purple: "from-purple-500/20 to-violet-500/20 border-purple-400/30 text-purple-300 hover:border-purple-400/50",
+    purple:
+      "from-purple-500/20 to-violet-500/20 border-purple-400/30 text-purple-300 hover:border-purple-400/50",
     pink: "from-pink-500/20 to-rose-500/20 border-pink-400/30 text-pink-300 hover:border-pink-400/50",
     blue: "from-blue-500/20 to-cyan-500/20 border-blue-400/30 text-blue-300 hover:border-blue-400/50",
-    amber: "from-amber-500/20 to-orange-500/20 border-amber-400/30 text-amber-300 hover:border-amber-400/50",
-    emerald: "from-emerald-500/20 to-teal-500/20 border-emerald-400/30 text-emerald-300 hover:border-emerald-400/50",
+    amber:
+      "from-amber-500/20 to-orange-500/20 border-amber-400/30 text-amber-300 hover:border-amber-400/50",
+    emerald:
+      "from-emerald-500/20 to-teal-500/20 border-emerald-400/30 text-emerald-300 hover:border-emerald-400/50",
   };
 
   return (
@@ -337,7 +346,11 @@ function PremiumDropdown<T extends string>({
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({
+    top: 0,
+    left: 0,
+    width: 0,
+  });
   const triggerRef = useRef<HTMLButtonElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [mounted, setMounted] = useState(false);
@@ -382,8 +395,10 @@ function PremiumDropdown<T extends string>({
     const handleClickOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (
-        triggerRef.current && !triggerRef.current.contains(target) &&
-        dropdownRef.current && !dropdownRef.current.contains(target)
+        triggerRef.current &&
+        !triggerRef.current.contains(target) &&
+        dropdownRef.current &&
+        !dropdownRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
@@ -406,116 +421,134 @@ function PremiumDropdown<T extends string>({
     setIsOpen(false);
   };
 
-  const dropdownMenu = isOpen && mounted ? createPortal(
-    <div
-      ref={dropdownRef}
-      className="fixed rounded-2xl shadow-2xl shadow-black/50"
-      style={{
-        top: dropdownPosition.top,
-        left: dropdownPosition.left,
-        width: dropdownPosition.width,
-        zIndex: 9999,
-        backgroundColor: '#0f0f1a',
-      }}
-    >
-      {/* Solid background layer */}
-      <div className="absolute inset-0 bg-gray-900 rounded-2xl" />
+  const dropdownMenu =
+    isOpen && mounted
+      ? createPortal(
+          <div
+            ref={dropdownRef}
+            className="fixed rounded-2xl shadow-2xl shadow-black/50"
+            style={{
+              top: dropdownPosition.top,
+              left: dropdownPosition.left,
+              width: dropdownPosition.width,
+              zIndex: 9999,
+              backgroundColor: "#0f0f1a",
+            }}
+          >
+            {/* Solid background layer */}
+            <div className="absolute inset-0 bg-gray-900 rounded-2xl" />
 
-      {/* Content layer */}
-      <div className="relative border border-white/10 rounded-2xl overflow-hidden">
-        {/* Gradient header */}
-        <div className="px-3 py-2 border-b border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
-          <span className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
-            {headerText}
-          </span>
-        </div>
+            {/* Content layer */}
+            <div className="relative border border-white/10 rounded-2xl overflow-hidden">
+              {/* Gradient header */}
+              <div className="px-3 py-2 border-b border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+                <span className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+                  {headerText}
+                </span>
+              </div>
 
-        {/* Options */}
-        <div className="py-1 max-h-[280px] overflow-y-auto">
-          {optionKeys.map((key) => {
-            const config = options[key];
-            const Icon = config.icon;
-            const isSelected = value === key;
-            const isHovered = hoveredItem === key;
+              {/* Options */}
+              <div className="py-1 max-h-[280px] overflow-y-auto">
+                {optionKeys.map((key) => {
+                  const config = options[key];
+                  const Icon = config.icon;
+                  const isSelected = value === key;
+                  const isHovered = hoveredItem === key;
 
-            return (
-              <button
-                key={key}
-                type="button"
-                onClick={() => handleSelect(key)}
-                onMouseEnter={() => setHoveredItem(key)}
-                onMouseLeave={() => setHoveredItem(null)}
-                className={`
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => handleSelect(key)}
+                      onMouseEnter={() => setHoveredItem(key)}
+                      onMouseLeave={() => setHoveredItem(null)}
+                      className={`
                   relative w-full flex items-center gap-3 px-3 py-2.5
                   transition-all duration-200 ease-out
-                  ${isSelected
-                    ? `bg-gradient-to-r ${config.bgGradient}`
-                    : isHovered
-                      ? "bg-white/10"
-                      : "bg-transparent"
+                  ${
+                    isSelected
+                      ? `bg-gradient-to-r ${config.bgGradient}`
+                      : isHovered
+                        ? "bg-white/10"
+                        : "bg-transparent"
                   }
                   group/item
                 `}
-              >
-                {/* Icon container */}
-                <div className={`
+                    >
+                      {/* Icon container */}
+                      <div
+                        className={`
                   relative flex items-center justify-center w-7 h-7
                   rounded-lg transition-all duration-300 flex-shrink-0
-                  ${isSelected || isHovered
-                    ? `bg-gradient-to-br ${config.gradient} shadow-lg ${config.glowColor}`
-                    : "bg-white/10"
+                  ${
+                    isSelected || isHovered
+                      ? `bg-gradient-to-br ${config.gradient} shadow-lg ${config.glowColor}`
+                      : "bg-white/10"
                   }
                   group-hover/item:scale-110
-                `}>
-                  <Icon className={`
+                `}
+                      >
+                        <Icon
+                          className={`
                     h-3.5 w-3.5 transition-colors duration-200
                     ${isSelected || isHovered ? "text-white" : "text-white/60"}
-                  `} />
-                  {config.pulse && (isSelected || isHovered) && (
-                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
-                  )}
-                </div>
+                  `}
+                        />
+                        {config.pulse && (isSelected || isHovered) && (
+                          <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                        )}
+                      </div>
 
-                {/* Text content */}
-                <div className="flex-1 text-left min-w-0">
-                  <div className={`
+                      {/* Text content */}
+                      <div className="flex-1 text-left min-w-0">
+                        <div
+                          className={`
                     font-medium text-sm transition-colors duration-200 truncate
                     ${isSelected ? config.textColor : isHovered ? "text-white" : "text-white/80"}
-                  `}>
-                    {config.label}
-                  </div>
-                  <div className="text-[10px] text-white/40 truncate">
-                    {config.description}
-                  </div>
-                </div>
+                  `}
+                        >
+                          {config.label}
+                        </div>
+                        <div className="text-[10px] text-white/40 truncate">
+                          {config.description}
+                        </div>
+                      </div>
 
-                {/* Selected checkmark */}
-                {isSelected && (
-                  <div className={`
+                      {/* Selected checkmark */}
+                      {isSelected && (
+                        <div
+                          className={`
                     flex items-center justify-center w-5 h-5 flex-shrink-0
                     bg-gradient-to-br ${config.gradient}
                     rounded-full shadow-lg ${config.glowColor}
-                  `}>
-                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                  </div>
-                )}
+                  `}
+                        >
+                          <Check
+                            className="h-3 w-3 text-white"
+                            strokeWidth={3}
+                          />
+                        </div>
+                      )}
 
-                {/* Hover indicator line */}
-                {(isSelected || isHovered) && (
-                  <div className={`
+                      {/* Hover indicator line */}
+                      {(isSelected || isHovered) && (
+                        <div
+                          className={`
                     absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6
                     bg-gradient-to-b ${config.gradient}
                     rounded-r-full
-                  `} />
-                )}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    </div>,
-    document.body
-  ) : null;
+                  `}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
 
   return (
     <div className="relative">
@@ -541,13 +574,15 @@ function PremiumDropdown<T extends string>({
         `}
       >
         {/* Icon with glow */}
-        <div className={`
+        <div
+          className={`
           relative flex items-center justify-center w-7 h-7
           bg-gradient-to-br ${currentConfig.gradient}
           rounded-lg shadow-lg ${!isDefaultValue ? currentConfig.glowColor : "shadow-purple-500/20"}
           transition-all duration-300
           group-hover:scale-110 group-hover:shadow-xl
-        `}>
+        `}
+        >
           <CurrentIcon className="h-3.5 w-3.5 text-white" />
           {currentConfig.pulse && (
             <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
@@ -555,24 +590,30 @@ function PremiumDropdown<T extends string>({
         </div>
 
         {/* Label */}
-        <span className={`flex-1 text-left font-medium truncate ${!isDefaultValue ? currentConfig.textColor : "text-white/80"}`}>
+        <span
+          className={`flex-1 text-left font-medium truncate ${!isDefaultValue ? currentConfig.textColor : "text-white/80"}`}
+        >
           {currentConfig.label}
         </span>
 
         {/* Chevron */}
-        <ChevronDown className={`
+        <ChevronDown
+          className={`
           h-4 w-4 text-purple-400/70 flex-shrink-0
           transition-transform duration-300 ease-out
           ${isOpen ? "rotate-180" : ""}
-        `} />
+        `}
+        />
 
         {/* Active indicator bar */}
         {!isDefaultValue && (
-          <div className={`
+          <div
+            className={`
             absolute bottom-0 left-3 right-3 h-0.5
             bg-gradient-to-r ${currentConfig.gradient}
             rounded-full opacity-60
-          `} />
+          `}
+          />
         )}
       </button>
 
@@ -605,7 +646,13 @@ export default function BoardFilters({
   const [searchFocused, setSearchFocused] = useState(false);
 
   useResponsiveLayout();
-  const { leftSidebarCollapsed, rightSidebarCollapsed, isMobile, isTablet, focusMode } = useLayoutStore();
+  const {
+    leftSidebarCollapsed,
+    rightSidebarCollapsed,
+    isMobile,
+    isTablet,
+    focusMode,
+  } = useLayoutStore();
 
   const bothSidebarsOpen = !leftSidebarCollapsed && !rightSidebarCollapsed;
   const compactMode = isMobile || focusMode || bothSidebarsOpen || isTablet;
@@ -634,10 +681,25 @@ export default function BoardFilters({
   // Get display values for active filter chips
   const getFilterLabel = (type: string, value: string) => {
     const labels: Record<string, Record<string, string>> = {
-      priority: { URGENT: "Urgent", HIGH: "High", MEDIUM: "Medium", LOW: "Low" },
-      assignee: { MY_TASKS: "My Tasks", ASSIGNED: "Assigned", UNASSIGNED: "Unassigned" },
+      priority: {
+        URGENT: "Urgent",
+        HIGH: "High",
+        MEDIUM: "Medium",
+        LOW: "Low",
+      },
+      assignee: {
+        MY_TASKS: "My Tasks",
+        ASSIGNED: "Assigned",
+        UNASSIGNED: "Unassigned",
+      },
       dueDate: { OVERDUE: "Overdue", TODAY: "Today", WEEK: "This Week" },
-      workflow: { NORMAL: "Normal", GAME: "Game", POLL: "Poll", LIVESTREAM: "Live", LEGACY: "Legacy" },
+      workflow: {
+        NORMAL: "Normal",
+        GAME: "Game",
+        POLL: "Poll",
+        LIVESTREAM: "Live",
+        LEGACY: "Legacy",
+      },
     };
     return labels[type]?.[value] || value;
   };
@@ -653,38 +715,45 @@ export default function BoardFilters({
   return (
     <div className="relative">
       {/* Glassmorphism container */}
-      <div className="
+      <div
+        className="
         relative
         bg-gradient-to-br from-gray-900/80 via-purple-900/40 to-gray-900/80
         backdrop-blur-xl
         border border-white/10
-        rounded-2xl
         shadow-2xl shadow-purple-500/5
         transition-all duration-500
-      ">
+      "
+      >
         {/* Animated gradient border effect */}
         <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
           <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 animate-pulse" />
           <div className="absolute -inset-[1px] bg-gradient-to-r from-transparent via-purple-400/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700" />
         </div>
 
-        <div className={`relative ${compactMode ? 'p-3' : 'p-4'}`}>
+        <div className={`relative ${compactMode ? "p-3" : "p-4"}`}>
           {/* Top Row: Search + Quick Actions */}
           <div className="flex flex-wrap items-center gap-3">
             {/* Search Input with glow effect */}
-            <div className={`relative flex-1 min-w-[200px] ${compactMode ? 'max-w-full' : 'max-w-md'}`}>
-              <div className={`
+            <div
+              className={`relative flex-1 min-w-[200px] ${compactMode ? "max-w-full" : "max-w-md"}`}
+            >
+              <div
+                className={`
                 absolute inset-0 rounded-xl
                 bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20
                 blur-xl transition-opacity duration-500
-                ${searchFocused ? 'opacity-100' : 'opacity-0'}
-              `} />
+                ${searchFocused ? "opacity-100" : "opacity-0"}
+              `}
+              />
               <div className="relative">
-                <Search className={`
+                <Search
+                  className={`
                   absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4
                   transition-colors duration-300
-                  ${searchFocused ? 'text-purple-400' : 'text-white/40'}
-                `} />
+                  ${searchFocused ? "text-purple-400" : "text-white/40"}
+                `}
+                />
                 <input
                   type="text"
                   placeholder="Search tasks..."
@@ -730,19 +799,25 @@ export default function BoardFilters({
                 "
                 style={{
                   backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239333ea' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
-                  backgroundSize: '16px',
-                  backgroundPosition: 'right 8px center',
+                  backgroundSize: "16px",
+                  backgroundPosition: "right 8px center",
                 }}
               >
-                {sortOptions.map(opt => (
-                  <option key={opt.value} value={opt.value} className="bg-gray-900">
+                {sortOptions.map((opt) => (
+                  <option
+                    key={opt.value}
+                    value={opt.value}
+                    className="bg-gray-900"
+                  >
                     {opt.label}
                   </option>
                 ))}
               </select>
 
               <button
-                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                onClick={() =>
+                  setSortOrder(sortOrder === "asc" ? "desc" : "asc")
+                }
                 className="
                   p-2.5
                   bg-white/5 hover:bg-white/10
@@ -766,19 +841,26 @@ export default function BoardFilters({
             <div className="flex items-center gap-2">
               {/* My Tasks Toggle */}
               <button
-                onClick={() => setAssigneeFilter(assigneeFilter === "MY_TASKS" ? "ALL" : "MY_TASKS")}
+                onClick={() =>
+                  setAssigneeFilter(
+                    assigneeFilter === "MY_TASKS" ? "ALL" : "MY_TASKS"
+                  )
+                }
                 className={`
                   flex items-center gap-2 px-4 py-2.5
                   rounded-xl text-sm font-medium
                   transition-all duration-300
-                  ${assigneeFilter === "MY_TASKS"
-                    ? "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 text-white shadow-lg shadow-purple-500/20"
-                    : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-purple-400/30 text-white/70 hover:text-white"
+                  ${
+                    assigneeFilter === "MY_TASKS"
+                      ? "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 text-white shadow-lg shadow-purple-500/20"
+                      : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-purple-400/30 text-white/70 hover:text-white"
                   }
                   border
                 `}
               >
-                <User className={`h-4 w-4 ${assigneeFilter === "MY_TASKS" ? "text-purple-300" : ""}`} />
+                <User
+                  className={`h-4 w-4 ${assigneeFilter === "MY_TASKS" ? "text-purple-300" : ""}`}
+                />
                 {!compactMode && <span>My Tasks</span>}
               </button>
 
@@ -789,17 +871,21 @@ export default function BoardFilters({
                   flex items-center gap-2 px-4 py-2.5
                   rounded-xl text-sm font-medium
                   transition-all duration-300 relative
-                  ${showFilters || hasActiveFilters
-                    ? "bg-gradient-to-r from-violet-500/30 to-blue-500/30 border-violet-400/50 text-white shadow-lg shadow-violet-500/20"
-                    : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-violet-400/30 text-white/70 hover:text-white"
+                  ${
+                    showFilters || hasActiveFilters
+                      ? "bg-gradient-to-r from-violet-500/30 to-blue-500/30 border-violet-400/50 text-white shadow-lg shadow-violet-500/20"
+                      : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-violet-400/30 text-white/70 hover:text-white"
                   }
                   border
                 `}
               >
-                <Filter className={`h-4 w-4 ${showFilters ? "text-violet-300" : ""}`} />
+                <Filter
+                  className={`h-4 w-4 ${showFilters ? "text-violet-300" : ""}`}
+                />
                 {!compactMode && <span>Filters</span>}
                 {activeFilterCount > 0 && (
-                  <span className="
+                  <span
+                    className="
                     absolute -top-1.5 -right-1.5
                     min-w-[18px] h-[18px] px-1
                     bg-gradient-to-br from-pink-500 to-purple-600
@@ -807,7 +893,8 @@ export default function BoardFilters({
                     flex items-center justify-center
                     shadow-lg shadow-purple-500/30
                     animate-in zoom-in duration-200
-                  ">
+                  "
+                  >
                     {activeFilterCount}
                   </span>
                 )}
@@ -831,15 +918,19 @@ export default function BoardFilters({
 
             {/* Task Count Badge */}
             {!compactMode && (
-              <div className="
+              <div
+                className="
                 flex items-center gap-2 px-3 py-2
                 bg-white/5 rounded-xl
                 text-xs text-white/50
                 border border-white/5
-              ">
+              "
+              >
                 <Sparkles className="h-3 w-3 text-purple-400" />
                 <span>
-                  <span className="text-white/90 font-semibold">{filteredTasksCount}</span>
+                  <span className="text-white/90 font-semibold">
+                    {filteredTasksCount}
+                  </span>
                   <span className="mx-1">/</span>
                   <span>{totalTasks}</span>
                 </span>
@@ -901,12 +992,16 @@ export default function BoardFilters({
 
           {/* Expanded Filter Panel */}
           {showFilters && (
-            <div className="
+            <div
+              className="
               mt-4 pt-4
               border-t border-white/10
               animate-in slide-in-from-top-2 fade-in duration-300
-            ">
-              <div className={`grid gap-4 ${compactMode ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+            "
+            >
+              <div
+                className={`grid gap-4 ${compactMode ? "grid-cols-1 sm:grid-cols-2" : "grid-cols-2 lg:grid-cols-4"}`}
+              >
                 <PremiumDropdown<PriorityFilter>
                   value={priorityFilter}
                   onChange={setPriorityFilter}

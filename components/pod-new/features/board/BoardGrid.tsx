@@ -85,7 +85,7 @@ export default function BoardGrid({
   });
 
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
+    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden h-full">
       {/* Mobile: Horizontal Scrolling Columns */}
       <div className="md:hidden">
         <div
@@ -139,7 +139,7 @@ export default function BoardGrid({
       {/* Desktop: Unified Header + Body Scroll Container */}
       <div
         ref={desktopScrollRef}
-        className="hidden md:block overflow-x-auto h-[calc(100vh-320px)] min-h-[400px]"
+        className="hidden md:block overflow-x-auto"
         title="Click and drag to scroll horizontally"
       >
         <div

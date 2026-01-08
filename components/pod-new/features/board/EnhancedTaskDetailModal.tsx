@@ -2039,7 +2039,14 @@ export default function EnhancedTaskDetailModalRedesigned({
                               {workflowData?.pricingCategory === 'PORN_ACCURATE' && 'Porn Accurate'}
                               {workflowData?.pricingCategory === 'PORN_SCAM' && 'Porn Scam'}
                               {workflowData?.pricingCategory === 'GF_ACCURATE' && 'GF Accurate'}
-                               {workflowData?.pricingCategory === 'GF_SCAM' && 'GF Scam'}
+                              {workflowData?.pricingCategory === 'GF_SCAM' && 'GF Scam'}
+                              {/* Legacy category support */}
+                              {workflowData?.pricingCategory === 'CHEAP_PORN' && 'Porn Scam (Legacy)'}
+                              {workflowData?.pricingCategory === 'EXPENSIVE_PORN' && 'Porn Accurate (Legacy)'}
+                              {workflowData?.pricingCategory === 'PORN_ACCURATE_HIGH' && 'Porn Accurate High (Legacy)'}
+                              {workflowData?.pricingCategory === 'PORN_ACCURATE_LOW' && 'Porn Accurate Low (Legacy)'}
+                              {workflowData?.pricingCategory === 'GF_ACCURATE_HIGH' && 'GF Accurate High (Legacy)'}
+                              {workflowData?.pricingCategory === 'GF_ACCURATE_LOW' && 'GF Accurate Low (Legacy)'}
                             </div>
                           )}
                         </div>
