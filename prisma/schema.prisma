@@ -353,7 +353,6 @@ model ClientModel {
   sheetLinks            ClientModelSheetLinks[]
   contentDetails        ContentDetails?
   ContentEvent          ContentEvent[]
-  ContentTypeOption     ContentTypeOption[]
   liveFlyerGalleries    LiveFlyerGallery[]
   notifications         Notification[]
   oftvGallery           OFTVGallery?
@@ -1194,63 +1193,6 @@ model AIGenMonitoring {
 
   @@index([folderName])
   @@index([createdByEmail])
-}
-
-model ContentTypeOption {
-  id             String                      @id @default(cuid())
-  value          String
-  label          String
-  priceType      String?
-  priceFixed     Float?
-  priceMin       Float?
-  priceMax       Float?
-  description    String?
-  isActive       Boolean                     @default(true)
-  order          Int                         @default(0)
-  createdAt      DateTime                    @default(now())
-  updatedAt      DateTime                    @updatedAt
-  category       String
-  isFree         Boolean                     @default(false)
-  clientModelId  String?
-  ClientModel    ClientModel?                @relation(fields: [clientModelId], references: [id], onDelete: Cascade)
-  pricingHistory ContentTypePricingHistory[] @relation("ContentTypePricingHistory")
-  workflows      ModularWorkflow[]           @relation("WorkflowContentType")
-
-  @@unique([value, category, clientModelId])
-  @@index([isActive])
-  @@index([order])
-  @@index([category])
-  @@index([isFree])
-  @@index([clientModelId])
-}
-
-model ContentTypePricingHistory {
-  id                  String            @id @default(cuid())
-  contentTypeOptionId String
-  changeType          String
-  oldPriceType        String?
-  oldPriceFixed       Float?
-  oldPriceMin         Float?
-  oldPriceMax         Float?
-  oldLabel            String?
-  newPriceType        String?
-  newPriceFixed       Float?
-  newPriceMin         Float?
-  newPriceMax         Float?
-  newLabel            String?
-  changedById         String?
-  reason              String?
-  ipAddress           String?
-  createdAt           DateTime          @default(now())
-  newIsFree           Boolean?
-  oldIsFree           Boolean?
-  changedBy           User?             @relation("ContentTypePricingHistoryChangedBy", fields: [changedById], references: [id])
-  contentTypeOption   ContentTypeOption @relation("ContentTypePricingHistory", fields: [contentTypeOptionId], references: [id], onDelete: Cascade)
-
-  @@index([contentTypeOptionId])
-  @@index([createdAt])
-  @@index([changeType])
-  @@index([changedById])
 }
 
 model WallPostSubmission {
