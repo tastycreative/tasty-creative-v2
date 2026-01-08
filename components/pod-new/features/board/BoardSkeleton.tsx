@@ -66,9 +66,9 @@ export default function BoardSkeleton({
   getGridStyles,
 }: BoardSkeletonProps) {
   return (
-    <div className="space-y-6">
+    <div className="">
       {/* Board Header with Team Selection - Mobile Responsive Loading */}
-      <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
+      <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 shadow-lg backdrop-blur-sm">
         {/* Background Pattern */}
         <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
@@ -143,7 +143,7 @@ export default function BoardSkeleton({
       </div>
 
       {/* Search and Filter Controls - Simplified during loading */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4">
+      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg ">
         <div className="flex items-center justify-center py-4">
           <div className="flex items-center space-x-3 text-gray-500 dark:text-gray-400">
             <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
@@ -153,7 +153,7 @@ export default function BoardSkeleton({
       </div>
 
       {/* Board with Skeleton Content - Only task content is skeleton */}
-      <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
+      <div className="bg-white/80 dark:bg-gray-800/80 py-2 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
         {/* Horizontal scroll container */}
         <div className="overflow-x-auto">
           {/* Column Headers - Always visible with real data */}

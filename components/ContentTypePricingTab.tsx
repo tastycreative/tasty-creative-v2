@@ -12,10 +12,13 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { DollarSign, Edit, Plus, Trash2, Search, RefreshCw, AlertCircle, History, ArrowRight, Clock } from 'lucide-react';
+import { DollarSign, Edit, Plus, Trash2, Search, RefreshCw, AlertCircle, History, ArrowRight, Clock, LayoutGrid, Table as TableIcon, User } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
+import ModelsDropdownList from '@/components/ModelsDropdownList';
 
 interface PriceHistoryUser {
   id: string;
@@ -59,9 +62,22 @@ interface ContentTypeOption {
   description: string | null;
   isActive: boolean;
   order: number;
+  clientModelId: string | null;
+  clientModel?: {
+    id: string;
+    clientName: string;
+  } | null;
   createdAt: string;
   updatedAt: string;
   pricingHistory?: PriceHistory[];
+}
+
+interface ClientModel {
+  id: string;
+  clientName: string;
+  name: string | null;
+  status: string;
+  profilePicture: string | null;
 }
 
 const ContentTypePricingTab = () => {
@@ -72,7 +88,11 @@ const ContentTypePricingTab = () => {
   const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
   const [selectedOption, setSelectedOption] = useState<ContentTypeOption | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
+  const [filterModel, setFilterModel] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
 
   // Form state for editing
   const [formData, setFormData] = useState({
@@ -88,22 +108,77 @@ const ContentTypePricingTab = () => {
   // Form state for adding new content types
   const [addFormData, setAddFormData] = useState({
     value: '',
-    category: 'CHEAP_PORN',
+    category: 'PORN_ACCURATE',
     isFree: false,
     priceType: 'FIXED',
     priceFixed: '',
     priceMin: '',
     priceMax: '',
     description: '',
+    clientModelId: '',
+  });
+
+  // Fetch client models
+  const { data: clientModels = [] } = useQuery({
+    queryKey: ['client-models'],
+    queryFn: async () => {
+      const response = await fetch('/api/client-models');
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch models');
+      }
+
+      return data.clientModels as ClientModel[];
+    },
+    staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
   // Fetch content type options with React Query
   const { data: contentTypeOptions = [], isLoading, refetch } = useQuery({
-    queryKey: ['content-type-options', filterCategory],
+    queryKey: ['content-type-options', filterCategory, filterModel, clientModels.length],
     queryFn: async () => {
-      const url = filterCategory === 'all'
-        ? '/api/content-type-options'
-        : `/api/content-type-options?category=${filterCategory}`;
+      // If 'all' is selected, we need to fetch for each model + global to show everything
+      if (filterModel === 'all' || !filterModel) {
+        const categoryParam = filterCategory !== 'all' ? `category=${filterCategory}` : '';
+
+        // Fetch global + all model-specific options
+        const allResponses = await Promise.all([
+          fetch(`/api/content-type-options${categoryParam ? `?${categoryParam}` : ''}`), // Global only
+          ...clientModels.map(model =>
+            fetch(`/api/content-type-options?clientModelId=${model.id}${categoryParam ? `&${categoryParam}` : ''}`)
+          )
+        ]);
+
+        const allData = await Promise.all(allResponses.map(r => r.json()));
+        const allOptions = allData.flatMap(d => d.success ? d.contentTypeOptions : []);
+
+        // Remove duplicates by id
+        const uniqueOptions = Array.from(
+          new Map(allOptions.map(opt => [opt.id, opt])).values()
+        );
+
+        return uniqueOptions as ContentTypeOption[];
+      }
+
+      // Build params for specific model or global only filter
+      const params = new URLSearchParams();
+
+      if (filterCategory !== 'all') {
+        params.append('category', filterCategory);
+      }
+
+      if (filterModel === 'global') {
+        // Global only - backend returns only items with clientModelId = null
+        // No clientModelId parameter needed
+      } else if (filterModel) {
+        // Specific model selected - get that model's prices + global
+        params.append('clientModelId', filterModel);
+      }
+
+      const url = params.toString()
+        ? `/api/content-type-options?${params.toString()}`
+        : '/api/content-type-options';
 
       const response = await fetch(url);
       const data = await response.json();
@@ -115,6 +190,7 @@ const ContentTypePricingTab = () => {
       return data.contentTypeOptions as ContentTypeOption[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
+    enabled: (filterModel !== 'all' && filterModel !== '') || clientModels.length > 0, // Wait for models to load if "all" is selected
   });
 
   // Fetch price history for selected option
@@ -146,6 +222,37 @@ const ContentTypePricingTab = () => {
       option.description?.toLowerCase().includes(query)
     );
   }, [contentTypeOptions, searchQuery]);
+
+  // Group content types by model for grid view
+  const groupedByModel = useMemo(() => {
+    const groups: { [key: string]: { modelId: string | null; modelName: string | null; options: ContentTypeOption[] } } = {};
+
+    filteredContentTypes.forEach(option => {
+      const key = option.clientModelId || 'global';
+
+      if (!groups[key]) {
+        groups[key] = {
+          modelId: option.clientModelId,
+          modelName: option.clientModel?.clientName || null,
+          options: []
+        };
+      }
+
+      groups[key].options.push(option);
+    });
+
+    // Sort options within each group alphabetically by label
+    Object.values(groups).forEach(group => {
+      group.options.sort((a, b) => a.label.localeCompare(b.label));
+    });
+
+    // Sort: Models alphabetically first, then Global last
+    return Object.entries(groups).sort(([keyA, groupA], [keyB, groupB]) => {
+      if (keyA === 'global') return 1;  // Global goes to the end
+      if (keyB === 'global') return -1;  // Global goes to the end
+      return (groupA.modelName || '').localeCompare(groupB.modelName || '');
+    });
+  }, [filteredContentTypes]);
 
   // Update mutation
   const updateMutation = useMutation({
@@ -208,6 +315,36 @@ const ContentTypePricingTab = () => {
     },
   });
 
+  // Bulk delete mutation
+  const bulkDeleteMutation = useMutation({
+    mutationFn: async (ids: string[]) => {
+      const results = await Promise.allSettled(
+        ids.map(id =>
+          fetch(`/api/content-type-options/${id}`, {
+            method: 'DELETE',
+          }).then(res => res.json())
+        )
+      );
+
+      const failures = results.filter(r => r.status === 'rejected' || (r.status === 'fulfilled' && !r.value.success));
+
+      if (failures.length > 0) {
+        throw new Error(`Failed to delete ${failures.length} of ${ids.length} items`);
+      }
+
+      return results;
+    },
+    onSuccess: (_, ids) => {
+      queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
+      toast.success(`Successfully deactivated ${ids.length} content type${ids.length > 1 ? 's' : ''}`);
+      setSelectedIds(new Set());
+      setBulkDeleteDialogOpen(false);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete some content types');
+    },
+  });
+
   // Create mutation
   const createMutation = useMutation({
     mutationFn: async (createData: {
@@ -220,6 +357,7 @@ const ContentTypePricingTab = () => {
       priceMin: number | null;
       priceMax: number | null;
       description: string;
+      clientModelId: string | null;
     }) => {
       const response = await fetch('/api/content-type-options', {
         method: 'POST',
@@ -249,6 +387,7 @@ const ContentTypePricingTab = () => {
         priceMax: '',
         description: '',
         isFree: false,
+        clientModelId: '',
       });
     },
     onError: (error: Error) => {
@@ -275,6 +414,41 @@ const ContentTypePricingTab = () => {
   const handleDeleteClick = (option: ContentTypeOption) => {
     setSelectedOption(option);
     setDeleteDialogOpen(true);
+  };
+
+  // Checkbox selection handlers
+  const handleSelectItem = (id: string) => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleSelectAll = (groupOptions: ContentTypeOption[]) => {
+    const groupIds = groupOptions.map(opt => opt.id);
+    const allSelected = groupIds.every(id => selectedIds.has(id));
+
+    const newSelected = new Set(selectedIds);
+    if (allSelected) {
+      // Deselect all in this group
+      groupIds.forEach(id => newSelected.delete(id));
+    } else {
+      // Select all in this group
+      groupIds.forEach(id => newSelected.add(id));
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const handleBulkDelete = () => {
+    if (selectedIds.size === 0) return;
+    setBulkDeleteDialogOpen(true);
+  };
+
+  const confirmBulkDelete = () => {
+    bulkDeleteMutation.mutate(Array.from(selectedIds));
   };
 
   // Save updates
@@ -339,12 +513,27 @@ const ContentTypePricingTab = () => {
   // Get category display name
   const getCategoryName = (category: string) => {
     switch (category) {
-      case 'CHEAP_PORN':
-        return 'Cheap Porn';
-      case 'EXPENSIVE_PORN':
-        return 'Expensive Porn';
+      case 'PORN_ACCURATE':
+        return 'Porn Accurate';
+      case 'PORN_SCAM':
+        return 'Porn Scam';
       case 'GF_ACCURATE':
         return 'GF Accurate';
+      case 'GF_SCAM':
+        return 'GF Scam';
+      // Legacy support
+      case 'CHEAP_PORN':
+        return 'Cheap Porn (Legacy)';
+      case 'EXPENSIVE_PORN':
+        return 'Expensive Porn (Legacy)';
+      case 'PORN_ACCURATE_HIGH':
+        return 'Porn Accurate High (Legacy)';
+      case 'PORN_ACCURATE_LOW':
+        return 'Porn Accurate Low (Legacy)';
+      case 'GF_ACCURATE_HIGH':
+        return 'GF Accurate High (Legacy)';
+      case 'GF_ACCURATE_LOW':
+        return 'GF Accurate Low (Legacy)';
       default:
         return category;
     }
@@ -424,6 +613,7 @@ const ContentTypePricingTab = () => {
         : null,
       priceMax: !addFormData.isFree && addFormData.priceType === 'RANGE' ? parseFloat(addFormData.priceMax) : null,
       description: finalDescription,
+      clientModelId: addFormData.clientModelId || null,
     };
 
     createMutation.mutate(createData);
@@ -492,12 +682,27 @@ const ContentTypePricingTab = () => {
   // Get category badge color
   const getCategoryColor = (category: string) => {
     switch (category) {
+      case 'PORN_ACCURATE':
+        return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+      case 'PORN_SCAM':
+        return 'bg-red-500/10 text-red-600 border-red-500/20';
+      case 'GF_ACCURATE':
+        return 'bg-pink-500/10 text-pink-600 border-pink-500/20';
+      case 'GF_SCAM':
+        return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
+      // Legacy support
       case 'CHEAP_PORN':
         return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
       case 'EXPENSIVE_PORN':
         return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      case 'GF_ACCURATE':
+      case 'PORN_ACCURATE_HIGH':
+        return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
+      case 'PORN_ACCURATE_LOW':
+        return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
+      case 'GF_ACCURATE_HIGH':
         return 'bg-pink-500/10 text-pink-600 border-pink-500/20';
+      case 'GF_ACCURATE_LOW':
+        return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
       default:
         return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
     }
@@ -519,6 +724,17 @@ const ContentTypePricingTab = () => {
                 </CardDescription>
               </div>
               <div className="flex items-center gap-2">
+                {selectedIds.size > 0 && (
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={handleBulkDelete}
+                    className="gap-2"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                    Delete Selected ({selectedIds.size})
+                  </Button>
+                )}
                 <Button
                   variant="default"
                   size="sm"
@@ -542,27 +758,109 @@ const ContentTypePricingTab = () => {
             </div>
 
             {/* Search and Filter Bar */}
-            <div className="flex flex-col sm:flex-row gap-3">
-              <div className="relative flex-2">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
-                <Input
-                  placeholder="Search content types..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10"
-                />
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <Input
+                    placeholder="Search content types..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                <Select value={filterCategory} onValueChange={setFilterCategory}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by tier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Tiers</SelectItem>
+                    <SelectItem value="PORN_ACCURATE">Porn Accurate</SelectItem>
+                    <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
+                    <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
+                    <SelectItem value="GF_SCAM">GF Scam</SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="w-full sm:w-48">
+                  <Select
+                    value={filterModel || 'all'}
+                    onValueChange={(value) => {
+                      if (value === 'all' || value === 'global') {
+                        setFilterModel(value);
+                      } else {
+                        // Convert clientName to clientModelId
+                        const selectedModel = clientModels.find(m => m.clientName === value);
+                        setFilterModel(selectedModel?.id || 'all');
+                      }
+                    }}
+                  >
+                    <SelectTrigger className="w-full">
+                      <SelectValue>
+                        <div className="flex items-center gap-2">
+                          <User className="w-4 h-4" />
+                          <span>
+                            {!filterModel || filterModel === 'all'
+                              ? 'All Models'
+                              : filterModel === 'global'
+                              ? 'Global Only'
+                              : clientModels.find(m => m.id === filterModel)?.clientName || 'Filter by model'}
+                          </span>
+                        </div>
+                      </SelectValue>
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-gray-500" />
+                          <span>All Models</span>
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="global">
+                        <div className="flex items-center gap-2">
+                          <DollarSign className="w-4 h-4 text-blue-600" />
+                          <span>Global Only</span>
+                        </div>
+                      </SelectItem>
+                      {clientModels.map((model) => (
+                        <SelectItem key={model.id} value={model.clientName}>
+                          <div className="flex items-center gap-2">
+                            {model.profilePicture ? (
+                              <img
+                                src={model.profilePicture}
+                                alt={model.clientName}
+                                className="w-5 h-5 rounded-full object-cover"
+                              />
+                            ) : (
+                              <User className="w-4 h-4 text-pink-600" />
+                            )}
+                            <span>{model.clientName}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant={viewMode === 'grid' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('grid')}
+                    className="gap-2"
+                  >
+                    <LayoutGrid className="w-4 h-4" />
+                    By Model
+                  </Button>
+                  <Button
+                    variant={viewMode === 'table' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setViewMode('table')}
+                    className="gap-2"
+                  >
+                    <TableIcon className="w-4 h-4" />
+                    Table
+                  </Button>
+                </div>
               </div>
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="w-full sm:w-60">
-                  <SelectValue placeholder="Filter by tier" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Tiers</SelectItem>
-                  <SelectItem value="CHEAP_PORN">Cheap Porn</SelectItem>
-                  <SelectItem value="EXPENSIVE_PORN">Expensive Porn</SelectItem>
-                  <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             {/* Info Alert */}
@@ -589,106 +887,288 @@ const ContentTypePricingTab = () => {
                 </div>
               )}
 
-              <div className="rounded-md border">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Content Type</TableHead>
-                      <TableHead>Pricing Tier</TableHead>
-                      <TableHead>Price Type</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredContentTypes.length === 0 ? (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8">
-                          <div className="flex flex-col items-center gap-2 text-gray-500">
-                            <Search className="w-8 h-8 text-gray-300" />
-                            <p className="font-medium">
-                              {searchQuery ? 'No content types found matching your search' : 'No content types found'}
-                            </p>
-                            {searchQuery && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setSearchQuery('')}
-                                className="mt-2"
-                              >
-                                Clear search
-                              </Button>
-                            )}
+              {/* By Model View - One Card Per Model */}
+              {viewMode === 'grid' && (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4">
+                  {filteredContentTypes.length === 0 ? (
+                    <div className="col-span-full flex flex-col items-center gap-2 text-gray-500 py-12">
+                      <Search className="w-8 h-8 text-gray-300" />
+                      <p className="font-medium">
+                        {searchQuery ? 'No content types found matching your search' : 'No content types found'}
+                      </p>
+                      {searchQuery && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setSearchQuery('')}
+                          className="mt-2"
+                        >
+                          Clear search
+                        </Button>
+                      )}
+                    </div>
+                  ) : (
+                    groupedByModel.map(([key, group]) => (
+                      <Card key={key} className="flex flex-col hover:shadow-lg transition-shadow">
+                        {/* Model Card Header */}
+                        <CardHeader className="pb-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <Checkbox
+                                checked={group.options.every(opt => selectedIds.has(opt.id))}
+                                onCheckedChange={() => handleSelectAll(group.options)}
+                                className="border-gray-400"
+                              />
+                              {group.modelName ? (
+                                <>
+                                  <User className="w-5 h-5 text-pink-600" />
+                                  <CardTitle className="text-base">
+                                    {group.modelName}
+                                  </CardTitle>
+                                </>
+                              ) : (
+                                <>
+                                  <DollarSign className="w-5 h-5 text-blue-600" />
+                                  <CardTitle className="text-base">
+                                    Global Pricing
+                                  </CardTitle>
+                                </>
+                              )}
+                            </div>
+                            <Badge variant="outline" className={cn("text-xs font-medium", group.modelName ? '' : 'bg-blue-50 text-blue-600 border-blue-200')}>
+                              {group.options.length}
+                            </Badge>
                           </div>
-                        </TableCell>
+                        </CardHeader>
+
+                        {/* Content Types List */}
+                        <CardContent className="flex-1 p-0">
+                          <ScrollArea className="h-[600px]">
+                            <div className="p-3 space-y-2">
+                              {group.options.map((option) => (
+                                <div
+                                  key={option.id}
+                                  className="p-2.5 rounded-md border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-900 hover:border-pink-300 dark:hover:border-pink-700 hover:shadow-sm transition-all"
+                                >
+                                  {/* Content Type Header */}
+                                  <div className="flex items-start gap-2 mb-2">
+                                    <Checkbox
+                                      checked={selectedIds.has(option.id)}
+                                      onCheckedChange={() => handleSelectItem(option.id)}
+                                      className="mt-1"
+                                    />
+                                    <div className="flex-1 min-w-0 flex items-start justify-between gap-2">
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-bold text-base leading-tight mb-0.5">{option.label}</h4>
+                                        {option.description && (
+                                          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed">{option.description}</p>
+                                        )}
+                                      </div>
+                                      <Badge
+                                        variant={option.isActive ? 'default' : 'secondary'}
+                                        className="text-[10px] px-1.5 py-0.5 h-5 shrink-0"
+                                      >
+                                        {option.isActive ? 'Active' : 'Inactive'}
+                                      </Badge>
+                                    </div>
+                                  </div>
+
+                                  {/* Tier & Price Row */}
+                                  <div className="flex items-center justify-between gap-2 mb-2">
+                                    <div className="flex items-center gap-1.5 flex-wrap">
+                                      <Badge className={cn(getCategoryColor(option.category), 'text-[10px] px-1.5 py-0.5 h-5')}>
+                                        {getCategoryName(option.category)}
+                                      </Badge>
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5">
+                                        {option.isFree ? 'FREE' : option.priceType}
+                                      </Badge>
+                                    </div>
+                                    <div className="flex items-baseline gap-1 shrink-0">
+                                      <span className="text-lg font-black text-green-600 dark:text-green-500">
+                                        {formatPrice(option)}
+                                      </span>
+                                    </div>
+                                  </div>
+
+                                  {/* Actions Row */}
+                                  <div className="flex items-center justify-end gap-0.5 pt-1.5 border-t border-gray-200 dark:border-gray-700">
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleViewHistory(option)}
+                                      className="h-7 w-7 hover:bg-blue-50 hover:text-blue-600"
+                                      title="View price history"
+                                    >
+                                      <History className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleEdit(option)}
+                                      className="h-7 w-7 hover:bg-purple-50 hover:text-purple-600"
+                                      title="Edit content type"
+                                    >
+                                      <Edit className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      onClick={() => handleDeleteClick(option)}
+                                      className="h-7 w-7 hover:bg-red-50 hover:text-red-600"
+                                      title="Deactivate content type"
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </ScrollArea>
+                        </CardContent>
+                      </Card>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Table View */}
+              {viewMode === 'table' && (
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="w-12">
+                          <Checkbox
+                            checked={filteredContentTypes.length > 0 && filteredContentTypes.every(opt => selectedIds.has(opt.id))}
+                            onCheckedChange={(checked) => {
+                              if (checked) {
+                                // Select all
+                                setSelectedIds(new Set(filteredContentTypes.map(opt => opt.id)));
+                              } else {
+                                // Deselect all
+                                setSelectedIds(new Set());
+                              }
+                            }}
+                            className="border-gray-400"
+                          />
+                        </TableHead>
+                        <TableHead>Content Type</TableHead>
+                        <TableHead>Model</TableHead>
+                        <TableHead>Pricing Tier</TableHead>
+                        <TableHead>Price Type</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    ) : (
-                      filteredContentTypes.map((option) => (
-                        <TableRow key={option.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
-                          <TableCell className="font-medium">
-                            <div className="flex flex-col">
-                              <span>{option.label}</span>
-                              {option.description && (
-                                <span className="text-xs text-gray-500 mt-1">{option.description}</span>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredContentTypes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={8} className="text-center py-8">
+                            <div className="flex flex-col items-center gap-2 text-gray-500">
+                              <Search className="w-8 h-8 text-gray-300" />
+                              <p className="font-medium">
+                                {searchQuery ? 'No content types found matching your search' : 'No content types found'}
+                              </p>
+                              {searchQuery && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => setSearchQuery('')}
+                                  className="mt-2"
+                                >
+                                  Clear search
+                                </Button>
                               )}
                             </div>
                           </TableCell>
-                          <TableCell>
-                            <Badge className={getCategoryColor(option.category)}>
-                              {getCategoryName(option.category)}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline" className="font-normal">
-                              {option.isFree ? 'FREE' : option.priceType}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="font-semibold text-green-600">
-                            {formatPrice(option)}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant={option.isActive ? 'default' : 'secondary'}>
-                              {option.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleViewHistory(option)}
-                                className="h-8 w-8"
-                                title="View price history"
-                              >
-                                <History className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleEdit(option)}
-                                className="h-8 w-8"
-                                title="Edit content type"
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="outline"
-                                size="icon"
-                                onClick={() => handleDeleteClick(option)}
-                                className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                title="Deactivate content type"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
                         </TableRow>
-                      ))
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+                      ) : (
+                        filteredContentTypes.map((option) => (
+                          <TableRow key={option.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors">
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedIds.has(option.id)}
+                                onCheckedChange={() => handleSelectItem(option.id)}
+                                className="border-gray-400"
+                              />
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              <div className="flex flex-col">
+                                <span>{option.label}</span>
+                                {option.description && (
+                                  <span className="text-xs text-gray-500 mt-1">{option.description}</span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {option.clientModel ? (
+                                <Badge variant="outline" className="font-normal">
+                                  <User className="w-3 h-3 mr-1" />
+                                  {option.clientModel.clientName}
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="font-normal bg-blue-50 text-blue-600 border-blue-200">
+                                  Global
+                                </Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getCategoryColor(option.category)}>
+                                {getCategoryName(option.category)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-normal">
+                                {option.isFree ? 'FREE' : option.priceType}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-semibold text-green-600">
+                              {formatPrice(option)}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant={option.isActive ? 'default' : 'secondary'}>
+                                {option.isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleViewHistory(option)}
+                                  className="h-8 w-8"
+                                  title="View price history"
+                                >
+                                  <History className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleEdit(option)}
+                                  className="h-8 w-8"
+                                  title="Edit content type"
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => handleDeleteClick(option)}
+                                  className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                  title="Deactivate content type"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
             </>
           )}
         </CardContent>
@@ -716,6 +1196,49 @@ const ContentTypePricingTab = () => {
             </div>
 
             <div>
+              <Label htmlFor="add-model">Model (Optional)</Label>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <ModelsDropdownList
+                    value={clientModels.find(m => m.id === addFormData.clientModelId)?.clientName || ''}
+                    onValueChange={(clientName) => {
+                      // Find the model by clientName and set the ID
+                      const selectedModel = clientModels.find(m => m.clientName === clientName);
+                      setAddFormData({
+                        ...addFormData,
+                        clientModelId: selectedModel?.id || ''
+                      });
+                    }}
+                    placeholder="Select a model (or leave empty for global pricing)"
+                    className="flex-1"
+                  />
+                  {addFormData.clientModelId && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setAddFormData({ ...addFormData, clientModelId: '' })}
+                      className="shrink-0"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                {!addFormData.clientModelId && (
+                  <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                    <DollarSign className="w-4 h-4 text-blue-600" />
+                    <span className="text-xs text-blue-700 dark:text-blue-300">
+                      No model selected - creating global pricing (default for all models)
+                    </span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Select a specific model for custom pricing, or leave empty for global default pricing.
+              </p>
+            </div>
+
+            <div>
               <Label htmlFor="add-category">Pricing Tier <span className="text-red-500">*</span></Label>
               <Select
                 value={addFormData.category}
@@ -725,9 +1248,10 @@ const ContentTypePricingTab = () => {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="CHEAP_PORN">Cheap Porn</SelectItem>
-                  <SelectItem value="EXPENSIVE_PORN">Expensive Porn</SelectItem>
+                  <SelectItem value="PORN_ACCURATE">Porn Accurate</SelectItem>
+                  <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
                   <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
+                  <SelectItem value="GF_SCAM">GF Scam</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -898,6 +1422,43 @@ const ContentTypePricingTab = () => {
               Update pricing information for {selectedOption?.label}
             </DialogDescription>
           </DialogHeader>
+
+          {/* Model Indicator */}
+          {selectedOption && (
+            <div className={cn(
+              "flex items-center gap-2 p-3 rounded-lg border-2",
+              selectedOption.clientModel
+                ? "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800"
+                : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+            )}>
+              {selectedOption.clientModel ? (
+                <>
+                  <User className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-pink-900 dark:text-pink-100">
+                      Model-Specific Pricing
+                    </p>
+                    <p className="text-xs text-pink-700 dark:text-pink-300">
+                      {selectedOption.clientModel.clientName}
+                    </p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                      Global Pricing
+                    </p>
+                    <p className="text-xs text-blue-700 dark:text-blue-300">
+                      Default for all models
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           <div className="space-y-4 py-4">
             <div>
               <Label htmlFor="label">Content Type <span className="text-red-500">*</span></Label>
@@ -1079,6 +1640,41 @@ const ContentTypePricingTab = () => {
                 </>
               ) : (
                 'Deactivate'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Bulk Delete Confirmation Dialog */}
+      <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Deactivate Multiple Content Types</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to deactivate {selectedIds.size} content type{selectedIds.size > 1 ? 's' : ''}? This will not delete them permanently but will remove them from active use.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setBulkDeleteDialogOpen(false)}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmBulkDelete}
+              disabled={bulkDeleteMutation.isPending}
+            >
+              {bulkDeleteMutation.isPending ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Deactivating...
+                </>
+              ) : (
+                `Deactivate ${selectedIds.size} Item${selectedIds.size > 1 ? 's' : ''}`
               )}
             </Button>
           </DialogFooter>

@@ -7,11 +7,28 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
+    const clientModelId = searchParams.get("clientModelId");
 
     const contentTypeOptions = await prisma.contentTypeOption.findMany({
       where: {
         isActive: true,
         ...(category && { category }),
+        // If clientModelId is provided, get both model-specific and global options
+        // If not provided, get only global options (clientModelId is null)
+        ...(clientModelId ? {
+          OR: [
+            { clientModelId: clientModelId },
+            { clientModelId: null }
+          ]
+        } : { clientModelId: null }),
+      },
+      include: {
+        clientModel: {
+          select: {
+            id: true,
+            clientName: true,
+          },
+        },
       },
       orderBy: {
         order: "asc",
@@ -22,6 +39,7 @@ export async function GET(req: NextRequest) {
       success: true,
       contentTypeOptions,
       category,
+      clientModelId,
     });
   } catch (error) {
     console.error("Error fetching content type options:", error);
@@ -49,6 +67,7 @@ export async function POST(req: NextRequest) {
       description,
       order,
       isFree,
+      clientModelId,
     } = body;
 
     // Validate required fields
@@ -60,6 +79,23 @@ export async function POST(req: NextRequest) {
         },
         { status: 400 }
       );
+    }
+
+    // Validate clientModelId if provided
+    if (clientModelId) {
+      const modelExists = await prisma.clientModel.findUnique({
+        where: { id: clientModelId },
+      });
+
+      if (!modelExists) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Invalid clientModelId - model not found",
+          },
+          { status: 400 }
+        );
+      }
     }
 
     // Validate price data based on priceType (skip validation if isFree or priceType is null)
@@ -113,6 +149,7 @@ export async function POST(req: NextRequest) {
           description,
           order: order || 0,
           isFree: isFree || false,
+          clientModelId: clientModelId || null,
         },
       }),
     ]);

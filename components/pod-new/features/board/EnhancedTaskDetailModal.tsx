@@ -2029,15 +2029,17 @@ export default function EnhancedTaskDetailModalRedesigned({
                               }}
                               className="w-full px-2 py-1 text-xs border border-gray-200 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800"
                             >
-                              <option value="CHEAP_PORN">Cheap Porn</option>
-                              <option value="EXPENSIVE_PORN">Expensive Porn</option>
+                              <option value="PORN_ACCURATE">Porn Accurate</option>
+                              <option value="PORN_SCAM">Porn Scam</option>
                               <option value="GF_ACCURATE">GF Accurate</option>
+                              <option value="GF_SCAM">GF Scam</option>
                             </select>
                           ) : (
                             <div className="text-xs font-medium text-gray-900 dark:text-gray-100">
-                              {workflowData?.pricingCategory === 'CHEAP_PORN' && 'Cheap Porn'}
-                              {workflowData?.pricingCategory === 'EXPENSIVE_PORN' && 'Expensive Porn'}
+                              {workflowData?.pricingCategory === 'PORN_ACCURATE' && 'Porn Accurate'}
+                              {workflowData?.pricingCategory === 'PORN_SCAM' && 'Porn Scam'}
                               {workflowData?.pricingCategory === 'GF_ACCURATE' && 'GF Accurate'}
+                               {workflowData?.pricingCategory === 'GF_SCAM' && 'GF Scam'}
                             </div>
                           )}
                         </div>
