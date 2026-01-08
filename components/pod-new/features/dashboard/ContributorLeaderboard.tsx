@@ -2,7 +2,6 @@
 
 import React from "react";
 import Image from "next/image";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 interface Contributor {
   userId: string;
@@ -16,131 +15,159 @@ interface ContributorLeaderboardProps {
   data: Contributor[];
 }
 
-const COLORS = ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#3B82F6'];
+const BAR_COLORS = [
+  { bg: "#8B5CF6", glow: "rgba(139,92,246,0.3)" }, // Violet
+  { bg: "#F472B6", glow: "rgba(244,114,182,0.3)" }, // Pink
+  { bg: "#6B7280", glow: "none" }, // Gray for "Other"
+];
 
-export default function ContributorLeaderboard({ data }: ContributorLeaderboardProps) {
+export default function ContributorLeaderboard({
+  data,
+}: ContributorLeaderboardProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <div className="bg-[#121216] rounded-2xl p-5 border border-white/5 shadow-lg">
+        <div className="text-center py-8 text-gray-500">
           No contributor data available
         </div>
       </div>
     );
   }
 
-  // Transform data for chart
-  const chartData = data.map((contributor, index) => ({
-    name: contributor.name.split(' ')[0], // First name only
-    value: contributor.taskCount,
-    fullName: contributor.name,
-    email: contributor.email,
-    image: contributor.image,
-    color: COLORS[index % COLORS.length]
-  }));
+  // Get top 2 contributors and aggregate the rest
+  const topContributors = data.slice(0, 2);
+  const otherContributors = data.slice(2);
+  const otherCount = otherContributors.reduce((sum, c) => sum + c.taskCount, 0);
 
-  const CustomTooltip = ({ active, payload }: any) => {
-    if (active && payload && payload.length) {
-      return (
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg p-3 shadow-lg">
-          <p className="text-sm font-semibold text-gray-900 dark:text-white">{payload[0].payload.fullName}</p>
-          <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-            {payload[0].value} {payload[0].value === 1 ? 'task' : 'tasks'} created
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  // Calculate max value for scaling bars
+  const allCounts = [
+    ...topContributors.map((c) => c.taskCount),
+    otherCount,
+  ].filter((c) => c > 0);
+  const maxCount = Math.max(...allCounts, 1);
+
+  // Create Y-axis labels
+  const yAxisLabels = [maxCount, Math.round(maxCount / 2), 0];
+
+  // Bar data including "Other" if there are more contributors
+  const barData = [
+    ...topContributors.map((c, i) => ({
+      name: c.name.split(" ")[0],
+      count: c.taskCount,
+      image: c.image,
+      color: BAR_COLORS[i],
+      isOther: false,
+    })),
+    ...(otherContributors.length > 0
+      ? [
+          {
+            name: "Other",
+            count: otherCount,
+            image: null,
+            color: BAR_COLORS[2],
+            isOther: true,
+          },
+        ]
+      : []),
+  ];
+
+  const maxHeight = 128; // Max bar height in pixels
 
   return (
-    <div className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-      <div>
-        {/* Header */}
-        <div className="mb-6">
-          <h3 className="text-lg font-black text-gray-900 dark:text-white">
+    <div className="bg-[#121216] rounded-2xl p-5 border border-white/5 shadow-lg">
+      {/* Header */}
+      <div className="mb-6 flex justify-between items-end">
+        <div>
+          <h2 className="text-base font-semibold text-white">
             Top Contributors
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Most active this week</p>
+          </h2>
+          <p className="text-[11px] text-gray-500">Weekly activity</p>
         </div>
+      </div>
 
-        {/* Chart */}
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={chartData} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" className="dark:stroke-gray-700" />
-            <XAxis
-              dataKey="name"
-              tick={{ fill: '#6b7280', fontSize: 12 }}
-              stroke="#9ca3af"
-            />
-            <YAxis
-              tick={{ fill: '#6b7280', fontSize: 12 }}
-              stroke="#9ca3af"
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(0, 0, 0, 0.05)' }} />
-            <Bar dataKey="value" radius={[8, 8, 0, 0]}>
-              {chartData.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
-
-        {/* Contributors List */}
-        <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {data.slice(0, 6).map((contributor, index) => (
-            <div
-              key={contributor.userId}
-              className="flex items-center gap-3 p-3 rounded-lg border border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600 transition-colors"
-            >
-              {/* Avatar */}
-              <div className="relative flex-shrink-0">
-                {contributor.image ? (
-                  <Image
-                    src={contributor.image}
-                    alt={contributor.name}
-                    width={40}
-                    height={40}
-                    className="rounded-full"
-                  />
-                ) : (
-                  <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-white font-bold text-sm"
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  >
-                    {contributor.name.charAt(0).toUpperCase()}
-                  </div>
-                )}
-                {/* Rank Badge */}
-                {index < 3 && (
-                  <div
-                    className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full flex items-center justify-center text-xs font-bold text-white shadow-sm"
-                    style={{ backgroundColor: COLORS[index] }}
-                  >
-                    {index + 1}
-                  </div>
-                )}
-              </div>
-
-              {/* User Info */}
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-sm text-gray-900 dark:text-white truncate">
-                  {contributor.name}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400">
-                  {contributor.taskCount} {contributor.taskCount === 1 ? 'task' : 'tasks'}
-                </div>
-              </div>
-            </div>
+      {/* Chart Container */}
+      <div className="flex items-end space-x-4 h-32 px-1 relative">
+        {/* Y-Axis Labels */}
+        <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[9px] text-gray-600 font-medium -ml-1 h-full z-0">
+          {yAxisLabels.map((label, i) => (
+            <span key={i}>{label}</span>
           ))}
         </div>
 
-        {/* Footer Note */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
-          <p className="text-xs text-gray-500 dark:text-gray-400">
-            Based on tasks created in the last 7 days
-          </p>
+        {/* Horizontal Grid Lines */}
+        <div className="absolute inset-0 w-full h-full flex flex-col justify-between pointer-events-none pl-4 z-0">
+          <div className="border-b border-dashed border-white/5 w-full h-0" />
+          <div className="border-b border-dashed border-white/5 w-full h-0" />
+          <div className="border-b border-white/10 w-full h-0" />
         </div>
+
+        {/* Bars */}
+        {barData.map((item, index) => {
+          const barHeight =
+            maxCount > 0 ? (item.count / maxCount) * maxHeight : 0;
+
+          return (
+            <div
+              key={index}
+              className={`flex-1 flex flex-col items-center justify-end h-full z-10 ${index === 0 ? "pl-4" : ""} group ${item.isOther ? "opacity-40" : ""}`}
+            >
+              {/* Bar */}
+              <div className="relative w-full flex justify-center">
+                <div
+                  className="w-full max-w-[40px] rounded-t-sm transition-all duration-300 group-hover:opacity-90"
+                  style={{
+                    height: `${barHeight}px`,
+                    backgroundColor: item.color.bg,
+                    boxShadow:
+                      item.color.glow !== "none"
+                        ? `0 0 15px ${item.color.glow}`
+                        : "none",
+                  }}
+                />
+              </div>
+
+              {/* Avatar / Icon */}
+              <div className="mt-2 flex flex-col items-center">
+                {item.image ? (
+                  <Image
+                    src={item.image}
+                    alt={item.name}
+                    width={24}
+                    height={24}
+                    className="rounded-full border border-pink-500/30 object-cover"
+                  />
+                ) : item.isOther ? (
+                  <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-[8px] text-gray-400 font-bold border border-gray-700">
+                    +
+                  </div>
+                ) : (
+                  <div
+                    className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold border"
+                    style={{
+                      backgroundColor:
+                        index === 0
+                          ? "rgba(59,130,246,0.3)"
+                          : "rgba(236,72,153,0.3)",
+                      borderColor:
+                        index === 0
+                          ? "rgba(59,130,246,0.3)"
+                          : "rgba(236,72,153,0.3)",
+                      color: index === 0 ? "#93C5FD" : "#F9A8D4",
+                    }}
+                  >
+                    {item.name.charAt(0).toUpperCase()}
+                    {item.name.split(" ")[1]?.charAt(0).toUpperCase() || ""}
+                  </div>
+                )}
+                <span
+                  className={`text-[9px] mt-1 truncate w-12 text-center ${item.isOther ? "text-gray-600" : "text-gray-500"}`}
+                >
+                  {item.name}
+                </span>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
