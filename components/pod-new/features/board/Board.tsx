@@ -1807,7 +1807,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   const totalTasksCount = isListView && qPagination ? qPagination.totalItems : qTasks.length;
 
   return (
-    <div className="space-y-6">
+    <div className="">
       {/* Board Header */}
       <BoardHeader
         teamName={teamName}

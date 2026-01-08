@@ -1462,7 +1462,7 @@ const PodAdminDashboard = () => {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6">
+      <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 p-6">
         <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 shadow-xl backdrop-blur-sm p-6">
           {/* Background Pattern */}
           <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none">
@@ -1525,7 +1525,7 @@ const PodAdminDashboard = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6 space-y-6">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 p-6 space-y-6">
       {/* Success Message */}
       {successMessage && (
         <div className="fixed top-4 right-4 z-50 max-w-sm w-full animate-in slide-in-from-right-full duration-300">
@@ -1752,7 +1752,7 @@ const PodAdminDashboard = () => {
 
         {/* Team Management View */}
         {activeView === "teams" && (
-          <div className="min-h-[600px] bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 rounded-2xl p-6">
+          <div className="min-h-[600px] bg-pink-50/30 dark:bg-gray-950 rounded-2xl p-6">
             <div className="space-y-6">
               {/* Enhanced Header */}
               <div className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">

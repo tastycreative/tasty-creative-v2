@@ -24,21 +24,49 @@ const AccountMenu = ({
 
   if (collapsed) {
     return (
-      <div className="p-4 flex justify-center">
-        <div className="relative">
-          <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
-            {image && !imgError ? (
-              <img
-                src={`/api/image-proxy?url=${encodeURIComponent(image)}`}
-                alt="profile-picture"
-                className="w-full h-full object-cover border-2 border-pink-200 dark:border-pink-500/30"
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <span className="text-xs">{initials}</span>
-            )}
+      <div className="relative">
+        <input type="checkbox" id="menu-dropdown-collapsed" className="peer hidden" />
+        <label
+          htmlFor="menu-dropdown-collapsed"
+          className="flex items-center justify-center p-1.5 cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+        >
+          <div className="relative">
+            <div className="w-7 h-7 rounded-full overflow-hidden bg-gradient-to-br from-pink-500 to-purple-600 flex items-center justify-center text-white text-sm font-semibold">
+              {image && !imgError ? (
+                <img
+                  src={`/api/image-proxy?url=${encodeURIComponent(image)}`}
+                  alt="profile-picture"
+                  className="w-full h-full object-cover"
+                  onError={() => setImgError(true)}
+                />
+              ) : (
+                <span className="text-xs">{initials}</span>
+              )}
+            </div>
+            <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-400 border border-white dark:border-gray-800 rounded-full"></div>
           </div>
-          <div className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 bg-green-400 border-2 border-white dark:border-gray-800 rounded-full"></div>
+        </label>
+
+        <div className="absolute top-full right-0 mt-2 w-48 border border-gray-200 dark:border-gray-700 rounded-lg p-2 hidden peer-checked:flex flex-col gap-1 bg-white dark:bg-gray-800 shadow-lg z-50">
+          <div className="px-3 py-2 border-b border-gray-100 dark:border-gray-700 mb-1">
+            <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
+              {name || "Guest"}
+            </div>
+            <div className="text-xs text-gray-500 dark:text-gray-400 truncate">
+              {session?.user?.email || "guest@example.com"}
+            </div>
+          </div>
+          <button className="text-left hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 text-sm text-gray-700 dark:text-gray-200 font-medium transition-colors flex items-center gap-2 rounded">
+            <Settings className="h-4 w-4" />
+            Settings
+          </button>
+          <button
+            className="text-left hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-2 text-sm text-red-600 dark:text-red-400 font-medium transition-colors flex items-center gap-2 rounded"
+            onClick={handleLogout}
+          >
+            <LogOut className="h-4 w-4" />
+            Sign Out
+          </button>
         </div>
       </div>
     );

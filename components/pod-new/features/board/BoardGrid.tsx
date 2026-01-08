@@ -85,7 +85,7 @@ export default function BoardGrid({
   });
 
   return (
-    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden">
+    <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm border border-gray-200 dark:border-gray-700 shadow-lg overflow-hidden">
       {/* Mobile: Horizontal Scrolling Columns */}
       <div className="md:hidden">
         <div

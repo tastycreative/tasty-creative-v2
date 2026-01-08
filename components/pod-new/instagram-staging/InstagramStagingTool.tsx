@@ -454,7 +454,7 @@ const InstagramStagingTool = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 rounded-3xl">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 rounded-3xl">
       {/* Header */}
       <div className="relative bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border-b border-gray-200/50 dark:border-white/10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))] opacity-30"></div>

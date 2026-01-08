@@ -192,7 +192,7 @@ export default function SchedulePage() {
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 flex items-center justify-center">
+      <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center">
           <Loader2 className="w-12 h-12 animate-spin text-purple-500 mx-auto mb-4" />
           <p className="text-gray-600 dark:text-gray-400">Loading schedule data...</p>
@@ -204,7 +204,7 @@ export default function SchedulePage() {
   // Error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 flex items-center justify-center">
+      <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 flex items-center justify-center">
         <div className="text-center bg-red-500/10 border border-red-500/30 rounded-2xl p-8 max-w-md">
           <XCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
           <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">Error Loading Schedule</h2>
@@ -219,7 +219,7 @@ export default function SchedulePage() {
   const items = data?.items || [];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950">
       {/* Header */}
       <div className="relative bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border-b border-gray-200/50 dark:border-white/10">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))] opacity-30"></div>

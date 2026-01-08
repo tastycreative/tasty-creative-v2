@@ -61,7 +61,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 flex items-center justify-center p-6">
+      <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -101,7 +101,7 @@ export default function DashboardPage() {
   const userRole = session?.user?.role || "USER";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950">
       <div className="container mx-auto px-4 py-8 space-y-8">
         {/* Enhanced Header with Gallery Theme */}
         <motion.div

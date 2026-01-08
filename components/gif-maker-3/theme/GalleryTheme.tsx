@@ -6,9 +6,9 @@
 export const GalleryTheme = {
   // Background gradients
   background: {
-    light: "bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50",
-    dark: "dark:from-gray-900 dark:via-purple-900 dark:to-blue-900",
-    full: "bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900",
+    light: "bg-pink-50/30",
+    dark: "dark:bg-gray-950",
+    full: "bg-pink-50/30 dark:bg-gray-950",
   },
 
   // Sidebar backgrounds

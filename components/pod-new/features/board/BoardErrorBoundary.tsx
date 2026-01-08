@@ -56,7 +56,7 @@ class BoardErrorBoundary extends Component<Props, State> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 flex items-center justify-center p-6">
+        <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 flex items-center justify-center p-6">
           <div className="max-w-2xl w-full bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 relative overflow-hidden">
             {/* Decorative circles */}
             <div className="absolute top-0 right-0 w-64 h-64 bg-white/50 dark:bg-gray-700/50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />

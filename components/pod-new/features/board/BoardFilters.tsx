@@ -156,8 +156,8 @@ export default function BoardFilters({
   };
 
   return (
-    <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 rounded-xl backdrop-blur-sm transition-all duration-200 shadow-sm hover:shadow-md">
-      <div className={`${responsiveClasses.compactButtons ? 'p-4 space-y-4' : 'p-6 space-y-6'}`}>
+    <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm transition-all duration-200 shadow-sm hover:shadow-md">
+      <div className={`${responsiveClasses.compactButtons ? 'p-2 space-y-4' : 'p-4 space-y-6'}`}>
       {/* Search Bar and Filter Toggle */}
       <div className="flex flex-wrap items-center gap-3">
         {/* Search Input */}

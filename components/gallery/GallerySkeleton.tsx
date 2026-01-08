@@ -5,7 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 const GallerySkeleton = () => {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950">
       <div className="container mx-auto px-4 py-8">
         {/* Header Skeleton */}
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between mb-8">

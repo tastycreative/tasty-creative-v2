@@ -2052,7 +2052,7 @@ export default function ModularWorkflowWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950">
       {/* Header with Progress */}
       <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">
