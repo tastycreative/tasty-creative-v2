@@ -1,12 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useTransition, memo } from "react";
 import { Search, ChevronLeft, ChevronRight, User, CheckCircle, Clock, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import CountUp from "react-countup";
 import { useSearchParams, useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 
 interface OnboardingModel {
   Model: string;
@@ -22,27 +23,217 @@ interface OnboardingApiResponse {
   tasks: string[];
 }
 
+// Memoized Model Card for Grid View
+const ModelGridCard = memo(function ModelGridCard({
+  model,
+  isSelected,
+  percentage,
+  onSelect,
+}: {
+  model: OnboardingModel;
+  isSelected: boolean;
+  percentage: number;
+  onSelect: (name: string) => void;
+}) {
+  return (
+    <div
+      onClick={() => onSelect(model.Model)}
+      className={cn(
+        "cursor-pointer group relative overflow-hidden rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg",
+        isSelected
+          ? "bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 border-2 border-pink-300 dark:border-pink-600 shadow-lg shadow-pink-500/25"
+          : "bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-700 border border-gray-200/60 dark:border-gray-700/60 hover:from-gray-50 hover:to-gray-100 dark:hover:from-slate-700 dark:hover:to-slate-600 hover:border-pink-200 dark:hover:border-pink-700"
+      )}
+    >
+      <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-purple-500/5 dark:from-pink-400/10 dark:to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="relative p-4">
+        <div className="flex flex-col items-center text-center space-y-3">
+          <div className={cn(
+            "h-12 w-12 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300",
+            isSelected
+              ? "bg-gradient-to-br from-pink-500 to-purple-500 shadow-lg shadow-pink-500/25"
+              : "bg-gradient-to-br from-emerald-400 to-blue-500 group-hover:from-pink-500 group-hover:to-purple-500"
+          )}>
+            <span className="text-white font-bold text-sm">
+              {model.Model.substring(0, 2).toUpperCase()}
+            </span>
+          </div>
+          <div className="w-full">
+            <div className="text-sm font-semibold truncate text-gray-900 dark:text-white mb-1" title={model.Model}>
+              {model.Model}
+            </div>
+            <div className={`text-xs px-2 py-1 rounded-full font-medium ${
+              percentage >= 75 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
+              percentage >= 50 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
+              percentage >= 25 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
+              'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+            }`}>
+              {percentage}% complete
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Memoized Model Card for List View
+const ModelListCard = memo(function ModelListCard({
+  model,
+  isSelected,
+  completed,
+  total,
+  percentage,
+  onSelect,
+}: {
+  model: OnboardingModel;
+  isSelected: boolean;
+  completed: number;
+  total: number;
+  percentage: number;
+  onSelect: (name: string) => void;
+}) {
+  return (
+    <div
+      onClick={() => onSelect(model.Model)}
+      className={cn(
+        "cursor-pointer group relative overflow-hidden rounded-xl transition-all duration-300 shadow-sm hover:shadow-md",
+        isSelected
+          ? "bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 border-2 border-pink-300 dark:border-pink-600 shadow-lg shadow-pink-500/25"
+          : "bg-gradient-to-r from-white to-gray-50 dark:from-slate-800 dark:to-slate-700 border border-gray-200/60 dark:border-gray-700/60 hover:from-gray-50 hover:to-gray-100 dark:hover:from-slate-700 dark:hover:to-slate-600 hover:border-pink-200 dark:hover:border-pink-700"
+      )}
+    >
+      <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-purple-500/5 dark:from-pink-400/10 dark:to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+      <div className="relative p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <div className={cn(
+              "h-12 w-12 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300",
+              isSelected
+                ? "bg-gradient-to-br from-pink-500 to-purple-500 shadow-lg shadow-pink-500/25"
+                : "bg-gradient-to-br from-emerald-400 to-blue-500 group-hover:from-pink-500 group-hover:to-purple-500"
+            )}>
+              <span className="text-white font-bold text-sm">
+                {model.Model.substring(0, 2).toUpperCase()}
+              </span>
+            </div>
+            <div>
+              <div className="font-semibold text-gray-900 dark:text-white">{model.Model}</div>
+              <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                {completed} of {total} tasks completed
+              </div>
+            </div>
+          </div>
+          <div className="flex items-center space-x-3">
+            <div className={`text-lg font-bold ${
+              percentage >= 75 ? 'text-emerald-600 dark:text-emerald-400' :
+              percentage >= 50 ? 'text-amber-600 dark:text-amber-400' :
+              percentage >= 25 ? 'text-orange-600 dark:text-orange-400' :
+              'text-red-600 dark:text-red-400'
+            }`}>
+              {percentage}%
+            </div>
+            {isSelected && (
+              <div className="px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full text-xs font-semibold shadow-sm">
+                Selected
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Memoized Task Card
+const TaskCard = memo(function TaskCard({
+  task,
+  isCompleted,
+}: {
+  task: string;
+  isCompleted: boolean;
+}) {
+  return (
+    <div
+      className={cn(
+        "group relative overflow-hidden rounded-xl transition-all duration-300 shadow-sm hover:shadow-md backdrop-blur-sm",
+        isCompleted
+          ? "bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 dark:from-emerald-900/30 dark:via-green-900/30 dark:to-emerald-800/30 border border-emerald-300/60 dark:border-emerald-600/60 shadow-emerald-500/20"
+          : "bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-800/80 dark:via-slate-700/80 dark:to-slate-600/80 border border-gray-300/60 dark:border-gray-600/60 hover:from-pink-50 hover:via-purple-50 hover:to-pink-100 dark:hover:from-pink-900/20 dark:hover:via-purple-900/20 dark:hover:to-pink-800/20 hover:border-pink-300/60 dark:hover:border-pink-600/60"
+      )}
+    >
+      <div className={cn(
+        "absolute inset-0 transition-opacity duration-300",
+        isCompleted
+          ? "bg-gradient-to-br from-emerald-500/10 to-green-500/10 dark:from-emerald-400/20 dark:to-green-400/20"
+          : "bg-gradient-to-br from-pink-500/5 to-purple-500/5 dark:from-pink-400/10 dark:to-purple-400/10 opacity-0 group-hover:opacity-100"
+      )} />
+      <div className="relative p-5">
+        <div className="flex items-start space-x-3">
+          <div className="pt-1">
+            <Checkbox
+              checked={isCompleted}
+              disabled
+              className={cn(
+                "w-5 h-5 transition-all duration-200 shadow-sm",
+                isCompleted
+                  ? "data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 shadow-emerald-500/25"
+                  : "border-gray-400 dark:border-gray-500"
+              )}
+            />
+          </div>
+          <div className="flex-1 min-w-0">
+            <label className={cn(
+              "text-sm font-semibold leading-relaxed cursor-default block",
+              isCompleted
+                ? "text-emerald-700 dark:text-emerald-300"
+                : "text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
+            )}>
+              {task}
+            </label>
+          </div>
+          <div className={cn(
+            "w-2 h-2 rounded-full flex-shrink-0 mt-2 shadow-sm transition-all duration-200",
+            isCompleted
+              ? "bg-emerald-500 shadow-emerald-500/50"
+              : "bg-gray-400 dark:bg-gray-500 group-hover:bg-pink-500 group-hover:shadow-pink-500/50"
+          )} />
+        </div>
+      </div>
+    </div>
+  );
+});
+
+// Fetch function for React Query
+const fetchOnboardingData = async (): Promise<OnboardingApiResponse> => {
+  const response = await fetch('/api/pod-new/onboarding');
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+    throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Failed to fetch onboarding data`);
+  }
+  return response.json();
+};
+
 export default function PodNewOnboardingPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const modelParam = searchParams?.get("model");
+  const [isPending, startTransition] = useTransition();
 
-  const [apiData, setApiData] = useState<OnboardingApiResponse | null>(null);
   const [selectedModel, setSelectedModel] = useState<string | null>(null);
-  const [selectedModelData, setSelectedModelData] = useState<OnboardingModel | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [modelDataLoading, setModelDataLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  const ITEMS_PER_PAGE = viewMode === "grid" ? 15 : 10;
+  // Use React Query for data fetching with caching
+  const { data: apiData, isLoading: loading, error, refetch } = useQuery({
+    queryKey: ['onboarding-data'],
+    queryFn: fetchOnboardingData,
+    staleTime: 2 * 60 * 1000, // 2 minutes
+    gcTime: 5 * 60 * 1000, // 5 minutes (formerly cacheTime)
+  });
 
-  // Fetch all models initially
-  useEffect(() => {
-    fetchOnboardingData();
-  }, []);
+  const ITEMS_PER_PAGE = viewMode === "grid" ? 15 : 10;
 
   // Set selected model from URL param or first model
   useEffect(() => {
@@ -52,43 +243,21 @@ export default function PodNewOnboardingPage() {
     }
   }, [apiData, modelParam]);
 
-  // Fetch specific model data when selection changes
-  useEffect(() => {
-    if (!selectedModel || !apiData) return;
-
-    const modelData = apiData.models.find(model => model.Model === selectedModel);
-    setSelectedModelData(modelData || null);
+  // Get selected model data from cache
+  const selectedModelData = useMemo(() => {
+    if (!selectedModel || !apiData) return null;
+    return apiData.models.find(model => model.Model === selectedModel) || null;
   }, [selectedModel, apiData]);
 
-  const fetchOnboardingData = async () => {
-    try {
-      setLoading(true);
-      setError(null);
-
-      const response = await fetch('/api/pod-new/onboarding');
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-        throw new Error(errorData.message || errorData.error || `HTTP ${response.status}: Failed to fetch onboarding data`);
-      }
-
-      const data: OnboardingApiResponse = await response.json();
-      setApiData(data);
-    } catch (err) {
-      console.error('Error fetching onboarding data:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleModelSelect = (modelName: string) => {
+  // Use useTransition for URL updates to avoid blocking
+  const handleModelSelect = useCallback((modelName: string) => {
     setSelectedModel(modelName);
-    // Update URL without page reload
-    const newUrl = new URL(window.location.href);
-    newUrl.searchParams.set('model', modelName);
-    router.replace(newUrl.pathname + newUrl.search, { scroll: false });
-  };
+    startTransition(() => {
+      const newUrl = new URL(window.location.href);
+      newUrl.searchParams.set('model', modelName);
+      router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+    });
+  }, [router]);
 
   // Filter and paginate models
   const filteredModels = useMemo(() => {
@@ -105,36 +274,32 @@ export default function PodNewOnboardingPage() {
     return filteredModels.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredModels, currentPage, ITEMS_PER_PAGE]);
 
-  // Navigation functions
-  const goToNextPage = () => {
+  // Navigation functions - memoized
+  const goToNextPage = useCallback(() => {
     if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
+      setCurrentPage(prev => prev + 1);
     }
-  };
+  }, [currentPage, totalPages]);
 
-  const goToPrevPage = () => {
+  const goToPrevPage = useCallback(() => {
     if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
+      setCurrentPage(prev => prev - 1);
     }
-  };
+  }, [currentPage]);
 
   // Reset to page 1 when search changes
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery]);
 
-  // Calculate progress for selected model
-  const calculateProgress = () => {
+  // Memoized progress calculation
+  const progress = useMemo(() => {
     if (!selectedModelData || !apiData) return { completed: 0, total: 0, percentage: 0 };
-
     const completed = apiData.tasks.filter(task => selectedModelData[task] === "TRUE").length;
     const total = apiData.tasks.length;
     const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
-
     return { completed, total, percentage };
-  };
-
-  const progress = calculateProgress();
+  }, [selectedModelData, apiData]);
 
   if (loading) {
     return (
@@ -152,9 +317,9 @@ export default function PodNewOnboardingPage() {
       <div className="p-6 flex items-center justify-center min-h-96">
         <div className="text-center">
           <div className="text-red-500 mb-2">Failed to load onboarding data</div>
-          <div className="text-sm text-gray-600 dark:text-slate-400">{error}</div>
+          <div className="text-sm text-gray-600 dark:text-slate-400">{error instanceof Error ? error.message : 'Unknown error'}</div>
           <button
-            onClick={fetchOnboardingData}
+            onClick={() => refetch()}
             className="mt-4 px-4 py-2 bg-pink-500 text-white rounded-lg hover:bg-pink-600"
           >
             Retry
@@ -292,45 +457,13 @@ export default function PodNewOnboardingPage() {
                     const modelPercentage = modelTotal > 0 ? Math.round((modelCompleted / modelTotal) * 100) : 0;
 
                     return (
-                      <div
+                      <ModelGridCard
                         key={model.Model}
-                        onClick={() => handleModelSelect(model.Model)}
-                        className={cn(
-                          "cursor-pointer group relative overflow-hidden rounded-xl transition-all duration-300 shadow-sm hover:shadow-lg",
-                          selectedModel === model.Model
-                            ? "bg-gradient-to-br from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 border-2 border-pink-300 dark:border-pink-600 shadow-lg shadow-pink-500/25"
-                            : "bg-gradient-to-br from-white to-gray-50 dark:from-slate-800 dark:to-slate-700 border border-gray-200/60 dark:border-gray-700/60 hover:from-gray-50 hover:to-gray-100 dark:hover:from-slate-700 dark:hover:to-slate-600 hover:border-pink-200 dark:hover:border-pink-700"
-                        )}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-br from-pink-500/5 to-purple-500/5 dark:from-pink-400/10 dark:to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="relative p-4">
-                          <div className="flex flex-col items-center text-center space-y-3">
-                            <div className={cn(
-                              "h-12 w-12 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300",
-                              selectedModel === model.Model
-                                ? "bg-gradient-to-br from-pink-500 to-purple-500 shadow-lg shadow-pink-500/25"
-                                : "bg-gradient-to-br from-emerald-400 to-blue-500 group-hover:from-pink-500 group-hover:to-purple-500"
-                            )}>
-                              <span className="text-white font-bold text-sm">
-                                {model.Model.substring(0, 2).toUpperCase()}
-                              </span>
-                            </div>
-                            <div className="w-full">
-                              <div className="text-sm font-semibold truncate text-gray-900 dark:text-white mb-1" title={model.Model}>
-                                {model.Model}
-                              </div>
-                              <div className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                modelPercentage >= 75 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' :
-                                modelPercentage >= 50 ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400' :
-                                modelPercentage >= 25 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' :
-                                'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
-                              }`}>
-                                {modelPercentage}% complete
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                        model={model}
+                        isSelected={selectedModel === model.Model}
+                        percentage={modelPercentage}
+                        onSelect={handleModelSelect}
+                      />
                     );
                   })}
                 </div>
@@ -345,55 +478,15 @@ export default function PodNewOnboardingPage() {
                     const modelPercentage = modelTotal > 0 ? Math.round((modelCompleted / modelTotal) * 100) : 0;
 
                     return (
-                      <div
+                      <ModelListCard
                         key={model.Model}
-                        onClick={() => handleModelSelect(model.Model)}
-                        className={cn(
-                          "cursor-pointer group relative overflow-hidden rounded-xl transition-all duration-300 shadow-sm hover:shadow-md",
-                          selectedModel === model.Model
-                            ? "bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 border-2 border-pink-300 dark:border-pink-600 shadow-lg shadow-pink-500/25"
-                            : "bg-gradient-to-r from-white to-gray-50 dark:from-slate-800 dark:to-slate-700 border border-gray-200/60 dark:border-gray-700/60 hover:from-gray-50 hover:to-gray-100 dark:hover:from-slate-700 dark:hover:to-slate-600 hover:border-pink-200 dark:hover:border-pink-700"
-                        )}
-                      >
-                        <div className="absolute inset-0 bg-gradient-to-r from-pink-500/5 to-purple-500/5 dark:from-pink-400/10 dark:to-purple-400/10 opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                        <div className="relative p-4">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center space-x-4">
-                              <div className={cn(
-                                "h-12 w-12 rounded-xl flex items-center justify-center shadow-sm transition-all duration-300",
-                                selectedModel === model.Model
-                                  ? "bg-gradient-to-br from-pink-500 to-purple-500 shadow-lg shadow-pink-500/25"
-                                  : "bg-gradient-to-br from-emerald-400 to-blue-500 group-hover:from-pink-500 group-hover:to-purple-500"
-                              )}>
-                                <span className="text-white font-bold text-sm">
-                                  {model.Model.substring(0, 2).toUpperCase()}
-                                </span>
-                              </div>
-                              <div>
-                                <div className="font-semibold text-gray-900 dark:text-white">{model.Model}</div>
-                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                                  {modelCompleted} of {modelTotal} tasks completed
-                                </div>
-                              </div>
-                            </div>
-                            <div className="flex items-center space-x-3">
-                              <div className={`text-lg font-bold ${
-                                modelPercentage >= 75 ? 'text-emerald-600 dark:text-emerald-400' :
-                                modelPercentage >= 50 ? 'text-amber-600 dark:text-amber-400' :
-                                modelPercentage >= 25 ? 'text-orange-600 dark:text-orange-400' :
-                                'text-red-600 dark:text-red-400'
-                              }`}>
-                                {modelPercentage}%
-                              </div>
-                              {selectedModel === model.Model && (
-                                <div className="px-3 py-1 bg-gradient-to-r from-pink-500 to-purple-500 text-white rounded-full text-xs font-semibold shadow-sm">
-                                  Selected
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
+                        model={model}
+                        isSelected={selectedModel === model.Model}
+                        completed={modelCompleted}
+                        total={modelTotal}
+                        percentage={modelPercentage}
+                        onSelect={handleModelSelect}
+                      />
                     );
                   })}
                 </div>
@@ -485,59 +578,13 @@ export default function PodNewOnboardingPage() {
 
               {/* Enhanced Tasks Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
-                {apiData!.tasks.map((task, index) => {
-                  const isCompleted = selectedModelData[task] === "TRUE";
-                  return (
-                    <div
-                      key={task}
-                      className={cn(
-                        "group relative overflow-hidden rounded-xl transition-all duration-300 shadow-sm hover:shadow-md backdrop-blur-sm",
-                        isCompleted
-                          ? "bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 dark:from-emerald-900/30 dark:via-green-900/30 dark:to-emerald-800/30 border border-emerald-300/60 dark:border-emerald-600/60 shadow-emerald-500/20"
-                          : "bg-gradient-to-br from-white via-gray-50 to-gray-100 dark:from-slate-800/80 dark:via-slate-700/80 dark:to-slate-600/80 border border-gray-300/60 dark:border-gray-600/60 hover:from-pink-50 hover:via-purple-50 hover:to-pink-100 dark:hover:from-pink-900/20 dark:hover:via-purple-900/20 dark:hover:to-pink-800/20 hover:border-pink-300/60 dark:hover:border-pink-600/60"
-                      )}
-                    >
-                      <div className={cn(
-                        "absolute inset-0 transition-opacity duration-300",
-                        isCompleted
-                          ? "bg-gradient-to-br from-emerald-500/10 to-green-500/10 dark:from-emerald-400/20 dark:to-green-400/20"
-                          : "bg-gradient-to-br from-pink-500/5 to-purple-500/5 dark:from-pink-400/10 dark:to-purple-400/10 opacity-0 group-hover:opacity-100"
-                      )} />
-                      <div className="relative p-5">
-                        <div className="flex items-start space-x-3">
-                          <div className="pt-1">
-                            <Checkbox
-                              checked={isCompleted}
-                              disabled
-                              className={cn(
-                                "w-5 h-5 transition-all duration-200 shadow-sm",
-                                isCompleted
-                                  ? "data-[state=checked]:bg-emerald-500 data-[state=checked]:border-emerald-500 shadow-emerald-500/25"
-                                  : "border-gray-400 dark:border-gray-500"
-                              )}
-                            />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <label className={cn(
-                              "text-sm font-semibold leading-relaxed cursor-default block",
-                              isCompleted
-                                ? "text-emerald-700 dark:text-emerald-300"
-                                : "text-gray-700 dark:text-gray-300 group-hover:text-gray-900 dark:group-hover:text-white"
-                            )}>
-                              {task}
-                            </label>
-                          </div>
-                          <div className={cn(
-                            "w-2 h-2 rounded-full flex-shrink-0 mt-2 shadow-sm transition-all duration-200",
-                            isCompleted
-                              ? "bg-emerald-500 shadow-emerald-500/50"
-                              : "bg-gray-400 dark:bg-gray-500 group-hover:bg-pink-500 group-hover:shadow-pink-500/50"
-                          )} />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                {apiData!.tasks.map((task) => (
+                  <TaskCard
+                    key={task}
+                    task={task}
+                    isCompleted={selectedModelData[task] === "TRUE"}
+                  />
+                ))}
               </div>
             </div>
           </div>

@@ -1,9 +1,13 @@
 "use client";
 
-import LiveFlyer from "@/components/LiveFlyer";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
+
+const LiveFlyer = dynamic(
+  () => import("@/components/LiveFlyer"),
+  { ssr: false }
+);
 
 export default function GeneratePage() {
   const [startCreating, setStartCreating] = useState(false);

@@ -2,10 +2,26 @@
 
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import ModularWorkflowForm from "@/components/pod-new/features/forms/ModularWorkflowForm";
+import dynamic from "next/dynamic";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import ModularWorkflowWizard from "@/components/pod-new/features/forms/ModularWorkflowWizard";
 import { FileText, Layers, Sparkles } from "lucide-react";
+
+// Lazy load classic form - only loaded when user switches to classic view
+const ModularWorkflowForm = dynamic(
+  () => import("@/components/pod-new/features/forms/ModularWorkflowForm"),
+  {
+    loading: () => (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="flex items-center gap-3">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pink-500"></div>
+          <span className="text-gray-600 dark:text-slate-400">Loading form...</span>
+        </div>
+      </div>
+    ),
+    ssr: false,
+  }
+);
 
 export default function FormsPage() {
   const searchParams = useSearchParams();

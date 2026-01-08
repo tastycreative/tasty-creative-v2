@@ -1,9 +1,13 @@
 "use client";
 
-import AIInstagramScraperPage from "@/components/AIInstagramScraperPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Download } from "lucide-react";
 import { useState } from "react";
+
+const AIInstagramScraperPage = dynamic(
+  () => import("@/components/AIInstagramScraperPage"),
+  { ssr: false }
+);
 
 export default function InstagramPage() {
   const [startCreating, setStartCreating] = useState(false);

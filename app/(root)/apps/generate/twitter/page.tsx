@@ -1,9 +1,13 @@
 "use client";
 
-import TwitterAdsPage from "@/components/TwitterAdsPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Twitter } from "lucide-react";
 import { useState } from "react";
+
+const TwitterAdsPage = dynamic(
+  () => import("@/components/TwitterAdsPage"),
+  { ssr: false }
+);
 
 export default function TwitterPage() {
   const [startCreating, setStartCreating] = useState(false);

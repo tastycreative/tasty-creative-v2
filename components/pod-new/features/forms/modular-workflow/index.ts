@@ -1,5 +1,7 @@
-// Export all modular workflow components
+// Export all modular workflow types
 export * from "./types";
+
+// Export legacy components for backward compatibility
 export { ContentDetailsSection } from "./ContentDetailsSection";
 export { TagsSection } from "./TagsSection";
 export { TeamNotificationPreview } from "./TeamNotificationPreview";

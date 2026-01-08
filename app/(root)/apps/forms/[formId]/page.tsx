@@ -4,7 +4,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { motion } from "framer-motion";
 import { ChevronLeft, Send, Loader2 } from "lucide-react";
 import { useSession } from "next-auth/react";
 

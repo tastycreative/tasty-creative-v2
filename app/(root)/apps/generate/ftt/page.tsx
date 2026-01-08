@@ -1,9 +1,13 @@
 "use client";
 
-import FTTFlyer from "@/components/FTTPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Zap } from "lucide-react";
 import { useState } from "react";
+
+const FTTFlyer = dynamic(
+  () => import("@/components/FTTPage"),
+  { ssr: false }
+);
 
 export default function FTTPage() {
   const [startCreating, setStartCreating] = useState(false);

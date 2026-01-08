@@ -1,9 +1,13 @@
 "use client";
 
-import AIVoicePage from "@/components/AIVoicePage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Sparkles } from "lucide-react";
 import { useState } from "react";
+
+const AIVoicePage = dynamic(
+  () => import("@/components/AIVoicePage"),
+  { ssr: false }
+);
 
 export default function VoicePage() {
   const [startCreating, setStartCreating] = useState(false);

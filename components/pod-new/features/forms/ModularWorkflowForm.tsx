@@ -474,11 +474,9 @@ export default function ModularWorkflowForm() {
     try {
       // First, upload any local files to S3
       if (localFiles.length > 0) {
-        console.log('📤 Uploading local files to S3...');
         await uploadAllLocalFiles(localFiles, attachments, setAttachments, setLocalFiles);
       }
 
-      console.log('📋 Creating modular workflow...');
       // Prepare modular workflow data
       const workflowPayload = {
         submissionType: data.submissionType,
@@ -541,7 +539,6 @@ export default function ModularWorkflowForm() {
         estimatedDuration: undefined // Can be calculated based on components
       };
 
-      console.log('🚀 Submitting modular workflow:', workflowPayload);
 
       const response = await fetch('/api/modular-workflows', {
         method: 'POST',
@@ -557,7 +554,6 @@ export default function ModularWorkflowForm() {
         throw new Error(result.error || 'Failed to create workflow');
       }
 
-      console.log('✅ Workflow created successfully:', result);
 
       setIsSubmitting(false);
       setIsSubmitted(true);
@@ -571,9 +567,7 @@ export default function ModularWorkflowForm() {
       if (createdTeamId) {
         // Force refresh with forceRefresh=true to bypass cache
         fetchTasks(createdTeamId, true).then(() => {
-          console.log(`✅ Board tasks refreshed for team ${result.task.teamName}`);
         }).catch((e) => {
-          console.log('⚠️ Could not refresh board tasks:', e);
         });
       }
 

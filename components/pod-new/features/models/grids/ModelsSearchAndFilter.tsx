@@ -1,194 +1,22 @@
 "use client";
 
-import React, { useState, useCallback, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import {
-  Search,
   Filter,
   X,
   ChevronDown,
   Calendar,
   DollarSign,
-  Users,
-  Activity,
   SortAsc,
   SortDesc,
   Grid3x3,
   List,
-  Settings,
-  TrendingUp,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// Search input component with debouncing
-interface SearchInputProps {
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-  className?: string;
-  debounceMs?: number;
-}
-
-const SearchInput = ({
-  value,
-  onChange,
-  placeholder = "Search models, referrers, or tags...",
-  className,
-  debounceMs = 300,
-}: SearchInputProps) => {
-  const [localValue, setLocalValue] = useState(value);
-  const [isFocused, setIsFocused] = useState(false);
-
-  // Debounce the onChange call
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (localValue !== value) {
-        onChange(localValue);
-      }
-    }, debounceMs);
-
-    return () => clearTimeout(timer);
-  }, [localValue, onChange, value, debounceMs]);
-
-  // Sync with external value changes
-  useEffect(() => {
-    if (value !== localValue) {
-      setLocalValue(value);
-    }
-  }, [value]); // Don't include localValue to avoid infinite loop
-
-  const handleClear = useCallback(() => {
-    setLocalValue("");
-    onChange("");
-  }, [onChange]);
-
-  return (
-    <div className={cn("relative transition-all duration-300 group", className)}>
-      <div className={cn(
-        "relative rounded-2xl transition-all duration-300",
-        isFocused ? "shadow-lg shadow-primary-500/10" : "shadow-sm"
-      )}>
-        <Search
-          className={cn(
-            "absolute left-4 top-1/2 -translate-y-1/2 transition-colors duration-300",
-            "w-5 h-5",
-            isFocused ? "text-pink-500" : "text-gray-400 group-hover:text-gray-500"
-          )}
-        />
-        <input
-          type="text"
-          value={localValue}
-          onChange={(e) => setLocalValue(e.target.value)}
-          onFocus={() => setIsFocused(true)}
-          onBlur={() => setIsFocused(false)}
-          placeholder={placeholder}
-          className={cn(
-            "w-full pl-12 pr-10 py-3.5 rounded-2xl border transition-all duration-300",
-            "bg-white/50 dark:bg-black/20 backdrop-blur-md text-gray-900 dark:text-gray-100",
-            "border-white/20 dark:border-white/5",
-            "placeholder:text-gray-500 dark:placeholder:text-gray-400",
-            "focus:outline-none focus:bg-white/80 dark:focus:bg-black/40 focus:border-pink-500/50",
-            "hover:bg-white/60 dark:hover:bg-black/30 hover:border-white/40"
-          )}
-          autoComplete="off"
-          spellCheck="false"
-        />
-        {localValue && (
-          <button
-            onClick={handleClear}
-            className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full hover:bg-gray-200/50 dark:hover:bg-gray-700/50 transition-colors duration-200"
-            aria-label="Clear search"
-          >
-            <X className="w-4 h-4 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300" />
-          </button>
-        )}
-      </div>
-    </div>
-  );
-};
-
-// Quick filter chips
-type QuickFilterType = "all" | "active" | "dropped" | "high-revenue" | "recent";
-
-interface QuickFilterChip {
-  id: QuickFilterType;
-  label: string;
-  count?: number;
-  icon?: React.ComponentType<{ className?: string }>;
-}
-
-interface QuickFiltersProps {
-  activeFilter: QuickFilterType;
-  onFilterChange: (filter: QuickFilterType) => void;
-  modelStats: {
-    total: number;
-    active: number;
-    dropped: number;
-    highRevenue: number;
-    recent: number;
-  };
-}
-
-const QuickFilters = ({
-  activeFilter,
-  onFilterChange,
-  modelStats,
-}: QuickFiltersProps) => {
-  const filters: QuickFilterChip[] = [
-    { id: "all", label: "All Models", count: modelStats.total, icon: Grid3x3 },
-    { id: "active", label: "Active", count: modelStats.active, icon: Activity },
-    {
-      id: "high-revenue",
-      label: "Top Performers",
-      count: modelStats.highRevenue,
-      icon: TrendingUp,
-    },
-    { id: "recent", label: "Recent", count: modelStats.recent, icon: Calendar },
-  ];
-
-  return (
-    <div className="flex flex-wrap gap-2">
-      {filters.map((filter) => {
-        const Icon = filter.icon;
-        const isActive = activeFilter === filter.id;
-
-        return (
-          <button
-            key={filter.id}
-            onClick={() => onFilterChange(filter.id)}
-            className={cn(
-              "inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 touch-target border",
-              isActive
-                ? "bg-gradient-to-br from-gray-900 to-gray-800 dark:from-white dark:to-gray-100 text-white dark:text-gray-900 border-transparent shadow-lg shadow-gray-900/20 dark:shadow-white/20 transform scale-[1.02]"
-                : "bg-white/40 dark:bg-black/20 backdrop-blur-md text-gray-600 dark:text-gray-300 border-white/20 dark:border-white/5 hover:bg-white/60 dark:hover:bg-white/10 hover:border-white/30 hover:-translate-y-0.5"
-            )}
-          >
-            {Icon && (
-              <Icon className={cn(
-                "w-4 h-4",
-                isActive ? "text-white dark:text-gray-900" : "text-gray-500 dark:text-gray-400"
-              )} />
-            )}
-            <span>
-              {filter.label}
-            </span>
-            {filter.count !== undefined && (
-              <span
-                className={cn(
-                  "px-1.5 py-0.5 rounded-md text-[10px] font-bold ml-1",
-                  isActive
-                    ? "bg-white/20 text-white dark:bg-black/10 dark:text-gray-900"
-                    : "bg-gray-100/50 dark:bg-white/10 text-gray-500 dark:text-gray-400"
-                )}
-              >
-                {filter.count}
-              </span>
-            )}
-          </button>
-        );
-      })}
-    </div>
-  );
-};
+// Import shared components
+import { SearchInput } from "../shared/SearchInput";
+import { QuickFilters, type QuickFilterType } from "../shared/QuickFilters";
 
 // Sort options
 type SortOption = "name" | "date" | "revenue";

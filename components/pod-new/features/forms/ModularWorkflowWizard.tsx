@@ -455,7 +455,6 @@ export default function ModularWorkflowWizard() {
     if (platform === 'fansly') {
       const fanslyTeam = availableTeams.find((t) => /fansly/i.test(t.name));
       if (fanslyTeam && selectedTeamId !== fanslyTeam.id) {
-        console.log('🎯 Auto-selecting Fansly team:', fanslyTeam.id, fanslyTeam.name);
         setSelectedTeamId(fanslyTeam.id);
       }
       return;
@@ -464,7 +463,6 @@ export default function ModularWorkflowWizard() {
     // For onlyfans or default, choose OTP-PTR-like team
     const ptrTeam = availableTeams.find((t) => /otp-?ptr|ptr|onlyfans/i.test(t.name));
     if (ptrTeam && selectedTeamId !== ptrTeam.id) {
-      console.log('🎯 Auto-selecting PTR team:', ptrTeam.id, ptrTeam.name);
       setSelectedTeamId(ptrTeam.id);
     }
   }, [platform, availableTeams, selectedTeamId, setSelectedTeamId]);
@@ -534,7 +532,6 @@ export default function ModularWorkflowWizard() {
       const data = await response.json();
       if (data.success && Array.isArray(data.contentTypeOptions)) {
         setContentTypeOptions(data.contentTypeOptions);
-        console.log(`📊 Loaded ${data.contentTypeOptions.length} content types for category: ${category}`);
       }
     } catch (error) {
       console.error("Error fetching content type options:", error);
@@ -667,7 +664,6 @@ export default function ModularWorkflowWizard() {
         contentStyle
       );
       setValue("selectedComponents", recommendedComponents);
-      console.log("🎯 Auto-selected components:", recommendedComponents);
     }
   }, [submissionType, contentStyle, getSmartRecommendations, setValue]);
 
@@ -890,18 +886,6 @@ export default function ModularWorkflowWizard() {
         // teamId: selectedTeamId,
         estimatedDuration: parseInt(estimatedTime),
       };
-
-      console.log('🚀 Submitting workflow payload:', {
-        ...workflowPayload,
-        requiredFields: {
-          submissionType: !!workflowPayload.submissionType,
-          contentStyle: !!workflowPayload.contentStyle,
-          selectedComponents: workflowPayload.selectedComponents !== undefined,
-          modelName: !!workflowPayload.modelName,
-          priority: !!workflowPayload.priority,
-          driveLink: !!workflowPayload.driveLink,
-        }
-      });
 
       setSubmissionProgress("Creating workflow...");
 

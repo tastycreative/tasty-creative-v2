@@ -1,9 +1,13 @@
 "use client";
 
-import AIGalleryPage from "@/components/AIGalleryPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { GalleryThumbnails } from "lucide-react";
 import { useState } from "react";
+
+const AIGalleryPage = dynamic(
+  () => import("@/components/AIGalleryPage"),
+  { ssr: false }
+);
 
 export default function GalleryPage() {
   const [startCreating, setStartCreating] = useState(false);

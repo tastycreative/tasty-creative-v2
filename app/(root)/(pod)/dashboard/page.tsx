@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { motion } from "framer-motion";
@@ -9,22 +10,34 @@ import {
   AlertTriangle,
   Users,
   DollarSign,
-  TrendingUp,
-  Package,
-  Calendar,
   BarChart3,
 } from "lucide-react";
 
-// Components
+// Keep QuickStatsCard and DashboardSkeleton eagerly loaded - they're core UI
 import QuickStatsCard from "@/components/pod-new/features/dashboard/QuickStatsCard";
-import TaskPipelineChart from "@/components/pod-new/features/dashboard/TaskPipelineChart";
-import PriorityDonutChart from "@/components/pod-new/features/dashboard/PriorityDonutChart";
-import ContentTypeChart from "@/components/pod-new/features/dashboard/ContentTypeChart";
-import ContentStylePills from "@/components/pod-new/features/dashboard/ContentStylePills";
-import ContributorLeaderboard from "@/components/pod-new/features/dashboard/ContributorLeaderboard";
-import RecentSubmissionsTimeline from "@/components/pod-new/features/dashboard/RecentSubmissionsTimeline";
 import DashboardSkeleton from "@/components/pod-new/features/dashboard/DashboardSkeleton";
-import TodayEventsCard from "@/components/pod-new/features/dashboard/TodayEventsCard";
+
+// Lazy load heavy chart components - they use recharts which is large
+const TaskPipelineChart = dynamic(
+  () => import("@/components/pod-new/features/dashboard/TaskPipelineChart"),
+  { ssr: false }
+);
+const PriorityDonutChart = dynamic(
+  () => import("@/components/pod-new/features/dashboard/PriorityDonutChart"),
+  { ssr: false }
+);
+const ContributorLeaderboard = dynamic(
+  () => import("@/components/pod-new/features/dashboard/ContributorLeaderboard"),
+  { ssr: false }
+);
+const RecentSubmissionsTimeline = dynamic(
+  () => import("@/components/pod-new/features/dashboard/RecentSubmissionsTimeline"),
+  { ssr: false }
+);
+const TodayEventsCard = dynamic(
+  () => import("@/components/pod-new/features/dashboard/TodayEventsCard"),
+  { ssr: false }
+);
 
 // Animation Variants
 const containerVariants = {

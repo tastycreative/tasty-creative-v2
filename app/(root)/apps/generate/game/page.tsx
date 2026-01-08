@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Gamepad2 } from "lucide-react";
 
 export default function GamePage() {

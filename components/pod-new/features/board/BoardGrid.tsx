@@ -139,12 +139,11 @@ export default function BoardGrid({
       {/* Desktop: Unified Header + Body Scroll Container */}
       <div
         ref={desktopScrollRef}
-        className="hidden md:block overflow-x-auto"
+        className="hidden md:block overflow-x-auto h-[calc(100vh-320px)] min-h-[400px]"
         title="Click and drag to scroll horizontally"
       >
         <div
-          className={`grid ${getGridClasses()} min-h-[600px]`}
-          style={getGridStyles()}
+          className="flex h-full"
         >
           {getColumnConfig().map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task["status"]);
