@@ -200,11 +200,9 @@ const AIVoicePage = () => {
       if (response.ok) {
         const stats = await response.json();
         setVnStats(stats);
-        console.log("VN Stats loaded in AIVoicePage:", stats);
       } else if (response.status === 401) {
         // Unauthorized - user doesn't have admin/moderator access
         // This is expected for regular users, so don't log as error
-        console.log("VN Stats not available - admin access required");
         setVnStats(null);
       } else {
         console.error("Failed to load VN stats:", response.status);
@@ -212,7 +210,6 @@ const AIVoicePage = () => {
       }
     } catch (error) {
       // Only log network errors, not authentication errors
-      console.log("VN Stats service unavailable:", error);
       setVnStats(null);
     } finally {
       setIsLoadingStats(false);
@@ -320,10 +317,8 @@ const AIVoicePage = () => {
       setProfileStatuses((prev) => ({ ...prev, [profileKey]: "error" })); // Show red while checking
       setProfileErrors((prev) => ({ ...prev, [profileKey]: "" }));
 
-      console.log(`Checking status for ${profileKey}...`);
 
       const balance = await checkApiKeyBalance(profileKey);
-      console.log(`Balance result for ${profileKey}:`, balance);
 
       // Extract error message from the response
       const errorMessage = balance?.error || "";
@@ -510,7 +505,6 @@ const AIVoicePage = () => {
         // Use the real ElevenLabs history ID if available, otherwise create a fallback
         const historyId = result.historyItemId || `local-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
         
-        console.log('Saving voice history with ID:', historyId);
 
         await fetch('/api/voice-history/save', {
           method: 'POST',
@@ -702,14 +696,6 @@ const AIVoicePage = () => {
           );
         }
 
-        console.log("Sale submitted successfully:", {
-          saleId: responseData.data?.id || responseData.sale?.id,
-          price,
-          model: saleData.model,
-          isHistorySale,
-          responseData,
-        });
-
         // Auto-hide success message after 5 seconds
         setTimeout(() => {
           setSaleSubmitStatus(null);
@@ -827,7 +813,6 @@ const AIVoicePage = () => {
   };
 
   const handlePlayAudio = () => {
-    console.log("Trying to play audio:", generatedAudio?.audioUrl);
     if (audioRef.current && generatedAudio?.audioUrl) {
       audioRef.current
         .play()
@@ -2346,7 +2331,6 @@ const AIVoicePage = () => {
           preload="metadata"
           style={{ display: "none" }}
           onError={(e) => console.error("Audio error:", e)}
-          onLoadedData={() => console.log("Audio loaded successfully")}
         />
       )}
 
@@ -2357,7 +2341,6 @@ const AIVoicePage = () => {
           preload="metadata"
           style={{ display: "none" }}
           onError={(e) => console.error("History audio error:", e)}
-          onLoadedData={() => console.log("History audio loaded successfully")}
         />
       )}
 

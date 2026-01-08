@@ -1,14 +1,34 @@
 "use client";
 
-import { useState, useMemo } from "react";
-import { Calendar, Filter, Plus, ChevronLeft, ChevronRight, Eye, EyeOff, Search, X } from "lucide-react";
+import { useState, useMemo, useCallback } from "react";
+import dynamic from "next/dynamic";
+import { Calendar, Plus, ChevronLeft, ChevronRight, Eye, EyeOff, Search, X } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+// Core calendar component - eagerly loaded
 import ContentDatesCalendar from "@/components/pod-new/features/content-dates/ContentDatesCalendar";
-import UpcomingEventsPanel from "@/components/pod-new/features/content-dates/UpcomingEventsPanel";
-import TodaysEventsPanel from "@/components/pod-new/features/content-dates/TodaysEventsPanel";
-import FilterControls from "@/components/pod-new/features/content-dates/FilterControls";
-import CreateEventModal from "@/components/pod-new/features/content-dates/CreateEventModal";
-import EventDetailModal from "@/components/pod-new/features/content-dates/EventDetailModal";
+
+// Lazy load panels and modals - they're not immediately visible
+const UpcomingEventsPanel = dynamic(
+  () => import("@/components/pod-new/features/content-dates/UpcomingEventsPanel"),
+  { ssr: false }
+);
+const TodaysEventsPanel = dynamic(
+  () => import("@/components/pod-new/features/content-dates/TodaysEventsPanel"),
+  { ssr: false }
+);
+const FilterControls = dynamic(
+  () => import("@/components/pod-new/features/content-dates/FilterControls"),
+  { ssr: false }
+);
+const CreateEventModal = dynamic(
+  () => import("@/components/pod-new/features/content-dates/CreateEventModal"),
+  { ssr: false }
+);
+const EventDetailModal = dynamic(
+  () => import("@/components/pod-new/features/content-dates/EventDetailModal"),
+  { ssr: false }
+);
 
 export type EventType = "PPV" | "LIVESTREAM";
 export type EventStatus = "IN_QUEUE" | "PROCESSING";

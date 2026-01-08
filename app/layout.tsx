@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import dynamic from "next/dynamic";
 import "./globals.css";
 import { Providers } from "./providers";
 // import QuicklinksNavigation from "@/components/QuickLinksNavigation";
 import { SessionMonitor } from "@/components/SessionMonitor";
 import { SessionErrorHandler } from "@/components/auth/SessionErrorHandler";
-import ChatBot from "@/components/ChatBot";
-import FeedbackButton from "@/components/FeedbackButton";
+
+// Lazy load FeedbackButton - rarely used, heavy with 8 icons (code-split for better initial load)
+const FeedbackButton = dynamic(() => import("@/components/FeedbackButton"));
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

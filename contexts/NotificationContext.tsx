@@ -110,8 +110,6 @@ export function NotificationProvider({
   const showNotificationToast = (notification: Notification) => {
     const data = notification.data || {};
 
-    console.log("🔔 showNotificationToast called with:", notification);
-
     // Extract user info from notification data - try different user profile fields
     let triggerUserProfile =
       data.movedByUser ||
@@ -145,14 +143,6 @@ export function NotificationProvider({
       "Someone";
     const taskTitle = data.taskTitle || data.taskUrl?.split("task=")[1] || "";
     const taskUrl = data.taskUrl;
-
-    console.log("🔔 Toast data:", {
-      triggerUserProfile,
-      triggerUserName,
-      taskTitle,
-      taskUrl,
-      type: notification.type,
-    });
 
     // Create summary based on notification type
     let summary = "";
@@ -192,8 +182,6 @@ export function NotificationProvider({
         action = notification.message;
         summary = notification.title;
     }
-
-    console.log("🔔 Final toast content:", { action, summary });
 
     // Show toast with click handler
     toast(
@@ -235,8 +223,6 @@ export function NotificationProvider({
         },
       }
     );
-
-    console.log("🔔 Toast called successfully");
   };
 
   const handleToastClick = (taskUrl?: string, notification?: Notification) => {
@@ -255,31 +241,18 @@ export function NotificationProvider({
     const currentUserId = session?.user?.id;
 
     // Check cache first - reduce API calls significantly
-    if (!shouldRefetch(currentUserId)) {
-      console.log("💾 Using cached notifications, skipping API call");
-      return;
-    }
+    if (!shouldRefetch(currentUserId)) return;
 
     // Prevent duplicate simultaneous fetches
-    if (isFetchingRef.current) {
-      console.log(
-        "🚫 Already fetching notifications, skipping duplicate request"
-      );
-      return;
-    }
+    if (isFetchingRef.current) return;
 
     // Rate limiting - don't fetch more than once every 5 seconds
     const now = Date.now();
-    if (now - lastFetchTimeRef.current < 5000) {
-      console.log("🚫 Rate limiting: Last fetch was too recent, skipping");
-      return;
-    }
+    if (now - lastFetchTimeRef.current < 5000) return;
 
     try {
       isFetchingRef.current = true;
       lastFetchTimeRef.current = now;
-
-      console.log("📡 Fetching notifications from API...");
       const res = await fetch("/api/notifications/in-app?all=true", {
         credentials: "include",
       });
@@ -300,21 +273,10 @@ export function NotificationProvider({
               !previousNotificationIds.current.has(notif.id)
           );
 
-          console.log(
-            "🔔 New notifications detected during refetch:",
-            newOnes.length
-          );
-
           newOnes.forEach((notif: Notification) => {
-            console.log("🔔 Showing toast for newly fetched:", notif.title);
             showNotificationToast(notif);
           });
         } else {
-          console.log(
-            "🔔 First load, not showing toasts for",
-            newNotifications.length,
-            "notifications"
-          );
           initialLoadCompletedRef.current = true;
         }
 
@@ -329,16 +291,6 @@ export function NotificationProvider({
         setUnreadCount(newUnreadCount);
         updateLastFetchTime();
         setLastUpdated(Date.now());
-
-        console.log(
-          "📊 Notifications updated and cached for user:",
-          currentUserId,
-          {
-            total: newNotifications.length,
-            unread: newUnreadCount,
-            timestamp: new Date().toLocaleString(),
-          }
-        );
       }
     } catch (err) {
       console.error("❌ Error fetching notifications:", err);
@@ -359,7 +311,6 @@ export function NotificationProvider({
         credentials: "include",
         body: JSON.stringify({ notificationId }),
       });
-      console.log("✅ Marked notification as read:", notificationId);
     } catch (err) {
       console.error("❌ Failed to mark as read:", err);
       // Could implement rollback here if needed
@@ -378,7 +329,6 @@ export function NotificationProvider({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markAll: true }),
       });
-      console.log("✅ Marked all notifications as read");
     } catch (err) {
       console.error("❌ Failed to mark all as read:", err);
       // Could implement rollback here if needed
@@ -410,63 +360,32 @@ export function NotificationProvider({
   // Establish Ably real-time connection
   useEffect(() => {
     // Only run on client side
-    if (typeof window === "undefined") {
-      console.log("❌ Running on server, skipping Ably connection");
-      return;
-    }
-
-    console.log("🚀 NotificationContext useEffect triggered");
-    console.log("🔐 Auth status:", status, "Session:", !!session?.user);
+    if (typeof window === "undefined") return;
 
     // Wait for authentication to be resolved
-    if (status === "loading") {
-      console.log("⏳ Auth loading, waiting...");
-      return;
-    }
+    if (status === "loading") return;
 
-    if (status === "unauthenticated" || !session?.user) {
-      console.log("❌ User not authenticated, skipping Ably connection");
-      return;
-    }
-
-    console.log(
-      "✅ User authenticated, proceeding with Ably connection for:",
-      session.user.email
-    );
+    if (status === "unauthenticated" || !session?.user) return;
 
     // Define the connection function
     connectToAblyStream.current = async () => {
       // Prevent multiple simultaneous connection attempts
-      if (isConnectingRef.current) {
-        console.log(
-          "🚫 Already connecting, skipping duplicate connection attempt"
-        );
-        return;
-      }
+      if (isConnectingRef.current) return;
 
-      console.log("🔗 Connecting to Ably notification stream...");
       isConnectingRef.current = true;
 
       try {
         // Import Ably dynamically to avoid SSR issues
-        if (typeof window === "undefined") {
-          console.log("❌ Cannot import Ably on server side");
-          return;
-        }
+        if (typeof window === "undefined") return;
 
         const Ably = (await import("ably")).default;
-
-        console.log("🚀 Creating Ably client connection...");
 
         const ably = new Ably.Realtime({
           authUrl: "/api/notifications/ably-token",
           authMethod: "POST",
         });
 
-        console.log("📡 Ably client created, waiting for connection...");
-
         ably.connection.on("connected", () => {
-          console.log("✅ Ably connection established");
           setConnectionStatus(true, "ably");
           reconnectAttempts.current = 0;
           isConnectingRef.current = false;
@@ -476,8 +395,6 @@ export function NotificationProvider({
             clearTimeout(reconnectTimeoutRef.current);
           }
 
-          console.log("🎯 Ably Connection established successfully");
-
           // Initial fetch of notifications
           refetch();
         });
@@ -486,21 +403,16 @@ export function NotificationProvider({
         const userId = session?.user?.id;
         if (userId) {
           const channelName = `user:${userId}:notifications`;
-          console.log("🔗 Subscribing to channel:", channelName);
-
           const channel = ably.channels.get(channelName);
 
           await channel.subscribe("notification", (message) => {
             try {
-              console.log("📬 Received Ably notification:", message);
-
               const notificationData = message.data?.data || message.data;
 
               if (notificationData) {
                 const notification = notificationData;
 
                 // Double-check that this notification is for the current user
-                // (Should already be guaranteed by channel subscription, but extra safety)
                 const currentUserId = session?.user?.id;
                 const notificationUserId =
                   notification.userId || notification.data?.userId;
@@ -510,21 +422,11 @@ export function NotificationProvider({
                   notificationUserId &&
                   notificationUserId !== currentUserId
                 ) {
-                  console.log(
-                    "🚫 Ignoring notification for different user:",
-                    notificationUserId,
-                    "vs",
-                    currentUserId
-                  );
                   return;
                 }
 
                 // Check if this is a new notification
                 if (!previousNotificationIds.current.has(notification.id)) {
-                  console.log(
-                    "🔔 New Ably notification received:",
-                    notification.title
-                  );
                   showNotificationToast(notification);
 
                   // Add to seen notifications
@@ -533,23 +435,16 @@ export function NotificationProvider({
                   // Update Zustand store directly
                   addNotification(notification);
                   setLastUpdated(Date.now());
-                } else {
-                  console.log(
-                    "🔔 Duplicate notification ignored:",
-                    notification.title
-                  );
                 }
               }
             } catch (error) {
-              console.error("❌ Error processing Ably notification:", error);
+              console.error("Error processing Ably notification:", error);
             }
           });
-
-          console.log("✅ Subscribed to Ably notifications for user:", userId);
         }
 
         ably.connection.on("failed", (error) => {
-          console.error("❌ Ably connection failed:", error);
+          console.error("Ably connection failed:", error);
           setConnectionStatus(false, null);
           isConnectingRef.current = false;
 
@@ -558,9 +453,6 @@ export function NotificationProvider({
             const delay = Math.min(
               1000 * Math.pow(2, reconnectAttempts.current),
               30000
-            );
-            console.log(
-              `🔄 Attempting to reconnect in ${delay}ms (attempt ${reconnectAttempts.current + 1}/${maxReconnectAttempts})`
             );
 
             reconnectTimeoutRef.current = setTimeout(() => {
@@ -571,7 +463,6 @@ export function NotificationProvider({
         });
 
         ably.connection.on("disconnected", () => {
-          console.warn("⚠️ Ably connection disconnected");
           setConnectionStatus(false, null);
         });
 
@@ -589,8 +480,6 @@ export function NotificationProvider({
 
     // Cleanup function
     return () => {
-      console.log("🧹 Cleaning up Ably notification connection...");
-
       // Reset flags
       isConnectingRef.current = false;
 
@@ -602,8 +491,8 @@ export function NotificationProvider({
         // Close Ably connection
         try {
           ablyClientRef.current.connection.close();
-        } catch (error) {
-          console.log("Error closing Ably connection:", error);
+        } catch {
+          // Ignore cleanup errors
         }
         ablyClientRef.current = null;
       }
@@ -617,14 +506,12 @@ export function NotificationProvider({
     const currentUserId = session?.user?.id;
 
     if (status === "authenticated" && currentUserId) {
-      console.log("👤 Setting current user for notifications:", currentUserId);
       setCurrentUser(currentUserId);
 
       // Clear previous notification IDs when user changes
       previousNotificationIds.current = new Set();
       initialLoadCompletedRef.current = false;
     } else if (status === "unauthenticated") {
-      console.log("👤 User logged out, clearing notification cache");
       clearUserData();
       previousNotificationIds.current = new Set();
       initialLoadCompletedRef.current = false;

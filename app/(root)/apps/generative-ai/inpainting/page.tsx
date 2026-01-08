@@ -1,9 +1,13 @@
 "use client";
 
-import AIInpaintingPage from "@/components/AIInpaintingPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { PaintBucket } from "lucide-react";
 import { useState } from "react";
+
+const AIInpaintingPage = dynamic(
+  () => import("@/components/AIInpaintingPage"),
+  { ssr: false }
+);
 
 export default function InpaintingPage() {
   const [startCreating, setStartCreating] = useState(false);

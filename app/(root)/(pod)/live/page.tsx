@@ -1,13 +1,12 @@
-import React from "react";
-import Link from "next/link";
-import { Button } from "@/components/ui/button";
-import { Wrench, Clock } from "lucide-react";
-import LiveFlyer from "@/components/pod-new/features/apps/LiveFlyer";
+"use client";
 
-const page = () => {
-  return (
-   <LiveFlyer/>
-  );
-};
+import dynamic from "next/dynamic";
 
-export default page;
+const LiveFlyer = dynamic(
+  () => import("@/components/pod-new/features/apps/LiveFlyer"),
+  { ssr: false }
+);
+
+export default function LivePage() {
+  return <LiveFlyer />;
+}

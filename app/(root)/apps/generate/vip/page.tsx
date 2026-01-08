@@ -1,8 +1,13 @@
 "use client";
 
-import VIPFlyer from "@/components/VIPFlyer";
+import dynamic from "next/dynamic";
 import { Crown } from "lucide-react";
 import { useState } from "react";
+
+const VIPFlyer = dynamic(
+  () => import("@/components/VIPFlyer"),
+  { ssr: false }
+);
 
 export default function VIPPage() {
   const [startCreating, setStartCreating] = useState(false);

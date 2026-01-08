@@ -4,10 +4,14 @@
 import { SessionProvider } from "next-auth/react"
 import { ThemeProvider } from "next-themes"
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { Toaster } from 'sonner'
-import { useState } from 'react'
+import { useState, lazy, Suspense } from 'react'
 import { NotificationProvider } from '@/contexts/NotificationContext'
+
+// Only load devtools in development
+const ReactQueryDevtools = process.env.NODE_ENV === 'development'
+  ? lazy(() => import('@tanstack/react-query-devtools').then(mod => ({ default: mod.ReactQueryDevtools })))
+  : () => null
 
 export function Providers({ children }: { children: React.ReactNode }) {
   // Create a client instance per component to avoid sharing state between requests
@@ -18,7 +22,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         refetchOnWindowFocus: false,
         refetchOnMount: true,
         retry: 2,
-        staleTime: 0, // Always consider data stale for fresh results
+        staleTime: 60 * 1000, // 1 minute - prevents excessive refetching while keeping data reasonably fresh
       },
       mutations: {
         retry: 1,
@@ -37,7 +41,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
             disableTransitionOnChange
           >
             {children}
-            <ReactQueryDevtools initialIsOpen={false} />
+            {process.env.NODE_ENV === 'development' && (
+              <Suspense fallback={null}>
+                <ReactQueryDevtools initialIsOpen={false} />
+              </Suspense>
+            )}
             <Toaster 
               richColors 
               position="bottom-right"

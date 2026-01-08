@@ -1,8 +1,13 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { Film } from "lucide-react";
 import { useState } from "react";
-import { VideoEditor } from "@/components/video-editor/VideoEditor";
+
+const VideoEditor = dynamic(
+  () => import("@/components/video-editor/VideoEditor").then(mod => ({ default: mod.VideoEditor })),
+  { ssr: false }
+);
 
 export default function GIFPage() {
   const [startCreating, setStartCreating] = useState(false);
