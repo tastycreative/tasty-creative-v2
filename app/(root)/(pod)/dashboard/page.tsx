@@ -74,7 +74,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-[#09090B] flex items-center justify-center p-6">
+      <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 flex items-center justify-center p-6">
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -114,13 +114,9 @@ export default function DashboardPage() {
   const userRole = session?.user?.role || "USER";
 
   return (
-    <div className="min-h-screen bg-[#09090B] relative">
-      {/* Background Glow Effects */}
-      <div className="absolute top-0 left-0 w-full h-[500px] bg-violet-500/10 blur-[100px] rounded-b-full pointer-events-none -z-10 mix-blend-screen" />
-      <div className="absolute top-20 right-0 w-64 h-64 bg-pink-500/5 blur-[80px] rounded-full pointer-events-none -z-10 mix-blend-screen" />
-
-      <div className="container mx-auto px-4 py-8 space-y-8 relative">
-        {/* Enhanced Header with Dark Theme */}
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950">
+      <div className="container mx-auto px-4 py-8 space-y-8">
+        {/* Enhanced Header with Gallery Theme */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}

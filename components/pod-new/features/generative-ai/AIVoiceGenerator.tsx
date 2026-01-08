@@ -914,7 +914,7 @@ const AIVoicePage = () => {
   }, [activeTab, selectedApiKeyProfile]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6 transition-colors relative overflow-hidden">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 p-6 transition-colors relative overflow-hidden">
       {/* Decorative circles */}
       <div className="absolute top-20 right-20 w-72 h-72 bg-white/40 dark:bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
       <div className="absolute bottom-20 left-20 w-96 h-96 bg-purple-200/30 dark:bg-purple-500/10 rounded-full blur-3xl pointer-events-none"></div>

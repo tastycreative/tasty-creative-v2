@@ -26,10 +26,10 @@ function Card({
   icon?: React.ReactNode;
 }) {
   return (
-    <div className="rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-gray-200/50 dark:border-white/10 shadow-sm p-4 overflow-hidden">
-      <div className="flex items-center gap-2 mb-3">
+    <div className="border-b border-gray-200 dark:border-gray-800 p-3">
+      <div className="flex items-center gap-2 mb-2">
         {icon}
-        <div className="text-xs uppercase tracking-wide text-gray-600 dark:text-slate-400 truncate">
+        <div className="text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide">
           {title}
         </div>
       </div>
@@ -47,17 +47,13 @@ type EmptyStateProps = {
 };
 function EmptyState({ icon, title, subtitle }: EmptyStateProps) {
   return (
-    <div className="rounded-xl border border-gray-200/50 dark:border-white/10 bg-gradient-to-b from-gray-100/40 to-gray-200/40 dark:from-slate-800/40 dark:to-slate-900/40 p-4 text-center">
-      <div className="mx-auto mb-2 flex h-9 w-9 items-center justify-center rounded-lg bg-gray-100/70 dark:bg-white/5 ring-1 ring-gray-200/50 dark:ring-white/10 text-gray-600 dark:text-slate-300">
+    <div className="py-4 text-center text-gray-500 dark:text-gray-500">
+      <div className="mx-auto mb-2 flex h-8 w-8 items-center justify-center rounded bg-gray-100 dark:bg-gray-800">
         {icon}
       </div>
-      <div className="text-sm font-medium text-gray-800 dark:text-slate-200">
-        {title}
-      </div>
+      <div className="text-sm">{title}</div>
       {subtitle && (
-        <div className="mt-1 text-xs text-gray-600 dark:text-slate-400">
-          {subtitle}
-        </div>
+        <div className="mt-0.5 text-xs text-gray-400">{subtitle}</div>
       )}
     </div>
   );
@@ -146,20 +142,17 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
   return (
     <div
       role="complementary"
-      className="hidden xl:block space-y-6 w-[320px] sticky top-24 self-start overflow-hidden"
+      className="hidden xl:block h-full overflow-y-auto"
     >
-      {/* Team Header - Display Only */}
-      <div className="rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-gray-200/50 dark:border-white/10 shadow-sm p-4 overflow-hidden">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-fuchsia-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-            <Sparkles className="w-5 h-5 text-white" />
+      {/* Team Header */}
+      <div className="border-b border-gray-200 dark:border-gray-800 p-3">
+        <div className="flex items-center gap-2">
+          <div className="w-6 h-6 rounded bg-purple-600 flex items-center justify-center shrink-0">
+            <Sparkles className="w-3.5 h-3.5 text-white" />
           </div>
           <div className="min-w-0 flex-1">
-            <div className="text-lg font-bold text-gray-900 dark:text-slate-100 truncate">
+            <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
               {data?.teamName || "Select a Team"}
-            </div>
-            <div className="text-sm text-gray-600 dark:text-slate-400">
-              Team Information
             </div>
           </div>
         </div>
@@ -167,11 +160,11 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
 
       <Card
         title={`Team Members${data?.teamMembers ? ` (${data.teamMembers.length})` : ""}`}
-        icon={<User className="w-4 h-4 text-gray-600 dark:text-slate-400" />}
+        icon={<User className="w-3.5 h-3.5 text-gray-500" />}
       >
-        <div className="space-y-3">
+        <div className="space-y-2">
           {isLoading && (
-            <div className="h-24 rounded-lg bg-gray-200/60 dark:bg-slate-800/40 animate-pulse" />
+            <div className="h-16 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
           )}
           {!isLoading && (data?.teamMembers || []).length === 0 && (
             <EmptyState
@@ -181,31 +174,27 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
             />
           )}
           {(data?.teamMembers || []).map((m, i) => (
-            <div key={m.name} className="flex items-center gap-3">
+            <div key={m.name} className="flex items-center gap-2">
               {m.image ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   src={m.image}
                   alt={m.name || "Team member"}
-                  className="w-7 h-7 rounded-full object-cover border border-gray-200 dark:border-slate-700"
+                  className="w-6 h-6 rounded-full object-cover"
                   onError={(e) => {
-                    // Fallback to icon if image fails to load
                     e.currentTarget.style.display = 'none';
                     e.currentTarget.nextElementSibling?.classList.remove('hidden');
                   }}
                 />
               ) : null}
               <div
-                className={`w-7 h-7 rounded-full text-white flex items-center justify-center ${m.image ? 'hidden' : ''} ${["bg-rose-500", "bg-violet-500", "bg-cyan-500", "bg-emerald-500", "bg-orange-500"][i % 5]}`}
+                className={`w-6 h-6 rounded-full text-white text-xs flex items-center justify-center ${m.image ? 'hidden' : ''} ${["bg-rose-500", "bg-violet-500", "bg-cyan-500", "bg-emerald-500", "bg-orange-500"][i % 5]}`}
               >
-                <User className="w-4 h-4" />
+                <User className="w-3 h-3" />
               </div>
-              <div className="min-w-0">
+              <div className="min-w-0 flex-1">
                 <div className="text-sm text-gray-900 dark:text-white truncate">
                   {m.name}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-slate-400 truncate">
-                  {m.role}
                 </div>
               </div>
             </div>
@@ -215,34 +204,29 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
 
       <Card
         title={`Assigned Models${data?.assignedModels ? ` (${data.assignedModels.length})` : ""}`}
-        icon={
-          <ListChecks className="w-4 h-4 text-gray-600 dark:text-slate-400" />
-        }
+        icon={<ListChecks className="w-3.5 h-3.5 text-gray-500" />}
       >
-        <div className="space-y-2">
+        <div className="space-y-1.5">
           {isLoading && (
-            <div className="h-20 rounded-lg bg-gray-200/60 dark:bg-slate-800/40 animate-pulse" />
+            <div className="h-16 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
           )}
           {!isLoading && (data?.assignedModels || []).length === 0 && (
             <EmptyState
               icon={<ListChecks className="w-4 h-4" />}
               title="No models assigned"
-              subtitle="Assign creators to this team to populate."
+              subtitle="Assign creators to this team."
             />
           )}
           {(data?.assignedModels || []).map((m, i) => (
-            <div key={m.name} className="flex items-center gap-3">
+            <div key={m.name} className="flex items-center gap-2">
               <div
-                className={`w-6 h-6 rounded-full text-white text-[10px] font-medium flex items-center justify-center ${["bg-rose-500", "bg-indigo-500", "bg-emerald-500", "bg-orange-500", "bg-pink-500"][i % 5]}`}
+                className={`w-5 h-5 rounded-full text-white text-[10px] font-medium flex items-center justify-center ${["bg-rose-500", "bg-indigo-500", "bg-emerald-500", "bg-orange-500", "bg-pink-500"][i % 5]}`}
               >
                 {m.name?.charAt(0) || "?"}
               </div>
               <div className="min-w-0">
                 <div className="text-sm text-gray-900 dark:text-white truncate">
                   {m.name}
-                </div>
-                <div className="text-[11px] text-gray-600 dark:text-slate-400 truncate">
-                  {m.owner ? `${m.owner} (Owner)` : "Creator"}
                 </div>
               </div>
             </div>
@@ -252,13 +236,11 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
 
       <Card
         title="Sheet Links"
-        icon={
-          <LinkIcon className="w-4 h-4 text-gray-600 dark:text-slate-400" />
-        }
+        icon={<LinkIcon className="w-3.5 h-3.5 text-gray-500" />}
       >
-        <div className="space-y-2">
+        <div className="space-y-1">
           {isLoading && (
-            <div className="h-24 rounded-lg bg-gray-200/60 dark:bg-slate-800/40 animate-pulse" />
+            <div className="h-16 rounded bg-gray-100 dark:bg-gray-800 animate-pulse" />
           )}
           {!isLoading && (data?.sheetGroups || []).length === 0 && (
             <EmptyState
@@ -270,23 +252,21 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
           {(data?.sheetGroups || []).map((g) => (
             <details
               key={g.name}
-              className="group rounded-lg border border-emerald-500/30 dark:border-emerald-500/20 bg-emerald-100/60 dark:bg-emerald-900/20 open:bg-emerald-200/80 dark:open:bg-emerald-900/30"
+              className="group rounded border border-gray-200 dark:border-gray-700"
             >
-              <summary className="flex items-center justify-between px-3 py-2 cursor-pointer list-none">
+              <summary className="flex items-center justify-between px-2 py-1.5 cursor-pointer list-none text-sm">
                 <div className="flex items-center gap-2 min-w-0">
-                  <div className="transition-transform group-open:rotate-180 text-emerald-600 dark:text-emerald-300">
-                    <ChevronDown className="w-4 h-4" />
-                  </div>
-                  <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-300" />
-                  <div className="text-sm text-emerald-800 dark:text-emerald-200 truncate">
+                  <ChevronDown className="w-3.5 h-3.5 transition-transform group-open:rotate-180 text-gray-500" />
+                  <FileText className="w-3.5 h-3.5 text-gray-500" />
+                  <span className="truncate text-gray-700 dark:text-gray-300">
                     {g.name}
-                  </div>
+                  </span>
                 </div>
-                <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-semibold rounded-full bg-emerald-600/30 dark:bg-emerald-600/30 text-emerald-800 dark:text-emerald-200 border border-emerald-500/40 dark:border-emerald-500/30 flex-shrink-0">
+                <span className="text-xs text-gray-500 shrink-0">
                   {g.count}
                 </span>
               </summary>
-              <ul className="px-2 pb-2 space-y-1" role="list">
+              <ul className="px-2 pb-2 space-y-0.5" role="list">
                 {g.items.map((item) => {
                   const isExternal =
                     typeof item.url === "string" && item.url.startsWith("http");
@@ -298,20 +278,18 @@ export default function RightSidebar({ collapsed = false }: RightSidebarProps) {
                           target="_blank"
                           rel="noopener noreferrer"
                           title={item.name}
-                          className="flex items-center justify-between gap-2 px-3 py-2 rounded-md hover:bg-emerald-200/60 dark:hover:bg-emerald-900/40 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/40 text-emerald-800 dark:text-emerald-100"
+                          className="flex items-center justify-between gap-2 px-2 py-1 rounded text-sm hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300"
                         >
                           <span className="truncate inline-flex items-center gap-2 min-w-0">
-                            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
+                            <FileText className="w-3.5 h-3.5 text-gray-500 shrink-0" />
                             <span className="truncate">{item.name}</span>
                           </span>
-                          <ExternalLink className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
+                          <ExternalLink className="w-3 h-3 text-gray-400 shrink-0" />
                         </a>
                       ) : (
-                        <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-md text-emerald-700/70 dark:text-emerald-200/70 bg-emerald-100/40 dark:bg-emerald-900/10">
-                          <span className="truncate inline-flex items-center gap-2 min-w-0">
-                            <FileText className="w-4 h-4 text-emerald-600 dark:text-emerald-300 flex-shrink-0" />
-                            <span className="truncate">{item.name}</span>
-                          </span>
+                        <div className="flex items-center gap-2 px-2 py-1 rounded text-sm text-gray-500">
+                          <FileText className="w-3.5 h-3.5 shrink-0" />
+                          <span className="truncate">{item.name}</span>
                         </div>
                       )}
                     </li>

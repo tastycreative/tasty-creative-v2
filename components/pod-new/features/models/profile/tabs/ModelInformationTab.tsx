@@ -69,7 +69,7 @@ export function ModelInformationTab({
   // Show skeleton while loading initial creator context
   if (creatorQuery.isLoading || !runtimeContext) {
     return (
-      <div className="min-h-full bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20">
+      <div className="min-h-full bg-pink-50/30 dark:bg-gray-950">
         <div className="max-w-7xl mx-auto p-6 space-y-6">
           {/* Skeleton placeholders matching the new structure */}
           <div className="relative group overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm">

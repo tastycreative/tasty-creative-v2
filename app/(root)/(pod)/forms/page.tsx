@@ -29,7 +29,7 @@ export default function FormsPage() {
   const [activeView, setActiveView] = useState(viewParam === "classic" ? "classic" : "wizard");
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950">
       {activeView === "wizard" ? (
         // New Wizard View (Default)
         <ModularWorkflowWizard />

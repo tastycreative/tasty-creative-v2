@@ -44,6 +44,11 @@
   --radius-xl: calc(var(--radius) + 4px);
 }
 
+/* Ensure full height for flex layouts */
+html, body {
+  height: 100%;
+}
+
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -630,4 +635,9 @@
 .animate-progress-bar {
   animation: progress-bar 1.5s ease-in-out infinite;
   width: 25%;
+}
+
+/* POD Layout - Ensure child pages fill the scrollable area */
+.pod-main-content > div {
+  min-height: 100%;
 }

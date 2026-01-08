@@ -112,7 +112,7 @@ interface ModularFormData {
   priority: string;
   driveLink: string;
   caption?: string;
-  pricingCategory?: string; // NEW: CHEAP_PORN, EXPENSIVE_PORN, GF_ACCURATE
+  pricingCategory?: string; // PORN_ACCURATE, PORN_SCAM, GF_ACCURATE, GF_SCAM
 
   // Content Details fields (NEW)
   contentType?: string;
@@ -384,7 +384,7 @@ export default function ModularWorkflowWizard() {
       priority: "normal",
       driveLink: "",
       caption: "",
-      pricingCategory: "EXPENSIVE_PORN", // Default pricing tier
+      pricingCategory: "PORN_ACCURATE", // Default pricing tier
     },
   });
 
@@ -441,6 +441,7 @@ export default function ModularWorkflowWizard() {
   const selectedComponents = watch("selectedComponents") || [];
   const platform = watch("platform");
   const pricingCategory = watch("pricingCategory");
+  const selectedModel = watch("model");
 
   // Get current team
   const currentTeam = availableTeams.find((team) => team.id === selectedTeamId);
@@ -525,8 +526,20 @@ export default function ModularWorkflowWizard() {
   const fetchContentTypeOptions = useCallback(async () => {
     setLoadingContentTypes(true);
     try {
-      const category = pricingCategory || "EXPENSIVE_PORN";
-      const url = `/api/content-type-options?category=${encodeURIComponent(category)}`;
+      const category = pricingCategory || "PORN_ACCURATE";
+
+      // Find the clientModelId from internalModels based on the selected model name
+      const selectedModelData = internalModels.find(
+        (model: any) => model.clientName === selectedModel
+      );
+      const clientModelId = selectedModelData?.id;
+
+      // Build URL with category and optional clientModelId
+      let url = `/api/content-type-options?category=${encodeURIComponent(category)}`;
+      if (clientModelId) {
+        url += `&clientModelId=${encodeURIComponent(clientModelId)}`;
+        console.log(`📊 Fetching content types for model: ${selectedModel} (ID: ${clientModelId})`);
+      }
 
       const response = await fetch(url);
       const data = await response.json();
@@ -539,7 +552,7 @@ export default function ModularWorkflowWizard() {
     } finally {
       setLoadingContentTypes(false);
     }
-  }, [pricingCategory]);
+  }, [pricingCategory, selectedModel, internalModels]);
 
   // Load content type options from database (refetch when pricing category changes)
   useEffect(() => {
@@ -1276,16 +1289,17 @@ export default function ModularWorkflowWizard() {
                   </Label>
                   <Select
                     onValueChange={(value) => setValue("pricingCategory", value)}
-                    defaultValue="EXPENSIVE_PORN"
+                    defaultValue="PORN_ACCURATE"
                     value={pricingCategory}
                   >
                     <SelectTrigger className="mt-2">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="CHEAP_PORN">Cheap Porn / Porn Accurate</SelectItem>
-                      <SelectItem value="EXPENSIVE_PORN">Expensive Porn / Premium</SelectItem>
-                      <SelectItem value="GF_ACCURATE">GF / GF Accurate</SelectItem>
+                      <SelectItem value="PORN_ACCURATE">Porn Accurate</SelectItem>
+                      <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
+                      <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
+                      <SelectItem value="GF_SCAM">GF Scam</SelectItem>
                     </SelectContent>
                   </Select>
                   <p className="text-xs text-gray-500 mt-1">
@@ -1880,9 +1894,10 @@ export default function ModularWorkflowWizard() {
                         Pricing Tier
                       </p>
                       <p className="font-medium">
-                        {formData.pricingCategory === 'CHEAP_PORN' && '💰 Cheap Porn'}
-                        {formData.pricingCategory === 'EXPENSIVE_PORN' && '💎 Expensive Porn'}
+                        {formData.pricingCategory === 'PORN_ACCURATE' && '💎 Porn Accurate'}
+                        {formData.pricingCategory === 'PORN_SCAM' && '🔴 Porn Scam'}
                         {formData.pricingCategory === 'GF_ACCURATE' && '💕 GF Accurate'}
+                        {formData.pricingCategory === 'GF_SCAM' && '🟠 GF Scam'}
                       </p>
                     </div>
                   )}
@@ -2036,7 +2051,7 @@ export default function ModularWorkflowWizard() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950">
       {/* Header with Progress */}
       <div className="sticky top-0 z-10 bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm border-b">
         <div className="max-w-7xl mx-auto px-4 py-4">

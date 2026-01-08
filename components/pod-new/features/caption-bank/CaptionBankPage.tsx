@@ -99,7 +99,7 @@ export function CaptionBankPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 p-6 flex items-center justify-center">
+      <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 p-6 flex items-center justify-center">
         <div className="text-center py-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-3xl p-8 shadow-xl">
           <p className="text-red-500 font-medium">Failed to load captions. Please try again.</p>
         </div>
@@ -108,7 +108,7 @@ export function CaptionBankPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900 dark:to-blue-900 pb-20">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 pb-20">
       {/* Background Pattern */}
       <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.1),rgba(255,255,255,0))] pointer-events-none" />
 

@@ -27,8 +27,8 @@ import {
   LogOut,
   Instagram,
   MessageSquareText,
+  PanelLeftClose,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import {
   Accordion,
   AccordionContent,
@@ -36,6 +36,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { useTeams } from "@/hooks/useTeams";
+import { useLayoutStore } from "@/lib/stores/layoutStore";
 
 type SubNavItem = {
   title: string;
@@ -109,13 +110,13 @@ const navigation: { title: string; items: NavItem[] }[] = [
         icon: MessageSquareText,
         badge: { text: "New", variant: "primary" },
       },
-        // {
-        //   title: "OFTV",
-        //   href: "/oftv",
-        //   icon: FileText,
-        //   badge: { text: "New", variant: "primary" },
-        // },
-      ],
+      // {
+      //   title: "OFTV",
+      //   href: "/oftv",
+      //   icon: FileText,
+      //   badge: { text: "New", variant: "primary" },
+      // },
+    ],
   },
   {
     title: "Content & Schedule",
@@ -133,7 +134,7 @@ const navigation: { title: string; items: NavItem[] }[] = [
       },
       { title: "Calendar", href: "/calendar", icon: CalendarIcon },
       {
-      title: "Content Dates",
+        title: "Content Dates",
         href: "/content-dates",
         icon: Calendar,
         badge: { text: "New", variant: "primary" },
@@ -148,9 +149,7 @@ const navigation: { title: string; items: NavItem[] }[] = [
   },
   {
     title: "Management",
-    items: [
-      { title: "Team", href: "/team", icon: Users2 },
-    ],
+    items: [{ title: "Team", href: "/team", icon: Users2 }],
   },
   {
     title: "Settings",
@@ -158,10 +157,6 @@ const navigation: { title: string; items: NavItem[] }[] = [
       { title: "Settings", href: "/settings", icon: Settings },
       { title: "Admin", href: "/admin", icon: Shield },
     ],
-  },
-  {
-    title: "Account",
-    items: [],
   },
 ];
 
@@ -201,6 +196,7 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
+  const { toggleLeftSidebar } = useLayoutStore();
   const searchParams = new URLSearchParams(
     typeof window !== "undefined" ? window.location.search : ""
   );
@@ -303,40 +299,90 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
     setTeamFormData({ name: "", description: "", projectPrefix: "" });
   };
 
+  // Collapsed mini sidebar
   if (collapsed) {
-    return null; // Hide completely when collapsed
+    return (
+      <aside
+        className="flex flex-col h-full bg-white dark:bg-gray-900"
+        role="navigation"
+        aria-label="Primary navigation collapsed"
+      >
+        {/* Collapsed Header */}
+        <div className="px-2 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-center">
+          <button
+            onClick={toggleLeftSidebar}
+            className="w-8 h-8 rounded  flex items-center justify-center hover:bg-pink-700 transition-colors"
+            title="Expand navigation"
+          >
+            <img src="/tasty-new.png" alt="tasty-logo" />
+          </button>
+        </div>
+
+        {/* Collapsed Navigation Icons */}
+        <div className="flex-1 overflow-y-auto py-3 space-y-1 px-2">
+          {navigation.flatMap((section) =>
+            section.items.map((item) => {
+              const Icon = item.icon;
+              const href = item.href || (item.isTeamAccordion ? "/board" : "#");
+              const isActive =
+                pathname === href ||
+                (item.isTeamAccordion && pathname?.includes("/board"));
+
+              return (
+                <Link
+                  key={item.title}
+                  href={href}
+                  className={`flex items-center justify-center w-full h-10 rounded-md transition-colors ${
+                    isActive
+                      ? "bg-indigo-50 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400"
+                      : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                  }`}
+                  title={item.title}
+                >
+                  <Icon className="w-5 h-5" />
+                </Link>
+              );
+            })
+          )}
+        </div>
+      </aside>
+    );
   }
 
   return (
     <>
       <aside
-        className="hidden xl:flex xl:flex-col sticky top-24 self-start rounded-2xl bg-white/90 dark:bg-slate-900/70 border border-slate-200/50 dark:border-white/10 shadow-sm w-[280px] overflow-hidden backdrop-blur-sm transition-all duration-300"
+        className="flex flex-col h-full bg-white dark:bg-gray-900"
         role="navigation"
         aria-label="Primary navigation"
       >
-        <div className="px-4 py-4 border-b border-slate-200/50 dark:border-white/10 flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-white" />
-          </div>
-          <div>
-            <div className="text-sm text-slate-800 dark:text-slate-200 font-semibold">
-              Tasty Creative Pod
+        <div className="px-3 py-3 border-b border-gray-200 dark:border-gray-800 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded flex items-center justify-center">
+              <img src="/tasty-new.png" alt="tasty-logo" />
             </div>
-            <div className="text-[11px] text-slate-600 dark:text-slate-400">
-              POD Dashboard
-            </div>
+            <span className="text-sm font-medium text-gray-900 dark:text-white">
+              Tasty POD
+            </span>
           </div>
+          <button
+            onClick={toggleLeftSidebar}
+            className="p-1 text-gray-500 hover:text-gray-900 dark:hover:text-white rounded"
+            title="Hide navigation"
+          >
+            <PanelLeftClose className="w-4 h-4" />
+          </button>
         </div>
 
-        <div className="flex-1 overflow-y-auto py-4 space-y-6 min-h-0">
+        <div className="flex-1 overflow-y-auto py-2 space-y-4 min-h-0">
           {navigation.map((section) => (
             <div key={section.title} className="px-2">
               <div className="px-2 py-1">
-                <h3 className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                <h3 className="text-[10px] font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wide">
                   {section.title}
                 </h3>
               </div>
-              <ul className="space-y-1">
+              <ul className="space-y-0.5">
                 {section.items.map((item) => {
                   // Check if this is the team accordion item
                   if (item.isTeamAccordion) {
@@ -359,27 +405,22 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                             className="border-none"
                           >
                             <AccordionTrigger
-                              className={`group relative flex items-center justify-between px-3.5 py-2.75 rounded-xl transition-all duration-200 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 [&[data-state=open]>svg:last-child]:rotate-180 ${
+                              className={`group relative flex items-center justify-between px-2 py-1.5 rounded transition-colors hover:no-underline focus:outline-none [&[data-state=open]>svg:last-child]:rotate-180 ${
                                 isAnyTeamActive
-                                  ? "bg-gradient-to-r from-indigo-500/30 to-purple-500/20 dark:from-indigo-500/30 dark:to-purple-500/20 text-white dark:text-white ring-1 ring-inset ring-indigo-400/40 shadow-lg shadow-indigo-500/10"
-                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white"
+                                  ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
+                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                               }`}
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
                                 <item.icon
-                                  className={`w-5 h-5 shrink-0 transition-colors ${
+                                  className={`w-4 h-4 shrink-0 ${
                                     isAnyTeamActive
-                                      ? "text-indigo-300 dark:text-indigo-300"
-                                      : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200"
+                                      ? "text-indigo-600 dark:text-indigo-400"
+                                      : "text-gray-500 dark:text-gray-500"
                                   }`}
                                 />
-                                <span
-                                  className={`text-sm truncate ${isAnyTeamActive ? "font-medium" : ""}`}
-                                >
-                                  {item.title}
-                                </span>
+                                <span className="text-sm">{item.title}</span>
                               </div>
-                              {/* Only show plus icon for ADMIN users */}
                               {session?.user?.role === "ADMIN" && (
                                 <div
                                   onClick={(e) => {
@@ -389,72 +430,56 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                                   role="button"
                                   tabIndex={0}
                                   onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
+                                    if (e.key === "Enter" || e.key === " ") {
                                       e.preventDefault();
                                       e.stopPropagation();
                                       handleAddNewTeam();
                                     }
                                   }}
-                                  className={`p-1 rounded-md absolute right-8 top-1/2 -translate-y-1/2 transition-colors hover:bg-white/10 dark:hover:bg-white/10 cursor-pointer ${
-                                    isAnyTeamActive
-                                      ? "text-indigo-300 dark:text-indigo-300 hover:text-white dark:hover:text-white"
-                                      : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                                  }`}
+                                  className="p-1 rounded absolute right-6 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-900 dark:hover:text-white cursor-pointer"
                                   title="Add new team"
                                 >
-                                  <Plus className="w-4 h-4" />
+                                  <Plus className="w-3.5 h-3.5" />
                                 </div>
                               )}
                             </AccordionTrigger>
-                            <AccordionContent className="pb-1 pt-2 px-2">
-                              <ul className="space-y-1">
+                            <AccordionContent className="pb-1 pt-1 px-1">
+                              <ul className="space-y-0.5">
                                 {teamsLoading ? (
                                   <li>
-                                    <div className="group relative flex items-center gap-3 px-3.5 py-2.5 ml-9 rounded-lg text-slate-500 dark:text-slate-400">
-                                      <div className="w-4 h-4 shrink-0" />
-                                      <span className="text-sm truncate">
-                                        Loading teams...
-                                      </span>
+                                    <div className="flex items-center gap-2 px-2 py-1.5 ml-6 text-gray-500 text-sm">
+                                      Loading teams...
                                     </div>
                                   </li>
                                 ) : accessibleTeams.length > 0 ? (
                                   accessibleTeams.map((team) => {
                                     const isTeamActive =
-                                      pathname === "/board" && currentTeamId === team.id;
+                                      pathname === "/board" &&
+                                      currentTeamId === team.id;
                                     return (
                                       <li key={team.id}>
                                         <button
                                           onClick={() =>
                                             handleTeamSelect(team.id)
                                           }
-                                          className={`group relative flex items-center gap-3 px-3.5 py-2.5 ml-9 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 w-full text-left ${
+                                          className={`flex items-center gap-2 px-2 py-1.5 ml-6 rounded w-full text-left text-sm transition-colors ${
                                             isTeamActive
-                                              ? "bg-gradient-to-r from-indigo-500/20 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/10 text-indigo-700 dark:text-indigo-300 ring-1 ring-inset ring-indigo-400/30 shadow-sm"
-                                              : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-white/[0.05] hover:text-slate-700 dark:hover:text-slate-200"
+                                              ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
+                                              : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                                           }`}
                                         >
-                                          <Kanban
-                                            className={`w-4 h-4 shrink-0 ${isTeamActive ? "text-indigo-600 dark:text-indigo-400" : ""}`}
-                                          />
-                                          <span
-                                            className={`text-sm truncate ${isTeamActive ? "font-medium" : ""}`}
-                                          >
+                                          <Kanban className="w-3.5 h-3.5 shrink-0" />
+                                          <span className="truncate">
                                             {team.name}
                                           </span>
-                                          {isTeamActive && (
-                                            <div className="absolute -right-1 top-1/2 -translate-y-1/2 w-1 h-4 bg-indigo-500 dark:bg-indigo-400 rounded-full opacity-80" />
-                                          )}
                                         </button>
                                       </li>
                                     );
                                   })
                                 ) : (
                                   <li>
-                                    <div className="group relative flex items-center gap-3 px-3.5 py-2.5 ml-9 rounded-lg text-slate-500 dark:text-slate-400">
-                                      <div className="w-4 h-4 shrink-0" />
-                                      <span className="text-sm truncate">
-                                        No teams found
-                                      </span>
+                                    <div className="flex items-center gap-2 px-2 py-1.5 ml-6 text-gray-500 text-sm">
+                                      No teams found
                                     </div>
                                   </li>
                                 )}
@@ -488,29 +513,25 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                             className="border-none"
                           >
                             <AccordionTrigger
-                              className={`group relative flex items-center justify-between px-3.5 py-2.75 rounded-xl transition-all duration-200 hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 [&[data-state=open]>svg]:rotate-180 ${
+                              className={`group relative flex items-center justify-between px-2 py-1.5 rounded transition-colors hover:no-underline focus:outline-none [&[data-state=open]>svg]:rotate-180 ${
                                 isAnySubItemActive
-                                  ? "bg-gradient-to-r from-indigo-500/30 to-purple-500/20 dark:from-indigo-500/30 dark:to-purple-500/20 text-white dark:text-white ring-1 ring-inset ring-indigo-400/40 shadow-lg shadow-indigo-500/10"
-                                  : "text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white"
+                                  ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
+                                  : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                               }`}
                             >
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2">
                                 <item.icon
-                                  className={`w-5 h-5 shrink-0 transition-colors ${
+                                  className={`w-4 h-4 shrink-0 ${
                                     isAnySubItemActive
-                                      ? "text-indigo-300 dark:text-indigo-300"
-                                      : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200"
+                                      ? "text-indigo-600 dark:text-indigo-400"
+                                      : "text-gray-500 dark:text-gray-500"
                                   }`}
                                 />
-                                <span
-                                  className={`text-sm truncate ${isAnySubItemActive ? "font-medium" : ""}`}
-                                >
-                                  {item.title}
-                                </span>
+                                <span className="text-sm">{item.title}</span>
                               </div>
                             </AccordionTrigger>
-                            <AccordionContent className="pb-1 pt-2 px-2">
-                              <ul className="space-y-1">
+                            <AccordionContent className="pb-1 pt-1 px-1">
+                              <ul className="space-y-0.5">
                                 {item.subItems.map((subItem) => {
                                   const isSubItemActive =
                                     pathname === subItem.href;
@@ -521,14 +542,14 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                                         aria-current={
                                           isSubItemActive ? "page" : undefined
                                         }
-                                        className={`group relative flex items-center gap-3 px-3.5 py-2.5 ml-9 rounded-lg transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 ${
+                                        className={`flex items-center gap-2 px-2 py-1.5 ml-6 rounded text-sm transition-colors ${
                                           isSubItemActive
-                                            ? "bg-indigo-500/20 dark:bg-indigo-500/20 text-indigo-200 dark:text-indigo-200"
-                                            : "text-slate-500 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-white/[0.05] hover:text-slate-700 dark:hover:text-slate-200"
+                                            ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
+                                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                                         }`}
                                       >
-                                        <subItem.icon className="w-4 h-4 shrink-0" />
-                                        <span className="text-sm truncate">
+                                        <subItem.icon className="w-3.5 h-3.5 shrink-0" />
+                                        <span className="truncate">
                                           {subItem.title}
                                         </span>
                                       </Link>
@@ -559,24 +580,20 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                       <Link
                         href={item.href!}
                         aria-current={isActive ? "page" : undefined}
-                        className={`group relative flex items-center gap-4 px-3.5 py-2.75 rounded-xl transition-all duration-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900 ${
+                        className={`flex items-center gap-2 px-2 py-1.5 rounded text-sm transition-colors ${
                           isActive
-                            ? "bg-gradient-to-r from-indigo-500/30 to-purple-500/20 dark:from-indigo-500/30 dark:to-purple-500/20 text-white dark:text-white ring-1 ring-inset ring-indigo-400/40 shadow-lg shadow-indigo-500/10"
-                            : "text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white"
+                            ? "bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300"
+                            : "text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
                         }`}
                       >
                         <item.icon
-                          className={`w-5 h-5 shrink-0 transition-colors ${
+                          className={`w-4 h-4 shrink-0 ${
                             isActive
-                              ? "text-indigo-300 dark:text-indigo-300"
-                              : "text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200"
+                              ? "text-indigo-600 dark:text-indigo-400"
+                              : "text-gray-500 dark:text-gray-500"
                           }`}
                         />
-                        <span
-                          className={`text-sm truncate ${isActive ? "font-medium" : ""}`}
-                        >
-                          {item.title}
-                        </span>
+                        <span className="truncate">{item.title}</span>
                         {item.badge && (
                           <div className="ml-auto">
                             <Badge
@@ -593,65 +610,15 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                   );
                 })}
               </ul>
-              {/* Add User Profile and Theme Toggle to Account section */}
-              {section.title === "Account" && session?.user && (
-                <>
-                  <div className="mt-3 px-2">
-                    <div className="space-y-1">
-                      <div className="group relative flex items-center gap-3 px-3.5 py-2.5 rounded-xl transition-all duration-200 text-slate-600 dark:text-slate-300 hover:bg-slate-100/80 dark:hover:bg-white/[0.08] hover:text-slate-800 dark:hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/50 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-slate-900">
-                        {session.user.image ? (
-                          <img
-                            src={`/api/image-proxy?url=${encodeURIComponent(session.user.image)}`}
-                            alt={session.user.name || "User avatar"}
-                            className="w-5 h-5 rounded-full shrink-0 object-cover"
-                          />
-                        ) : (
-                          <User className="w-5 h-5 shrink-0 text-slate-500 dark:text-slate-400 group-hover:text-slate-700 dark:group-hover:text-slate-200" />
-                        )}
-                        <div className="flex-1 min-w-0">
-                          <div className="text-sm font-medium truncate">
-                            {session.user.name || session.user.email}
-                          </div>
-                          {session.user.name && session.user.email && (
-                            <div className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                              {session.user.email}
-                            </div>
-                          )}
-                        </div>
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            signOut();
-                          }}
-                          className="p-1 rounded-md transition-colors hover:bg-red-500/90  text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
-                          title="Sign out"
-                        >
-                          <LogOut className="w-4 h-4" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="mt-3 px-3.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
-                        Theme
-                      </span>
-                      <ThemeToggle />
-                    </div>
-                  </div>
-                </>
-              )}
             </div>
           ))}
         </div>
       </aside>
 
-      {/* Create Team Modal - Outside sidebar to cover full screen */}
+      {/* Create Team Modal */}
       {showCreateTeamModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[9999] p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md shadow-2xl">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md shadow-lg">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-xl font-bold text-gray-900 dark:text-gray-100">
                 Create New Team
@@ -739,14 +706,14 @@ export default function LeftSidebar({ collapsed = false }: LeftSidebarProps) {
                 <button
                   type="button"
                   onClick={closeCreateTeamModal}
-                  className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  className="flex-1 px-4 py-2 text-gray-600 dark:text-gray-400 border border-gray-300 dark:border-gray-600 rounded hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                   disabled={isCreatingTeam}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={
                     isCreatingTeam ||
                     !teamFormData.name.trim() ||

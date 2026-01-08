@@ -365,7 +365,7 @@ export default function ContentDatesPage() {
   }, [filteredEvents, showDeleted]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-blue-900/20 p-4 md:p-6">
+    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 p-4 md:p-6">
       {/* Page Header */}
       <div className="mb-6">
         <div className="flex items-center justify-between mb-2">
