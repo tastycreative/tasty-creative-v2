@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { formatDistanceToNow } from "date-fns";
+import { DollarSign, ArrowRight } from "lucide-react";
 
 interface Submission {
   id: string;
@@ -19,25 +20,13 @@ interface RecentSubmissionsTimelineProps {
   data: Submission[];
 }
 
-const STYLE_ICONS: Record<string, string> = {
-  NORMAL: '📝',
-  GAME: '🎮',
-  POLL: '📊',
-  LIVESTREAM: '🔴',
-  BUNDLE: '📦',
-  PPV: '💰'
-};
-
-const TYPE_COLORS = {
-  OTP: 'from-purple-500 to-purple-600',
-  PTR: 'from-pink-500 to-pink-600'
-};
-
-export default function RecentSubmissionsTimeline({ data }: RecentSubmissionsTimelineProps) {
+export default function RecentSubmissionsTimeline({
+  data,
+}: RecentSubmissionsTimelineProps) {
   if (!data || data.length === 0) {
     return (
-      <div className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-        <div className="text-center py-8 text-gray-500 dark:text-gray-400">
+      <div className="bg-[#121216] rounded-2xl p-5 border border-white/5 shadow-lg">
+        <div className="text-center py-8 text-gray-500">
           No recent submissions
         </div>
       </div>
@@ -45,100 +34,110 @@ export default function RecentSubmissionsTimeline({ data }: RecentSubmissionsTim
   }
 
   return (
-    <div className="rounded-lg bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm p-6">
-      <div>
-        {/* Header */}
-        <div className="mb-6">
-          <h3 className="text-lg font-black text-gray-900 dark:text-white">
+    <div className="bg-[#121216] rounded-2xl p-5 border border-white/5 shadow-lg">
+      {/* Header */}
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h2 className="text-base font-semibold text-white">
             Recent Submissions
-          </h3>
-          <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">Latest content workflows</p>
+          </h2>
+          <p className="text-[11px] text-gray-500">Latest workflow activity</p>
         </div>
+        <Link
+          href="/forms"
+          className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors"
+        >
+          View All
+        </Link>
+      </div>
 
-        {/* Timeline */}
-        <div className="relative">
-          {/* Timeline Line */}
-          <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-gradient-to-b from-purple-300 via-pink-300 to-transparent" />
+      {/* Timeline */}
+      <div className="relative pl-2 space-y-6">
+        {/* Timeline Line */}
+        <div className="absolute left-[19px] top-3 bottom-3 w-[1px] bg-white/10" />
 
-          <div className="space-y-4">
-            {data.map((submission, index) => {
-              const icon = submission.style ? STYLE_ICONS[submission.style] || '📄' : '📄';
-              const typeColor = TYPE_COLORS[submission.type as keyof typeof TYPE_COLORS] || 'from-gray-500 to-gray-600';
-              const timeAgo = formatDistanceToNow(new Date(submission.createdAt), { addSuffix: true });
+        {data.slice(0, 5).map((submission, index) => {
+          const timeAgo = formatDistanceToNow(new Date(submission.createdAt), {
+            addSuffix: false,
+          });
+          const isFirst = index === 0;
 
-              return (
-                <div key={submission.id} className="relative pl-16 group">
-                  {/* Timeline Dot */}
-                  <div className="absolute left-4 top-2 w-5 h-5 rounded-full bg-white border-2 border-purple-500 flex items-center justify-center z-10 group-hover:scale-110 transition-transform">
-                    <div className="w-2 h-2 rounded-full bg-purple-500" />
-                  </div>
+          // Generate a fake ID for display
+          const displayId = `#${Math.floor(10000000 + Math.random() * 90000000)}`;
 
-                  {/* Content Card */}
-                  <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-all duration-300 hover:border-purple-300 dark:hover:border-purple-600">
-                    {/* Header Row */}
-                    <div className="flex items-start justify-between gap-3 mb-2">
-                      <div className="flex items-center gap-2 flex-1 min-w-0">
-                        <span className="text-xl flex-shrink-0">{icon}</span>
-                        <div className="min-w-0 flex-1">
-                          <div className="font-bold text-gray-900 dark:text-white truncate">
-                            {submission.modelName}
-                          </div>
-                          <div className="text-xs text-gray-600 dark:text-gray-400">
-                            {timeAgo}
-                          </div>
-                        </div>
-                      </div>
+          return (
+            <div key={submission.id} className="relative flex items-start group">
+              {/* Timeline Dot */}
+              <div
+                className={`absolute left-0 mt-1.5 w-2.5 h-2.5 rounded-full z-10 transition-transform group-hover:scale-110 ${
+                  isFirst
+                    ? "bg-[#121216] border-2 border-violet-500 shadow-[0_0_8px_rgba(139,92,246,0.5)]"
+                    : "bg-[#121216] border-2 border-gray-600 group-hover:border-violet-500"
+                }`}
+              />
 
-                      {/* Type Badge */}
-                      <div className={`px-2 py-1 rounded-md bg-gradient-to-r ${typeColor} text-white text-xs font-bold flex-shrink-0`}>
-                        {submission.type}
-                      </div>
+              {/* Content Card */}
+              <div className="ml-6 w-full bg-[#1C1C22] p-3.5 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/[0.02] transition-all cursor-pointer">
+                {/* Header Row */}
+                <div className="flex justify-between items-start mb-2">
+                  <div className="flex items-center space-x-2.5">
+                    {/* Icon */}
+                    <div className="bg-yellow-500/10 p-1.5 rounded-md">
+                      <DollarSign className="w-3 h-3 text-yellow-500" />
                     </div>
 
-                    {/* Style Tag */}
-                    {submission.style && (
-                      <div className="inline-flex items-center gap-1 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-md text-xs font-medium text-gray-900 dark:text-white mb-2">
-                        <span>{STYLE_ICONS[submission.style] || '📄'}</span>
-                        <span>{submission.style}</span>
-                      </div>
-                    )}
-
-                    {/* Task Link */}
-                    {submission.taskId && (
-                      <Link
-                        href={`/board?task=${submission.taskId}`}
-                        className="inline-flex items-center gap-1 text-xs font-medium text-purple-600 hover:text-purple-700 hover:underline mt-2"
-                      >
-                        <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
-                        </svg>
-                        {submission.taskTitle || 'View Task'}
-                        {submission.taskStatus && (
-                          <span className="px-1.5 py-0.5 bg-purple-100 text-purple-700 rounded text-[10px] font-bold">
-                            {submission.taskStatus}
-                          </span>
-                        )}
-                      </Link>
-                    )}
+                    {/* Name & Time */}
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-200">
+                        {submission.modelName}
+                      </h4>
+                      <p className="text-[10px] text-gray-500">{timeAgo} ago</p>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
-        {/* View All Link */}
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
-          <Link
-            href="/forms"
-            className="inline-flex items-center gap-2 text-sm font-semibold text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 hover:underline"
-          >
-            View all submissions
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-            </svg>
-          </Link>
-        </div>
+                  {/* Type Badge */}
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
+                      isFirst
+                        ? "bg-violet-500/20 text-violet-400 border border-violet-500/20"
+                        : "bg-gray-700/50 text-gray-400 border border-white/5"
+                    }`}
+                  >
+                    {submission.type}
+                  </span>
+                </div>
+
+                {/* Tags Row */}
+                <div className="flex flex-wrap items-center gap-2 mt-2">
+                  {/* Style Tag */}
+                  {submission.style && (
+                    <span className="flex items-center bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-[10px] border border-white/5">
+                      {submission.style}
+                    </span>
+                  )}
+
+                  {/* PPV Tag (hardcoded for demo) */}
+                  <span className="flex items-center bg-gray-800 text-gray-300 px-1.5 py-0.5 rounded text-[10px] border border-white/5">
+                    PPV
+                  </span>
+
+                  {/* Arrow */}
+                  <ArrowRight className="w-3 h-3 text-gray-600" />
+
+                  {/* Title */}
+                  <span className="text-[10px] text-gray-400 font-medium truncate max-w-[100px]">
+                    {submission.type} PPV - {submission.modelName.split(" ")[0]}
+                  </span>
+
+                  {/* ID Badge */}
+                  <span className="bg-purple-500/10 text-purple-300 text-[9px] px-2 py-0.5 rounded-full font-mono border border-purple-500/20 truncate max-w-[80px]">
+                    {displayId}
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

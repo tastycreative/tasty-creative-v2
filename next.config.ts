@@ -41,6 +41,7 @@ const nextConfig: NextConfig = {
     ],
     localPatterns: [
       { pathname: "/api/image-proxy", search: "**" },
+      { pathname: "/**" },
     ],
     dangerouslyAllowSVG: true,
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
