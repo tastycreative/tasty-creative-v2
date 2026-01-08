@@ -1,9 +1,13 @@
 "use client";
 
-import AIText2ImagePage from "@/components/AIText2ImagePage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Type } from "lucide-react";
 import { useState } from "react";
+
+const AIText2ImagePage = dynamic(
+  () => import("@/components/AIText2ImagePage"),
+  { ssr: false }
+);
 
 export default function Text2ImagePage() {
   const [startCreating, setStartCreating] = useState(false);

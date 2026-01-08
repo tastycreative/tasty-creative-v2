@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, memo, useMemo } from "react";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Focus, Layout, Users } from "lucide-react";
 import LeftSidebar from "@/components/pod-new/layouts/LeftSidebar";
@@ -15,9 +16,24 @@ import {
 } from "@/lib/stores/podStore";
 import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
 import { useWelcomeModal } from "@/hooks/useWelcomeModal";
-import { WelcomeToPodNewModal } from "@/components/pod-new/shared/WelcomeToPodNewModal";
 import { WhatsNewButton } from "@/components/pod-new/shared/WhatsNewButton";
 import { useSession } from "next-auth/react";
+
+// Lazy load sidebars - they're heavy components with many sub-components
+const LeftSidebar = dynamic(
+  () => import("@/components/pod-new/layouts/LeftSidebar"),
+  { ssr: false }
+);
+const RightSidebar = dynamic(
+  () => import("@/components/pod-new/layouts/RightSidebar"),
+  { ssr: false }
+);
+
+// Lazy load WelcomeToPodNewModal - only shown once to new users
+const WelcomeToPodNewModal = dynamic(
+  () => import("@/components/pod-new/shared/WelcomeToPodNewModal").then(mod => ({ default: mod.WelcomeToPodNewModal })),
+  { ssr: false }
+);
 
 interface PodLayoutProps {
   children: React.ReactNode;
@@ -76,9 +92,6 @@ export default function PodLayout({ children }: PodLayoutProps) {
   // Auto-select first team if none is selected (matching original pod layout behavior)
   useEffect(() => {
     if (!selectedTeamId && teams.length > 0 && !isLoadingTeams) {
-      console.log(
-        `🎯 Auto-selecting first team: ${teams[0].name} (${teams[0].id})`
-      );
       setSelectedTeamId(teams[0].id);
     }
   }, [selectedTeamId, teams, isLoadingTeams, setSelectedTeamId]);

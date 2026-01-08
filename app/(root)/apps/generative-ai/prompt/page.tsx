@@ -1,9 +1,13 @@
 "use client";
 
-import AIPromptPage from "@/components/AIPromptPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { PenTool } from "lucide-react";
 import { useState } from "react";
+
+const AIPromptPage = dynamic(
+  () => import("@/components/AIPromptPage"),
+  { ssr: false }
+);
 
 export default function PromptPage() {
   const [startCreating, setStartCreating] = useState(false);

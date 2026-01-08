@@ -1,28 +1,27 @@
-import React, { useState, memo, useCallback, useMemo, useRef, useEffect } from "react";
+"use client";
+
+import { useState, memo, useCallback, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
-import Image from "next/image";
-import { isOptimizable } from "@/lib/image-optimization";
 import {
   Calendar,
-  Instagram,
-  Twitter,
-  TrendingUp,
-  TrendingDown,
-  Users,
   DollarSign,
-  Activity,
-  ExternalLink,
   Heart,
   Star,
-  Clock,
   Zap,
   AlertCircle,
   Sparkles,
   PieChart,
-  MessageCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
+
+// Shared utilities and components
+import {
+  formatGuaranteedAmount,
+  calculatePerformanceScore,
+  getPersonalityTypeConfig,
+} from "../utils";
+import { OptimizedModelImage } from "../shared/OptimizedModelImage";
+import { SocialLinkButton } from "../shared/SocialLinkButton";
 
 // Types for better type safety
 interface ModelDetails {
@@ -50,309 +49,7 @@ interface ModelDetails {
   };
 }
 
-// Personality type color mapping
-const getPersonalityTypeConfig = (type: string | undefined | null): { bg: string; text: string; icon: string } => {
-  if (!type) return { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", icon: "text-gray-500" };
-  
-  const typeLower = type.toLowerCase().trim();
-  
-  // Map common personality types to colors
-  if (typeLower.includes("expressive") || typeLower.includes("outgoing")) {
-    return { bg: "bg-pink-50 dark:bg-pink-900/20", text: "text-pink-700 dark:text-pink-300", icon: "text-pink-500" };
-  }
-  if (typeLower.includes("analytical") || typeLower.includes("logical")) {
-    return { bg: "bg-blue-50 dark:bg-blue-900/20", text: "text-blue-700 dark:text-blue-300", icon: "text-blue-500" };
-  }
-  if (typeLower.includes("driver") || typeLower.includes("ambitious")) {
-    return { bg: "bg-orange-50 dark:bg-orange-900/20", text: "text-orange-700 dark:text-orange-300", icon: "text-orange-500" };
-  }
-  if (typeLower.includes("amiable") || typeLower.includes("friendly")) {
-    return { bg: "bg-green-50 dark:bg-green-900/20", text: "text-green-700 dark:text-green-300", icon: "text-green-500" };
-  }
-  if (typeLower.includes("creative") || typeLower.includes("artistic")) {
-    return { bg: "bg-purple-50 dark:bg-purple-900/20", text: "text-purple-700 dark:text-purple-300", icon: "text-purple-500" };
-  }
-  
-  // Default fallback
-  return { bg: "bg-gray-100 dark:bg-gray-800", text: "text-gray-600 dark:text-gray-400", icon: "text-gray-500" };
-};
-
 type ModelStatus = "active" | "dropped";
-
-// Performance score calculation utility
-const calculatePerformanceScore = (stats?: ModelDetails["stats"]): number => {
-  if (!stats) return 0;
-  const revenue = stats.monthlyRevenue || 0;
-  const subscribers = stats.subscribers || 0;
-  // Weighted scoring algorithm (0-100)
-  const revenueScore = Math.min(100, (revenue / 50000) * 100);
-  const subscriberScore = Math.min(100, (subscribers / 10000) * 100);
-  return Math.round(revenueScore * 0.4 + subscriberScore * 0.6);
-};
-
-// Format large numbers with K/M/B suffix
-const formatCompactNumber = (num: number): string => {
-  if (num >= 1000000000) {
-    return `${(num / 1000000000).toFixed(1)}B`;
-  }
-  if (num >= 1000000) {
-    return `${(num / 1000000).toFixed(1)}M`;
-  }
-  if (num >= 1000) {
-    return `${(num / 1000).toFixed(1)}K`;
-  }
-  return num.toString();
-};
-
-// Format guaranteed amount with safe parsing (without $ prefix since we show dollar icon)
-const formatGuaranteedAmount = (guaranteedStr?: string): string => {
-  if (!guaranteedStr || guaranteedStr.trim() === "" || guaranteedStr.trim() === "-") {
-    return "0";
-  }
-  
-  // Remove $ symbol and any other non-numeric characters except decimal point
-  const cleanValue = guaranteedStr.replace(/[^0-9.-]/g, "");
-  const guaranteed = parseFloat(cleanValue);
-  
-  // Only show if it's a valid positive number
-  if (!isNaN(guaranteed) && guaranteed > 0) {
-    return formatCompactNumber(guaranteed);
-  }
-  
-  return "0";
-};
-
-// Enhanced image component with skeleton loading
-const OptimizedModelImage = memo(({ model, priority }: { model: ModelDetails; priority?: boolean }) => {
-  const [imageState, setImageState] = useState<'loading' | 'loaded' | 'error'>('loading');
-  const [isIntersecting, setIsIntersecting] = useState(false);
-  const imageRef = useRef<HTMLDivElement>(null);
-
-  // Intersection Observer for lazy loading
-  useEffect(() => {
-    if (priority) {
-      setIsIntersecting(true);
-      return;
-    }
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsIntersecting(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.1, rootMargin: '50px' }
-    );
-
-    if (imageRef.current) {
-      observer.observe(imageRef.current);
-    }
-
-    return () => observer.disconnect();
-  }, [priority]);
-
-  const imageUrl = useMemo(() => {
-    const url = model.profileImage || "";
-    if (!url) return null;
-
-    // Google Drive handling
-    if (url.includes("drive.google.com")) {
-      try {
-        const fileMatch = url.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
-        let driveId: string | null = null;
-        if (fileMatch && fileMatch[1]) {
-          driveId = fileMatch[1];
-        } else {
-          const urlObj = new URL(url);
-          driveId = urlObj.searchParams.get("id");
-        }
-        if (driveId) {
-          return `https://drive.google.com/thumbnail?id=${driveId}&sz=w400`;
-        }
-      } catch (e) {
-        // fall through
-      }
-    }
-    return url;
-  }, [model.profileImage]);
-
-  const handleImageLoad = useCallback(() => {
-    setImageState('loaded');
-  }, []);
-
-  const handleImageError = useCallback(() => {
-    setImageState('error');
-  }, []);
-
-  // Elegant fallback avatar
-  const FallbackAvatar = useMemo(
-    () => (
-      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary-100 to-primary-200 dark:from-primary-900 dark:to-primary-800">
-        <div className="relative">
-          <div className="w-16 h-16 rounded-full bg-white/30 dark:bg-white/10 backdrop-blur-sm flex items-center justify-center">
-            <span className="text-2xl font-bold text-primary-700 dark:text-primary-200">
-              {model.name.charAt(0).toUpperCase()}
-            </span>
-          </div>
-          <div className="absolute inset-0 rounded-full ring-2 ring-white/20 ring-offset-2 ring-offset-transparent" />
-        </div>
-      </div>
-    ),
-    [model.name]
-  );
-
-  if (imageState === 'error' || !imageUrl) {
-    return FallbackAvatar;
-  }
-
-  return (
-    <div ref={imageRef} className="relative w-full h-full">
-      {/* Skeleton loader */}
-      {imageState === 'loading' && (
-        <div className="absolute inset-0 bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-600 animate-pulse" />
-      )}
-      
-      {/* Main image */}
-      {isIntersecting && (
-        <Image
-          src={imageUrl}
-          alt={model.name}
-          fill
-          className={cn(
-            "object-cover transition-opacity duration-300",
-            imageState === 'loaded' ? "opacity-100" : "opacity-0"
-          )}
-          onLoad={handleImageLoad}
-          onError={handleImageError}
-          priority={priority}
-          unoptimized={!isOptimizable(imageUrl)}
-          quality={85}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-        />
-      )}
-
-      {/* Gradient overlay for better text contrast */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-    </div>
-  );
-});
-
-OptimizedModelImage.displayName = "OptimizedModelImage";
-
-// Stat card component for consistent styling
-interface StatCardProps {
-  icon: LucideIcon;
-  label: string;
-  value: string | number;
-  trend?: number;
-  color?: 'default' | 'success' | 'warning' | 'error' | 'info';
-  compact?: boolean;
-}
-
-const StatCard = memo(({ 
-  icon: Icon, 
-  label, 
-  value, 
-  trend, 
-  color = 'default',
-  compact = false 
-}: StatCardProps) => {
-  const colorClasses = {
-    default: "text-gray-600 dark:text-gray-400",
-    success: "text-success-600 dark:text-success-400",
-    warning: "text-warning-600 dark:text-warning-400",
-    error: "text-error-600 dark:text-error-400",
-    info: "text-info-600 dark:text-info-400",
-  };
-
-  return (
-    <div className={cn(
-      "flex flex-col",
-      compact ? "space-y-0.5" : "space-y-1"
-    )}>
-      <div className="flex items-center gap-1.5">
-        <Icon className={cn("w-3.5 h-3.5", colorClasses[color])} />
-        <span className="text-xs text-gray-500 dark:text-gray-400">{label}</span>
-        {trend !== undefined && (
-          <div className={cn(
-            "flex items-center gap-0.5 px-1 py-0.5 rounded text-xs font-medium",
-            trend > 0 
-              ? "bg-success-50 text-success-700 dark:bg-success-900/20 dark:text-success-300"
-              : "bg-error-50 text-error-700 dark:bg-error-900/20 dark:text-error-300"
-          )}>
-            {trend > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-            <span>{Math.abs(trend)}%</span>
-          </div>
-        )}
-      </div>
-      <p className={cn(
-        "font-semibold text-gray-900 dark:text-gray-100",
-        compact ? "text-sm" : "text-base"
-      )}>
-        {value}
-      </p>
-    </div>
-  );
-});
-
-StatCard.displayName = "StatCard";
-
-// Social link button component
-interface SocialLinkProps {
-  platform: 'instagram' | 'twitter' | 'tiktok';
-  username?: string;
-  onStopPropagation: (e: React.MouseEvent) => void;
-}
-
-const SocialLinkButton = memo(({ platform, username, onStopPropagation }: SocialLinkProps) => {
-  if (!username) return null;
-
-  const configs = {
-    instagram: {
-      url: `https://instagram.com/${username.replace("@", "")}`,
-      icon: Instagram,
-      label: "Instagram",
-      className: "hover:bg-pink-50 hover:text-pink-600 dark:hover:bg-pink-900/20 dark:hover:text-pink-400",
-    },
-    twitter: {
-      url: `https://twitter.com/${username.replace("@", "")}`,
-      icon: Twitter,
-      label: "Twitter", 
-      className: "hover:bg-blue-50 hover:text-blue-600 dark:hover:bg-blue-900/20 dark:hover:text-blue-400",
-    },
-    tiktok: {
-      url: `https://tiktok.com/@${username.replace("@", "")}`,
-      icon: Activity,
-      label: "TikTok",
-      className: "hover:bg-gray-50 hover:text-gray-900 dark:hover:bg-gray-700 dark:hover:text-gray-100",
-    },
-  };
-
-  const config = configs[platform];
-  const Icon = config.icon;
-
-  return (
-    <a
-      href={config.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={onStopPropagation}
-      className={cn(
-        "relative p-2 rounded-lg transition-all duration-200",
-        "text-gray-500 dark:text-gray-400",
-        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500",
-        config.className
-      )}
-      aria-label={`View on ${config.label}`}
-    >
-      <Icon className="w-4 h-4" />
-      <ExternalLink className="w-2 h-2 opacity-0 hover:opacity-50 transition-opacity duration-200 absolute top-1 right-1" />
-    </a>
-  );
-});
-
-SocialLinkButton.displayName = "SocialLinkButton";
 
 // Main enhanced model card component
 interface EnhancedModelCardProps {
@@ -401,8 +98,6 @@ const EnhancedModelCard = memo(
     );
 
     // Memoized computed values
-    const animationDelay = useMemo(() => Math.min(index * 50, 300), [index]);
-    
     const performanceScore = useMemo(
       () => calculatePerformanceScore(model.stats),
       [model.stats]
@@ -426,12 +121,6 @@ const EnhancedModelCard = memo(
         year: "numeric",
       });
     }, [model.launchDate]);
-
-    // Generate stable mock trends (would come from API in production)
-    const trends = useMemo(() => ({
-      revenue: isActive ? 12 : -8,
-      subscribers: isActive ? 18 : -5,
-    }), [isActive]);
 
     const cardVariantClasses = {
       default: "",

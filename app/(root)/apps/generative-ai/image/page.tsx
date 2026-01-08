@@ -1,9 +1,13 @@
 "use client";
 
-import AIImagePage from "@/components/AIImagePage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { ImageIcon } from "lucide-react";
 import { useState } from "react";
+
+const AIImagePage = dynamic(
+  () => import("@/components/AIImagePage"),
+  { ssr: false }
+);
 
 export default function ImagePage() {
   const [startCreating, setStartCreating] = useState(false);

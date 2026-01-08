@@ -1,9 +1,13 @@
 "use client";
 
-import AIVideoPage from "@/components/AIVideoPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Video } from "lucide-react";
 import { useState } from "react";
+
+const AIVideoPage = dynamic(
+  () => import("@/components/AIVideoPage"),
+  { ssr: false }
+);
 
 export default function VideoPage() {
   const [startCreating, setStartCreating] = useState(false);

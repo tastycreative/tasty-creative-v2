@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useEffect, useCallback, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useCallback, useState, useMemo, useRef, lazy, Suspense } from 'react';
+import dynamic from 'next/dynamic';
 import { useQueryClient } from '@tanstack/react-query';
 import { Session } from 'next-auth';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -20,21 +21,29 @@ import ColumnSettings from './ColumnSettings';
 import BoardHeader, { TabType } from './BoardHeader';
 import BoardFilters from './BoardFilters';
 import OFTVListFilters, { OFTVFilters } from './OFTVListFilters';
-import Summary from './Summary';
-import Resources from './Resources';
-import StrikeSystem from './StrikeSystem';
 import BoardSkeleton from './BoardSkeleton';
 import BoardGrid from './BoardGrid';
 import BoardList from './BoardList';
-import EnhancedTaskDetailModal from './EnhancedTaskDetailModal';
-import NewTaskModal from './NewTaskModal';
-import OFTVTaskModal, { OFTVTaskData } from './OFTVTaskModal';
-import WallPostTaskModal from './WallPostTaskModal';
-import BulkSubmissionModal, { BulkSubmissionData } from './BulkSubmissionModal';
-import OnboardingTaskModal from '@/components/pod/OnboardingTaskModal';
 import NoTeamSelected from '@/components/pod/NoTeamSelected';
-import TeamSettings from './TeamSettings';
-import BoardGallery from './gallery';
+
+// Lazy load tab content components - only loaded when tab is active
+const Summary = dynamic(() => import('./Summary'), { ssr: false });
+const Resources = dynamic(() => import('./Resources'), { ssr: false });
+const StrikeSystem = dynamic(() => import('./StrikeSystem'), { ssr: false });
+const TeamSettings = dynamic(() => import('./TeamSettings'), { ssr: false });
+const BoardGallery = dynamic(() => import('./gallery'), { ssr: false });
+
+// Lazy load modals - only loaded when opened
+const EnhancedTaskDetailModal = dynamic(() => import('./EnhancedTaskDetailModal'), { ssr: false });
+const NewTaskModal = dynamic(() => import('./NewTaskModal'), { ssr: false });
+const OFTVTaskModal = dynamic(() => import('./OFTVTaskModal').then(mod => ({ default: mod.default })), { ssr: false });
+const WallPostTaskModal = dynamic(() => import('./WallPostTaskModal'), { ssr: false });
+const BulkSubmissionModal = dynamic(() => import('./BulkSubmissionModal').then(mod => ({ default: mod.default })), { ssr: false });
+const OnboardingTaskModal = dynamic(() => import('@/components/pod/OnboardingTaskModal'), { ssr: false });
+
+// Re-export types needed from lazy-loaded modules
+export type { OFTVTaskData } from './OFTVTaskModal';
+export type { BulkSubmissionData } from './BulkSubmissionModal';
 
 interface BoardProps {
   teamId: string;
@@ -303,8 +312,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     const params = new URLSearchParams(searchParamsString);
     const taskParam = params.get('task');
 
-    console.log('🔍 URL Effect triggered:', { taskParam, qTasksLength: qTasks.length, teamName });
-
     if (taskParam && qTasks.length > 0) {
       // URL has a task parameter - find task by ID or podTeam.projectPrefix-taskNumber
       let task: Task | undefined;
@@ -313,27 +320,13 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       if (taskParam.includes('-') && /^[A-Z0-9]{2,10}-\d+$/.test(taskParam)) {
         const [projectPrefix, taskNumberStr] = taskParam.split('-');
         const taskNumber = parseInt(taskNumberStr, 10);
-        console.log('🔍 Looking for task:', { projectPrefix, taskNumber, taskParam, totalTasks: qTasks.length });
-        console.log('🔍 Sample task prefixes:', qTasks.slice(0, 3).map(t => ({
-          id: t.id,
-          prefix: t.podTeam?.projectPrefix,
-          taskNumber: t.taskNumber,
-          hasPodTeam: !!t.podTeam
-        })));
         task = qTasks.find(t => t.podTeam?.projectPrefix === projectPrefix && t.taskNumber === taskNumber);
-        console.log('🔍 Task found:', !!task, task?.id);
       } else {
         // Fall back to finding by task ID
         task = qTasks.find(t => t.id === taskParam);
       }
-      
+
       if (task && (!selectedTask || selectedTask.id !== task.id)) {
-        console.log('🔍 Setting selectedTask from URL/click:', {
-          taskId: task.id,
-          hasOftvTask: !!(task as any).oftvTask,
-          oftvTask: (task as any).oftvTask,
-          podTeamName: task.podTeam?.name
-        });
         setSelectedTask(task);
         // Initialize editing data only when selection changes
         setEditingTaskData({
@@ -718,17 +711,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       
   const fresh: Task[] = ((queryClient.getQueryData(boardQueryKeys.tasks(currentTeamId)) as any)?.tasks || []) as Task[];
   const updatedTaskFromStore = fresh.find((t: any) => t.id === selectedTask.id);
-      
-      console.log('📊 Task from store after save:', {
-        found: !!updatedTaskFromStore,
-        oftvTask: updatedTaskFromStore?.oftvTask,
-        oftvTaskFull: JSON.parse(JSON.stringify(updatedTaskFromStore?.oftvTask || {})),
-        hasVideoEditorUser: !!(updatedTaskFromStore as any)?.oftvTask?.videoEditorUser,
-        hasThumbnailEditorUser: !!(updatedTaskFromStore as any)?.oftvTask?.thumbnailEditorUser,
-        videoEditorUser: (updatedTaskFromStore as any)?.oftvTask?.videoEditorUser,
-        thumbnailEditorUser: (updatedTaskFromStore as any)?.oftvTask?.thumbnailEditorUser
-      });
-      
+
       const updatedTask: any = updatedTaskFromStore ? {
         ...selectedTask, // Keep original task data (includes podTeam relation)
         ...updates, // Apply new updates
@@ -824,16 +807,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       throw new Error('Unauthorized access');
     }
 
-    console.log('handleBulkSubmission - Received data:', {
-      teamId,
-      modelName: data.modelName,
-      driveLink: data.driveLink,
-      hasUploadedFiles: !!data.uploadedFiles && data.uploadedFiles.length > 0,
-      filesCount: data.uploadedFiles?.length || 0,
-      captionsCount: data.captions?.length || 0,
-      columnStatus: data.columnStatus,
-    });
-
     try {
       // Step 1: Validating
       onProgress?.('validating');
@@ -845,7 +818,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       if (data.uploadedFiles && data.uploadedFiles.length > 0) {
         // Option 1: Upload files to S3
         onProgress?.('uploading', 0, data.uploadedFiles.length);
-        console.log('Uploading files to S3...');
 
         // Upload each file sequentially to track progress
         for (let index = 0; index < data.uploadedFiles.length; index++) {
@@ -873,12 +845,9 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
           // Update progress
           onProgress?.('uploading', index + 1, data.uploadedFiles.length);
         }
-
-        console.log('Files uploaded to S3:', uploadedPhotos.length);
       } else if (data.driveLink) {
         // Option 2: Using Drive link (no upload, fetching happens on backend)
         onProgress?.('uploading'); // Show fetching step in progress
-        console.log('Using Google Drive link - images will be fetched on backend');
         await new Promise(resolve => setTimeout(resolve, 500)); // Brief delay for UX
       }
 
@@ -904,7 +873,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       }
 
       const result = await response.json();
-      console.log('Bulk submission created:', result);
 
       // Step 4: Finalizing
       onProgress?.('finalizing');
@@ -974,10 +942,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
           // Check environment variable to enable/disable notifications (useful for development)
           const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
-          if (!notificationsEnabled) {
-            console.log('🔕 OFTV assignment notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
-            return;
-          }
+          if (!notificationsEnabled) return;
 
           try {
             await fetch('/api/notifications/assignment', {
@@ -1155,10 +1120,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
           // Check environment variable to enable/disable notifications (useful for development)
           const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
-          if (!notificationsEnabled) {
-            console.log('🔕 OFTV reassignment notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
-            return;
-          }
+          if (!notificationsEnabled) return;
 
           try {
             await fetch('/api/notifications/assignment', {
@@ -1195,10 +1157,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         const notifyCreatorOnStatus = async (editorType: 'video' | 'thumbnail', newStatus: string) => {
           // Check environment variable to enable/disable notifications (useful for development)
           const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
-          if (!notificationsEnabled) {
-            console.log('🔕 OFTV status notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
-            return;
-          }
+          if (!notificationsEnabled) return;
 
           try {
             await fetch('/api/notifications/oftv-status', {
@@ -1276,22 +1235,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     const fromColumn = qColumns.find((col: BoardColumn) => col.status === oldStatus);
     const toColumn = qColumns.find((col: BoardColumn) => col.status === newStatus);
 
-    console.log('🎯 DRAG & DROP DEBUG:', {
-      taskId: taskToUpdate.id,
-      taskTitle: taskToUpdate.title,
-      fromColumn: {
-        status: oldStatus,
-        label: fromColumn?.label || 'Unknown',
-        position: fromColumn?.position
-      },
-      toColumn: {
-        status: newStatus,
-        label: toColumn?.label || 'Unknown',
-        position: toColumn?.position
-      },
-      timestamp: new Date().toISOString()
-    });
-
     // Clear dragged task immediately to remove opacity effect
     setDraggedTask(null);
 
@@ -1321,8 +1264,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     // Update the task status via TanStack mutation (handles optimistic update and cache invalidation)
     try {
       await updateTaskStatusMutation.mutateAsync({ taskId: taskToUpdate.id, status: newStatus });
-
-      console.log('✅ Mutation completed successfully');
 
       // Publish real-time update via Ably
       await publishTaskUpdate({
@@ -1400,13 +1341,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
       thumbnailEditorStatus = "COMPLETED";
     }
 
-    // Log for debugging (can be removed later)
-    console.log('🎬 OFTV Status Update:', {
-      columnLabel: trimmedLabel,
-      videoEditorStatus,
-      thumbnailEditorStatus
-    });
-
     // Reconstruct the description with updated statuses
     updatedDescription = updatedDescription
       .replace(
@@ -1438,17 +1372,10 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     try {
       // Check environment variable to enable/disable notifications (useful for development)
       const notificationsEnabled = process.env.NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS !== 'false';
-
-      if (!notificationsEnabled) {
-        console.log('🔕 Notifications disabled via NEXT_PUBLIC_ENABLE_TASK_NOTIFICATIONS env variable');
-        return;
-      }
+      if (!notificationsEnabled) return;
 
       // Check if column notifications are enabled for this team
-      if (!teamSettings?.columnNotificationsEnabled) {
-        console.log('🔕 Column notifications are disabled for this team');
-        return;
-      }
+      if (!teamSettings?.columnNotificationsEnabled) return;
 
       // Find the target column to get assigned members
     const targetColumn = qColumns.find(column => column.status === newStatus);
@@ -1513,7 +1440,6 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     
     if (qColumns.length === 0) {
       // Only use default config if explicitly no columns are configured
-      console.log('Using default statusConfig, columns.length:', qColumns.length);
       return Object.entries(statusConfig);
     }
     
@@ -1660,27 +1586,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
   // Memoize filtered and sorted tasks to prevent recalculation on every render
   const filteredAndSortedTasks = useMemo(() => {
-    console.log('Board - Processing tasks:', {
-      totalTasks: qTasks.length,
-      teamId,
-      teamName,
-      workflowFilter,
-      tasks: qTasks.map(t => ({
-        id: t.id,
-        title: t.title,
-        status: t.status,
-        hasWallPost: !!(t as any).wallPostSubmission,
-        hasModularWorkflow: !!t.ModularWorkflow,
-        hasContentSubmission: !!t.ContentSubmission
-      }))
-    });
-
     const filtered = filterTasks(qTasks);
-    console.log('Board - After filtering:', {
-      filteredCount: filtered.length,
-      filtered: filtered.map(t => ({ id: t.id, title: t.title, status: t.status }))
-    });
-
     return sortTasks(filtered);
   }, [qTasks, searchTerm, priorityFilter, assigneeFilter, dueDateFilter, workflowFilter, sortBy, sortOrder]);
 

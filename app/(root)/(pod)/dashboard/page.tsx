@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import dynamic from "next/dynamic";
 import { useSession } from "next-auth/react";
 import { useDashboardMetrics } from "@/hooks/useDashboardMetrics";
 import { motion } from "framer-motion";
@@ -9,22 +10,34 @@ import {
   AlertTriangle,
   Users,
   DollarSign,
-  TrendingUp,
-  Package,
-  Calendar,
   BarChart3,
 } from "lucide-react";
 
-// Components
+// Keep QuickStatsCard and DashboardSkeleton eagerly loaded - they're core UI
 import QuickStatsCard from "@/components/pod-new/features/dashboard/QuickStatsCard";
-import TaskPipelineChart from "@/components/pod-new/features/dashboard/TaskPipelineChart";
-import PriorityDonutChart from "@/components/pod-new/features/dashboard/PriorityDonutChart";
-import ContentTypeChart from "@/components/pod-new/features/dashboard/ContentTypeChart";
-import ContentStylePills from "@/components/pod-new/features/dashboard/ContentStylePills";
-import ContributorLeaderboard from "@/components/pod-new/features/dashboard/ContributorLeaderboard";
-import RecentSubmissionsTimeline from "@/components/pod-new/features/dashboard/RecentSubmissionsTimeline";
 import DashboardSkeleton from "@/components/pod-new/features/dashboard/DashboardSkeleton";
-import TodayEventsCard from "@/components/pod-new/features/dashboard/TodayEventsCard";
+
+// Lazy load heavy chart components - they use recharts which is large
+const TaskPipelineChart = dynamic(
+  () => import("@/components/pod-new/features/dashboard/TaskPipelineChart"),
+  { ssr: false }
+);
+const PriorityDonutChart = dynamic(
+  () => import("@/components/pod-new/features/dashboard/PriorityDonutChart"),
+  { ssr: false }
+);
+const ContributorLeaderboard = dynamic(
+  () => import("@/components/pod-new/features/dashboard/ContributorLeaderboard"),
+  { ssr: false }
+);
+const RecentSubmissionsTimeline = dynamic(
+  () => import("@/components/pod-new/features/dashboard/RecentSubmissionsTimeline"),
+  { ssr: false }
+);
+const TodayEventsCard = dynamic(
+  () => import("@/components/pod-new/features/dashboard/TodayEventsCard"),
+  { ssr: false }
+);
 
 // Animation Variants
 const containerVariants = {
@@ -65,28 +78,28 @@ export default function DashboardPage() {
         <motion.div
           initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
-          className="text-center bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl p-8 shadow-xl max-w-md border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm"
+          className="text-center bg-[#121216] rounded-2xl p-8 shadow-xl max-w-md border border-white/5 relative overflow-hidden"
         >
           {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+          <div className="absolute inset-0 opacity-[0.1]">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(239,68,68,0.3),rgba(0,0,0,0))]"></div>
           </div>
 
           <div className="relative">
-            <div className="w-16 h-16 bg-gradient-to-br from-red-500/10 to-red-500/10 dark:from-red-400/20 dark:to-red-400/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-200/50 dark:border-red-500/30">
-              <AlertTriangle className="w-8 h-8 text-red-600 dark:text-red-400" />
+            <div className="w-16 h-16 bg-gradient-to-br from-red-500/20 to-red-500/20 rounded-full flex items-center justify-center mx-auto mb-4 border border-red-500/30 shadow-lg shadow-red-500/20">
+              <AlertTriangle className="w-8 h-8 text-red-400" />
             </div>
-            <h3 className="text-xl font-bold bg-gradient-to-r from-gray-900 via-red-600 to-purple-600 dark:from-gray-100 dark:via-red-400 dark:to-purple-400 bg-clip-text text-transparent mb-2">
+            <h3 className="text-xl font-bold bg-gradient-to-r from-white via-red-400 to-purple-400 bg-clip-text text-transparent mb-2">
               Failed to Load Dashboard
             </h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
+            <p className="text-gray-400 mb-6">
               {error instanceof Error
                 ? error.message
                 : "An unexpected error occurred"}
             </p>
             <button
               onClick={() => refetch()}
-              className="px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg transition-all"
+              className="px-6 py-3 bg-gradient-to-r from-violet-500 to-purple-600 text-white font-semibold rounded-xl hover:shadow-lg hover:shadow-violet-500/30 transition-all"
             >
               Retry
             </button>
@@ -108,28 +121,28 @@ export default function DashboardPage() {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
-          className="relative overflow-hidden bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 rounded-2xl border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm p-8"
+          className="relative overflow-hidden bg-[#121216] rounded-2xl border border-white/5 backdrop-blur-sm p-8"
         >
           {/* Background Pattern */}
-          <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+          <div className="absolute inset-0 opacity-[0.05]">
+            <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(139,92,246,0.3),rgba(0,0,0,0))]"></div>
           </div>
 
           {/* Decorative Circles */}
-          <div className="absolute -top-24 -right-24 w-48 h-48 bg-white dark:bg-gray-800 rounded-full opacity-50 blur-3xl"></div>
-          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-white dark:bg-gray-800 rounded-full opacity-50 blur-3xl"></div>
+          <div className="absolute -top-24 -right-24 w-48 h-48 bg-violet-500/10 rounded-full opacity-50 blur-3xl"></div>
+          <div className="absolute -bottom-24 -left-24 w-48 h-48 bg-pink-500/10 rounded-full opacity-50 blur-3xl"></div>
 
           <div className="relative flex items-center gap-4">
-            <div className="p-3 bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 rounded-xl border border-pink-200/50 dark:border-pink-500/30">
-              <BarChart3 className="w-8 h-8 text-pink-600 dark:text-pink-400" />
+            <div className="p-3 bg-gradient-to-br from-violet-500/20 to-pink-500/20 rounded-xl border border-violet-500/30">
+              <BarChart3 className="w-8 h-8 text-violet-400" />
             </div>
             <div>
               <h1 className="text-4xl lg:text-5xl font-black tracking-tight">
-                <span className="bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-white via-violet-400 to-pink-400 bg-clip-text text-transparent">
                   Dashboard
                 </span>
               </h1>
-              <p className="text-gray-600 dark:text-gray-300 mt-1 text-lg font-medium">
+              <p className="text-gray-400 mt-1 text-lg font-medium">
                 Welcome back! Here's what's happening with your POD workflow.
               </p>
             </div>
@@ -151,29 +164,29 @@ export default function DashboardPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-orange-50 to-red-50 dark:from-orange-900/20 dark:to-red-900/20 border-2 border-orange-300 dark:border-orange-700 p-6 hover:shadow-lg transition-all"
+            className="relative overflow-hidden rounded-2xl bg-[#121216] border border-orange-500/30 p-6 hover:shadow-lg hover:shadow-orange-500/10 transition-all"
           >
             {/* Background Pattern */}
-            <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05]">
-              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(251,146,60,0.3),rgba(255,255,255,0))]"></div>
+            <div className="absolute inset-0 opacity-[0.1]">
+              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(251,146,60,0.3),rgba(0,0,0,0))]"></div>
             </div>
 
             <div className="relative flex items-center gap-4">
-              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg">
+              <div className="w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center flex-shrink-0 shadow-lg shadow-orange-500/30">
                 <AlertTriangle className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="font-bold text-gray-900 dark:text-white text-lg">
+                <h3 className="font-bold text-white text-lg">
                   {data.taskPipeline.unassignedCount} Unassigned Task
                   {data.taskPipeline.unassignedCount !== 1 ? "s" : ""}
                 </h3>
-                <p className="text-sm text-gray-600 dark:text-gray-400">
+                <p className="text-sm text-gray-400">
                   These tasks need to be assigned to team members
                 </p>
               </div>
               <a
                 href="/board?filter=unassigned"
-                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-lg hover:shadow-lg transition-all flex-shrink-0"
+                className="px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-lg hover:shadow-lg hover:shadow-orange-500/30 transition-all flex-shrink-0"
               >
                 Assign Now
               </a>

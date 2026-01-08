@@ -25,100 +25,109 @@ export default function QuickStatsCard({
   gradient,
   href,
   alert = false,
-  progressPercent = 65
+  progressPercent = 65,
 }: QuickStatsCardProps) {
   const getGradientClasses = () => {
-    if (gradient.includes('blue')) {
+    if (gradient.includes("blue")) {
       return {
-        bgGradient: 'from-blue-50 to-blue-100 dark:from-blue-900/20 dark:to-blue-800/30',
-        iconBg: 'bg-gradient-to-br from-blue-500 to-blue-600',
-        progressGradient: 'from-blue-500 to-blue-600',
-        label: 'Task completion'
+        iconBg: "bg-gradient-to-br from-blue-500 to-cyan-500",
+        iconGlow: "shadow-blue-500/30",
+        progressGradient: "from-blue-500 to-cyan-500",
+        label: "Task completion",
+        borderColor: "border-blue-500/20",
+        bgGlow: "rgba(59,130,246,0.1)",
       };
     }
-    if (gradient.includes('red')) {
+    if (gradient.includes("red")) {
       return {
-        bgGradient: 'from-red-50 to-red-100 dark:from-red-900/20 dark:to-red-800/30',
-        iconBg: 'bg-gradient-to-br from-red-500 to-red-600',
-        progressGradient: 'from-red-500 to-red-600',
-        label: 'Attention required'
+        iconBg: "bg-gradient-to-br from-red-500 to-rose-500",
+        iconGlow: "shadow-red-500/30",
+        progressGradient: "from-red-500 to-rose-500",
+        label: "Attention required",
+        borderColor: "border-red-500/20",
+        bgGlow: "rgba(239,68,68,0.1)",
       };
     }
-    if (gradient.includes('purple')) {
+    if (gradient.includes("purple")) {
       return {
-        bgGradient: 'from-purple-50 to-pink-100 dark:from-purple-900/20 dark:to-pink-800/30',
-        iconBg: 'bg-gradient-to-br from-purple-500 to-pink-500',
-        progressGradient: 'from-purple-500 to-pink-500',
-        label: 'Model activity'
+        iconBg: "bg-gradient-to-br from-violet-500 to-purple-500",
+        iconGlow: "shadow-violet-500/30",
+        progressGradient: "from-violet-500 to-purple-500",
+        label: "Model activity",
+        borderColor: "border-violet-500/20",
+        bgGlow: "rgba(139,92,246,0.1)",
       };
     }
-    if (gradient.includes('emerald') || gradient.includes('green')) {
+    if (gradient.includes("emerald") || gradient.includes("green")) {
       return {
-        bgGradient: 'from-emerald-50 to-green-100 dark:from-emerald-900/20 dark:to-green-800/30',
-        iconBg: 'bg-gradient-to-br from-emerald-500 to-green-600',
-        progressGradient: 'from-emerald-500 to-green-600',
-        label: 'Revenue performance'
+        iconBg: "bg-gradient-to-br from-emerald-500 to-green-500",
+        iconGlow: "shadow-emerald-500/30",
+        progressGradient: "from-emerald-500 to-green-500",
+        label: "Revenue performance",
+        borderColor: "border-emerald-500/20",
+        bgGlow: "rgba(16,185,129,0.1)",
       };
     }
     return {
-      bgGradient: 'from-gray-50 to-gray-100 dark:from-gray-900/20 dark:to-gray-800/30',
-      iconBg: 'bg-gradient-to-br from-gray-500 to-gray-600',
-      progressGradient: 'from-gray-500 to-gray-600',
-      label: 'Performance'
+      iconBg: "bg-gradient-to-br from-gray-500 to-gray-600",
+      iconGlow: "shadow-gray-500/30",
+      progressGradient: "from-gray-500 to-gray-600",
+      label: "Performance",
+      borderColor: "border-gray-500/20",
+      bgGlow: "rgba(107,114,128,0.1)",
     };
   };
 
-  const { bgGradient, iconBg, progressGradient, label } = getGradientClasses();
+  const { iconBg, iconGlow, progressGradient, label, borderColor, bgGlow } =
+    getGradientClasses();
 
   const content = (
     <div
-      className={`relative group overflow-hidden bg-gradient-to-br ${bgGradient} rounded-2xl border border-white/50 dark:border-gray-700/50 transition-all duration-300 hover:scale-105 hover:shadow-xl hover:shadow-black/10 dark:hover:shadow-black/25 ${href ? "cursor-pointer" : ""}`}
+      className={`relative group overflow-hidden bg-[#121216] rounded-2xl border border-white/5 ${borderColor} transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:border-white/10 ${href ? "cursor-pointer" : ""}`}
     >
-      {/* Background Pattern */}
-      <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full -translate-y-16 translate-x-16"></div>
-        <div className="absolute bottom-0 left-0 w-24 h-24 bg-white rounded-full translate-y-12 -translate-x-12"></div>
-      </div>
+      {/* Background Glow */}
+      <div
+        className="absolute top-0 right-0 w-32 h-32 rounded-full blur-3xl opacity-50 -translate-y-8 translate-x-8 pointer-events-none"
+        style={{ backgroundColor: bgGlow }}
+      />
 
-      <div className="relative p-6">
+      <div className="relative p-5">
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <div className="flex items-center gap-2 mb-2">
-              <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-200 uppercase tracking-wide">
+              <h3 className="text-[11px] font-semibold text-gray-500 uppercase tracking-wider">
                 {title}
               </h3>
             </div>
-            <p className={`text-3xl font-black mb-1 tracking-tight ${
-              alert && typeof value === 'number' && value > 0
-                ? 'text-red-600 dark:text-red-400'
-                : 'text-gray-900 dark:text-white'
-            }`}>
-              {typeof value === 'number' ? value.toLocaleString() : value}
+            <p
+              className={`text-2xl font-bold mb-1 tracking-tight ${
+                alert && typeof value === "number" && value > 0
+                  ? "text-red-400"
+                  : "text-white"
+              }`}
+            >
+              {typeof value === "number" ? value.toLocaleString() : value}
             </p>
-            <p className="text-sm text-gray-600 dark:text-gray-400 font-medium">
-              {subtitle}
-            </p>
+            <p className="text-xs text-gray-500 font-medium">{subtitle}</p>
           </div>
 
           <div
-            className={`${iconBg} p-3 rounded-xl shadow-lg shadow-black/10 dark:shadow-black/20 group-hover:scale-110 transition-transform duration-300`}
+            className={`${iconBg} p-2.5 rounded-xl shadow-lg ${iconGlow} group-hover:scale-110 transition-transform duration-300`}
           >
-            <Icon className="w-5 h-5 text-white" />
+            <Icon className="w-4 h-4 text-white" />
           </div>
         </div>
 
         {/* Progress indicator */}
-        <div className="w-full bg-white/30 dark:bg-gray-700/30 rounded-full h-2 mb-2">
+        <div className="w-full bg-white/5 rounded-full h-1.5 mb-2">
           <div
-            className={`bg-gradient-to-r ${progressGradient} h-2 rounded-full transition-all duration-1000 ease-out`}
+            className={`bg-gradient-to-r ${progressGradient} h-1.5 rounded-full transition-all duration-1000 ease-out`}
             style={{
               width: `${progressPercent}%`,
             }}
           ></div>
         </div>
-        <p className="text-xs text-gray-600 dark:text-gray-400">
-          {label}
-        </p>
+        <p className="text-[10px] text-gray-600">{label}</p>
       </div>
     </div>
   );

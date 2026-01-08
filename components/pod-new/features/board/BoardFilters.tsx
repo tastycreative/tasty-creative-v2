@@ -1,6 +1,7 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import {
   Search,
   Filter,
@@ -9,6 +10,21 @@ import {
   User,
   X,
   Settings,
+  ChevronDown,
+  Sparkles,
+  Clock,
+  AlertCircle,
+  Users,
+  Calendar,
+  Workflow,
+  Flame,
+  ArrowUp,
+  Minus,
+  ArrowDown,
+  Check,
+  Zap,
+  Signal,
+  Circle,
 } from "lucide-react";
 import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
 
@@ -41,6 +57,530 @@ interface BoardFiltersProps {
   setShowColumnSettings: (show: boolean) => void;
 }
 
+// Filter chip component for active filters
+const FilterChip = ({
+  label,
+  value,
+  onRemove,
+  color = "purple"
+}: {
+  label: string;
+  value: string;
+  onRemove: () => void;
+  color?: "purple" | "pink" | "blue" | "amber" | "emerald";
+}) => {
+  const colorClasses = {
+    purple: "from-purple-500/20 to-violet-500/20 border-purple-400/30 text-purple-300 hover:border-purple-400/50",
+    pink: "from-pink-500/20 to-rose-500/20 border-pink-400/30 text-pink-300 hover:border-pink-400/50",
+    blue: "from-blue-500/20 to-cyan-500/20 border-blue-400/30 text-blue-300 hover:border-blue-400/50",
+    amber: "from-amber-500/20 to-orange-500/20 border-amber-400/30 text-amber-300 hover:border-amber-400/50",
+    emerald: "from-emerald-500/20 to-teal-500/20 border-emerald-400/30 text-emerald-300 hover:border-emerald-400/50",
+  };
+
+  return (
+    <span
+      className={`
+        inline-flex items-center gap-1.5 px-3 py-1.5
+        bg-gradient-to-r ${colorClasses[color]}
+        border rounded-full text-xs font-medium
+        backdrop-blur-sm transition-all duration-300
+        animate-in fade-in slide-in-from-left-2 duration-300
+        group cursor-default
+      `}
+    >
+      <span className="opacity-60">{label}:</span>
+      <span className="font-semibold">{value}</span>
+      <button
+        onClick={onRemove}
+        className="ml-0.5 p-0.5 rounded-full hover:bg-white/10 transition-colors opacity-60 group-hover:opacity-100"
+      >
+        <X className="h-3 w-3" />
+      </button>
+    </span>
+  );
+};
+
+// Generic dropdown option configuration type
+interface DropdownOption {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  gradient: string;
+  bgGradient: string;
+  borderColor: string;
+  textColor: string;
+  glowColor: string;
+  description: string;
+  pulse?: boolean;
+}
+
+// Priority configuration
+const PRIORITY_OPTIONS: Record<PriorityFilter, DropdownOption> = {
+  ALL: {
+    label: "All Priorities",
+    icon: Signal,
+    gradient: "from-purple-500 to-violet-500",
+    bgGradient: "from-purple-500/20 to-violet-500/20",
+    borderColor: "border-purple-400/40",
+    textColor: "text-purple-300",
+    glowColor: "shadow-purple-500/30",
+    description: "Show all tasks",
+  },
+  URGENT: {
+    label: "Urgent",
+    icon: Flame,
+    gradient: "from-red-500 to-rose-500",
+    bgGradient: "from-red-500/20 to-rose-500/20",
+    borderColor: "border-red-400/40",
+    textColor: "text-red-300",
+    glowColor: "shadow-red-500/30",
+    description: "Critical, immediate action",
+    pulse: true,
+  },
+  HIGH: {
+    label: "High",
+    icon: Zap,
+    gradient: "from-orange-500 to-amber-500",
+    bgGradient: "from-orange-500/20 to-amber-500/20",
+    borderColor: "border-orange-400/40",
+    textColor: "text-orange-300",
+    glowColor: "shadow-orange-500/30",
+    description: "Important, prioritize soon",
+  },
+  MEDIUM: {
+    label: "Medium",
+    icon: Minus,
+    gradient: "from-yellow-500 to-lime-500",
+    bgGradient: "from-yellow-500/20 to-lime-500/20",
+    borderColor: "border-yellow-400/40",
+    textColor: "text-yellow-300",
+    glowColor: "shadow-yellow-500/30",
+    description: "Normal priority",
+  },
+  LOW: {
+    label: "Low",
+    icon: ArrowDown,
+    gradient: "from-emerald-500 to-teal-500",
+    bgGradient: "from-emerald-500/20 to-teal-500/20",
+    borderColor: "border-emerald-400/40",
+    textColor: "text-emerald-300",
+    glowColor: "shadow-emerald-500/30",
+    description: "Can wait, low urgency",
+  },
+};
+
+// Assignee configuration
+const ASSIGNEE_OPTIONS: Record<AssigneeFilter, DropdownOption> = {
+  ALL: {
+    label: "All Tasks",
+    icon: Users,
+    gradient: "from-purple-500 to-violet-500",
+    bgGradient: "from-purple-500/20 to-violet-500/20",
+    borderColor: "border-purple-400/40",
+    textColor: "text-purple-300",
+    glowColor: "shadow-purple-500/30",
+    description: "Show everyone's tasks",
+  },
+  MY_TASKS: {
+    label: "My Tasks",
+    icon: User,
+    gradient: "from-pink-500 to-rose-500",
+    bgGradient: "from-pink-500/20 to-rose-500/20",
+    borderColor: "border-pink-400/40",
+    textColor: "text-pink-300",
+    glowColor: "shadow-pink-500/30",
+    description: "Tasks assigned to me",
+  },
+  ASSIGNED: {
+    label: "Assigned",
+    icon: Users,
+    gradient: "from-blue-500 to-cyan-500",
+    bgGradient: "from-blue-500/20 to-cyan-500/20",
+    borderColor: "border-blue-400/40",
+    textColor: "text-blue-300",
+    glowColor: "shadow-blue-500/30",
+    description: "Tasks with assignees",
+  },
+  UNASSIGNED: {
+    label: "Unassigned",
+    icon: Circle,
+    gradient: "from-gray-500 to-slate-500",
+    bgGradient: "from-gray-500/20 to-slate-500/20",
+    borderColor: "border-gray-400/40",
+    textColor: "text-gray-300",
+    glowColor: "shadow-gray-500/30",
+    description: "Tasks without assignees",
+  },
+};
+
+// Due Date configuration
+const DUEDATE_OPTIONS: Record<DueDateFilter, DropdownOption> = {
+  ALL: {
+    label: "All Dates",
+    icon: Calendar,
+    gradient: "from-purple-500 to-violet-500",
+    bgGradient: "from-purple-500/20 to-violet-500/20",
+    borderColor: "border-purple-400/40",
+    textColor: "text-purple-300",
+    glowColor: "shadow-purple-500/30",
+    description: "Show all due dates",
+  },
+  OVERDUE: {
+    label: "Overdue",
+    icon: AlertCircle,
+    gradient: "from-red-500 to-rose-500",
+    bgGradient: "from-red-500/20 to-rose-500/20",
+    borderColor: "border-red-400/40",
+    textColor: "text-red-300",
+    glowColor: "shadow-red-500/30",
+    description: "Past due date",
+    pulse: true,
+  },
+  TODAY: {
+    label: "Due Today",
+    icon: Clock,
+    gradient: "from-amber-500 to-orange-500",
+    bgGradient: "from-amber-500/20 to-orange-500/20",
+    borderColor: "border-amber-400/40",
+    textColor: "text-amber-300",
+    glowColor: "shadow-amber-500/30",
+    description: "Due within 24 hours",
+  },
+  WEEK: {
+    label: "This Week",
+    icon: Calendar,
+    gradient: "from-emerald-500 to-teal-500",
+    bgGradient: "from-emerald-500/20 to-teal-500/20",
+    borderColor: "border-emerald-400/40",
+    textColor: "text-emerald-300",
+    glowColor: "shadow-emerald-500/30",
+    description: "Due within 7 days",
+  },
+};
+
+// Workflow configuration
+const WORKFLOW_OPTIONS: Record<WorkflowFilter, DropdownOption> = {
+  ALL: {
+    label: "All Workflows",
+    icon: Workflow,
+    gradient: "from-purple-500 to-violet-500",
+    bgGradient: "from-purple-500/20 to-violet-500/20",
+    borderColor: "border-purple-400/40",
+    textColor: "text-purple-300",
+    glowColor: "shadow-purple-500/30",
+    description: "Show all workflow types",
+  },
+  NORMAL: {
+    label: "Normal",
+    icon: Circle,
+    gradient: "from-blue-500 to-indigo-500",
+    bgGradient: "from-blue-500/20 to-indigo-500/20",
+    borderColor: "border-blue-400/40",
+    textColor: "text-blue-300",
+    glowColor: "shadow-blue-500/30",
+    description: "Standard content posts",
+  },
+  GAME: {
+    label: "Games",
+    icon: Sparkles,
+    gradient: "from-pink-500 to-rose-500",
+    bgGradient: "from-pink-500/20 to-rose-500/20",
+    borderColor: "border-pink-400/40",
+    textColor: "text-pink-300",
+    glowColor: "shadow-pink-500/30",
+    description: "Interactive game content",
+  },
+  POLL: {
+    label: "Polls",
+    icon: Users,
+    gradient: "from-cyan-500 to-teal-500",
+    bgGradient: "from-cyan-500/20 to-teal-500/20",
+    borderColor: "border-cyan-400/40",
+    textColor: "text-cyan-300",
+    glowColor: "shadow-cyan-500/30",
+    description: "Audience poll content",
+  },
+  LIVESTREAM: {
+    label: "Livestreams",
+    icon: Zap,
+    gradient: "from-red-500 to-orange-500",
+    bgGradient: "from-red-500/20 to-orange-500/20",
+    borderColor: "border-red-400/40",
+    textColor: "text-red-300",
+    glowColor: "shadow-red-500/30",
+    description: "Live streaming content",
+  },
+  LEGACY: {
+    label: "Legacy",
+    icon: Clock,
+    gradient: "from-gray-500 to-slate-500",
+    bgGradient: "from-gray-500/20 to-slate-500/20",
+    borderColor: "border-gray-400/40",
+    textColor: "text-gray-300",
+    glowColor: "shadow-gray-500/30",
+    description: "Older workflow format",
+  },
+};
+
+// Generic Premium Dropdown Component with Portal
+function PremiumDropdown<T extends string>({
+  value,
+  onChange,
+  options,
+  label,
+  headerText,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: Record<T, DropdownOption>;
+  label: string;
+  headerText: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [mounted, setMounted] = useState(false);
+
+  const currentConfig = options[value];
+  const CurrentIcon = currentConfig.icon;
+  const optionKeys = Object.keys(options) as T[];
+  const isDefaultValue = value === optionKeys[0];
+
+  // Client-side only mounting for portal
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Calculate dropdown position
+  const updatePosition = useCallback(() => {
+    if (triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      setDropdownPosition({
+        top: rect.bottom + 8,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
+
+  // Update position when opening
+  useEffect(() => {
+    if (isOpen) {
+      updatePosition();
+      window.addEventListener("scroll", updatePosition, true);
+      window.addEventListener("resize", updatePosition);
+      return () => {
+        window.removeEventListener("scroll", updatePosition, true);
+        window.removeEventListener("resize", updatePosition);
+      };
+    }
+  }, [isOpen, updatePosition]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
+      if (
+        triggerRef.current && !triggerRef.current.contains(target) &&
+        dropdownRef.current && !dropdownRef.current.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Close on escape
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsOpen(false);
+    };
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, []);
+
+  const handleSelect = (key: T) => {
+    onChange(key);
+    setIsOpen(false);
+  };
+
+  const dropdownMenu = isOpen && mounted ? createPortal(
+    <div
+      ref={dropdownRef}
+      className="fixed rounded-2xl shadow-2xl shadow-black/50"
+      style={{
+        top: dropdownPosition.top,
+        left: dropdownPosition.left,
+        width: dropdownPosition.width,
+        zIndex: 9999,
+        backgroundColor: '#0f0f1a',
+      }}
+    >
+      {/* Solid background layer */}
+      <div className="absolute inset-0 bg-gray-900 rounded-2xl" />
+
+      {/* Content layer */}
+      <div className="relative border border-white/10 rounded-2xl overflow-hidden">
+        {/* Gradient header */}
+        <div className="px-3 py-2 border-b border-white/10 bg-gradient-to-r from-purple-500/20 to-pink-500/20">
+          <span className="text-[10px] uppercase tracking-wider text-white/50 font-semibold">
+            {headerText}
+          </span>
+        </div>
+
+        {/* Options */}
+        <div className="py-1 max-h-[280px] overflow-y-auto">
+          {optionKeys.map((key) => {
+            const config = options[key];
+            const Icon = config.icon;
+            const isSelected = value === key;
+            const isHovered = hoveredItem === key;
+
+            return (
+              <button
+                key={key}
+                type="button"
+                onClick={() => handleSelect(key)}
+                onMouseEnter={() => setHoveredItem(key)}
+                onMouseLeave={() => setHoveredItem(null)}
+                className={`
+                  relative w-full flex items-center gap-3 px-3 py-2.5
+                  transition-all duration-200 ease-out
+                  ${isSelected
+                    ? `bg-gradient-to-r ${config.bgGradient}`
+                    : isHovered
+                      ? "bg-white/10"
+                      : "bg-transparent"
+                  }
+                  group/item
+                `}
+              >
+                {/* Icon container */}
+                <div className={`
+                  relative flex items-center justify-center w-7 h-7
+                  rounded-lg transition-all duration-300 flex-shrink-0
+                  ${isSelected || isHovered
+                    ? `bg-gradient-to-br ${config.gradient} shadow-lg ${config.glowColor}`
+                    : "bg-white/10"
+                  }
+                  group-hover/item:scale-110
+                `}>
+                  <Icon className={`
+                    h-3.5 w-3.5 transition-colors duration-200
+                    ${isSelected || isHovered ? "text-white" : "text-white/60"}
+                  `} />
+                  {config.pulse && (isSelected || isHovered) && (
+                    <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 bg-red-400 rounded-full animate-pulse" />
+                  )}
+                </div>
+
+                {/* Text content */}
+                <div className="flex-1 text-left min-w-0">
+                  <div className={`
+                    font-medium text-sm transition-colors duration-200 truncate
+                    ${isSelected ? config.textColor : isHovered ? "text-white" : "text-white/80"}
+                  `}>
+                    {config.label}
+                  </div>
+                  <div className="text-[10px] text-white/40 truncate">
+                    {config.description}
+                  </div>
+                </div>
+
+                {/* Selected checkmark */}
+                {isSelected && (
+                  <div className={`
+                    flex items-center justify-center w-5 h-5 flex-shrink-0
+                    bg-gradient-to-br ${config.gradient}
+                    rounded-full shadow-lg ${config.glowColor}
+                  `}>
+                    <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                  </div>
+                )}
+
+                {/* Hover indicator line */}
+                {(isSelected || isHovered) && (
+                  <div className={`
+                    absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6
+                    bg-gradient-to-b ${config.gradient}
+                    rounded-r-full
+                  `} />
+                )}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </div>,
+    document.body
+  ) : null;
+
+  return (
+    <div className="relative">
+      <label className="block text-[10px] uppercase tracking-wider text-purple-300/70 mb-1.5 font-semibold">
+        {label}
+      </label>
+
+      {/* Trigger Button */}
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`
+          relative w-full flex items-center gap-3 px-3 py-2.5
+          bg-gradient-to-r ${!isDefaultValue ? currentConfig.bgGradient : "from-white/5 to-white/5"}
+          border ${!isDefaultValue ? currentConfig.borderColor : "border-white/10"}
+          rounded-xl text-sm text-white/90
+          transition-all duration-300 ease-out
+          hover:bg-white/10 hover:border-purple-400/40
+          focus:outline-none focus:ring-2 focus:ring-purple-500/30
+          ${isOpen ? "ring-2 ring-purple-500/30 border-purple-400/50" : ""}
+          group
+        `}
+      >
+        {/* Icon with glow */}
+        <div className={`
+          relative flex items-center justify-center w-7 h-7
+          bg-gradient-to-br ${currentConfig.gradient}
+          rounded-lg shadow-lg ${!isDefaultValue ? currentConfig.glowColor : "shadow-purple-500/20"}
+          transition-all duration-300
+          group-hover:scale-110 group-hover:shadow-xl
+        `}>
+          <CurrentIcon className="h-3.5 w-3.5 text-white" />
+          {currentConfig.pulse && (
+            <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-400 rounded-full animate-ping" />
+          )}
+        </div>
+
+        {/* Label */}
+        <span className={`flex-1 text-left font-medium truncate ${!isDefaultValue ? currentConfig.textColor : "text-white/80"}`}>
+          {currentConfig.label}
+        </span>
+
+        {/* Chevron */}
+        <ChevronDown className={`
+          h-4 w-4 text-purple-400/70 flex-shrink-0
+          transition-transform duration-300 ease-out
+          ${isOpen ? "rotate-180" : ""}
+        `} />
+
+        {/* Active indicator bar */}
+        {!isDefaultValue && (
+          <div className={`
+            absolute bottom-0 left-3 right-3 h-0.5
+            bg-gradient-to-r ${currentConfig.gradient}
+            rounded-full opacity-60
+          `} />
+        )}
+      </button>
+
+      {dropdownMenu}
+    </div>
+  );
+}
+
 export default function BoardFilters({
   searchTerm,
   priorityFilter,
@@ -62,90 +602,26 @@ export default function BoardFilters({
   setShowFilters,
   setShowColumnSettings,
 }: BoardFiltersProps) {
-  // Use layout store to determine sidebar states
-  useResponsiveLayout(); // Initialize responsive detection
+  const [searchFocused, setSearchFocused] = useState(false);
+
+  useResponsiveLayout();
   const { leftSidebarCollapsed, rightSidebarCollapsed, isMobile, isTablet, focusMode } = useLayoutStore();
-  
-  // Calculate available space
+
   const bothSidebarsOpen = !leftSidebarCollapsed && !rightSidebarCollapsed;
-  const oneSidebarOpen = (!leftSidebarCollapsed && rightSidebarCollapsed) || (leftSidebarCollapsed && !rightSidebarCollapsed);
-  const noSidebarsOpen = leftSidebarCollapsed && rightSidebarCollapsed;
-  
-  // Determine responsive classes based on sidebar states
-  const getResponsiveClasses = () => {
-    if (isMobile || focusMode) {
-      return {
-        mainLayout: "flex flex-col space-y-4",
-        searchSection: "flex flex-col space-y-3",
-        searchInput: "w-full",
-        sortSection: "flex-wrap gap-2",
-        buttonSection: "flex-wrap gap-2",
-        filterGrid: "grid-cols-1 gap-3",
-        hideLabels: true,
-        compactButtons: true
-      };
-    }
-    
-    if (isTablet) {
-      return {
-        mainLayout: "flex flex-col space-y-4",
-        searchSection: "flex flex-col sm:flex-row sm:items-center gap-3",
-        searchInput: "w-full sm:max-w-sm",
-        sortSection: "gap-2",
-        buttonSection: "flex-wrap gap-2",
-        filterGrid: bothSidebarsOpen ? "grid-cols-1 sm:grid-cols-2 gap-3" : "grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3",
-        hideLabels: false,
-        compactButtons: false
-      };
-    }
-    
-    // Desktop - Both sidebars open (very cramped space)
-    if (bothSidebarsOpen) {
-      return {
-        mainLayout: "flex flex-col space-y-4", // Always stack vertically when both sidebars open
-        searchSection: "flex flex-col space-y-3", // Always stack vertically when both sidebars open
-        searchInput: "w-full", // Full width when stacked
-        sortSection: "gap-2",
-        buttonSection: "flex-wrap gap-2",
-        filterGrid: "grid-cols-1 xl:grid-cols-2 gap-3", // Only 2 columns at most, and only on very large screens
-        hideLabels: true, // Hide sort label to save space
-        compactButtons: false // Keep button labels but hide other labels
-      };
-    }
-    
-    if (oneSidebarOpen) {
-      return {
-        mainLayout: "flex flex-col xl:flex-row xl:items-center gap-4", // Use xl breakpoint instead of lg
-        searchSection: "flex flex-col md:flex-row md:items-center gap-3",
-        searchInput: "w-full md:max-w-md",
-        sortSection: "gap-2",
-        buttonSection: "flex-wrap gap-2",
-        filterGrid: "grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-3", // More conservative column count
-        hideLabels: false,
-        compactButtons: false
-      };
-    }
-    
-    // No sidebars open
-    return {
-      mainLayout: "flex flex-col sm:flex-row sm:items-center gap-4",
-      searchSection: "flex flex-col sm:flex-row sm:items-center gap-4",
-      searchInput: "w-full sm:max-w-md",
-      sortSection: "gap-2",
-      buttonSection: "flex-wrap gap-2",
-      filterGrid: "grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4",
-      hideLabels: false,
-      compactButtons: false
-    };
-  };
-  
-  const responsiveClasses = getResponsiveClasses();
+  const compactMode = isMobile || focusMode || bothSidebarsOpen || isTablet;
 
   const hasActiveFilters =
     priorityFilter !== "ALL" ||
     assigneeFilter !== "ALL" ||
     dueDateFilter !== "ALL" ||
     workflowFilter !== "ALL";
+
+  const activeFilterCount = [
+    priorityFilter !== "ALL",
+    assigneeFilter !== "ALL",
+    dueDateFilter !== "ALL",
+    workflowFilter !== "ALL",
+  ].filter(Boolean).length;
 
   const clearAllFilters = () => {
     setSearchTerm("");
@@ -155,205 +631,314 @@ export default function BoardFilters({
     setWorkflowFilter("ALL");
   };
 
+  // Get display values for active filter chips
+  const getFilterLabel = (type: string, value: string) => {
+    const labels: Record<string, Record<string, string>> = {
+      priority: { URGENT: "Urgent", HIGH: "High", MEDIUM: "Medium", LOW: "Low" },
+      assignee: { MY_TASKS: "My Tasks", ASSIGNED: "Assigned", UNASSIGNED: "Unassigned" },
+      dueDate: { OVERDUE: "Overdue", TODAY: "Today", WEEK: "This Week" },
+      workflow: { NORMAL: "Normal", GAME: "Game", POLL: "Poll", LIVESTREAM: "Live", LEGACY: "Legacy" },
+    };
+    return labels[type]?.[value] || value;
+  };
+
+  const sortOptions = [
+    { value: "updatedAt", label: "Last Updated" },
+    { value: "createdAt", label: "Created" },
+    { value: "dueDate", label: "Due Date" },
+    { value: "priority", label: "Priority" },
+    { value: "title", label: "Title" },
+  ];
+
   return (
-    <div className="bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30 border border-gray-200/60 dark:border-gray-700/60 backdrop-blur-sm transition-all duration-200 shadow-sm hover:shadow-md">
-      <div className={`${responsiveClasses.compactButtons ? 'p-2 space-y-4' : 'p-4 space-y-6'}`}>
-      {/* Search Bar and Filter Toggle */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Search Input */}
-        <div className={`relative ${responsiveClasses.searchInput}`}>
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
-            type="text"
-            placeholder="Search tasks..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-3 h-12 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-xl text-gray-900 dark:text-gray-100 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-300 dark:focus:border-pink-500 transition-all duration-200"
-          />
-          {searchTerm && (
-            <button
-              onClick={() => setSearchTerm("")}
-              className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+    <div className="relative">
+      {/* Glassmorphism container */}
+      <div className="
+        relative
+        bg-gradient-to-br from-gray-900/80 via-purple-900/40 to-gray-900/80
+        backdrop-blur-xl
+        border border-white/10
+        rounded-2xl
+        shadow-2xl shadow-purple-500/5
+        transition-all duration-500
+      ">
+        {/* Animated gradient border effect */}
+        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
+          <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/10 to-purple-500/0 animate-pulse" />
+          <div className="absolute -inset-[1px] bg-gradient-to-r from-transparent via-purple-400/20 to-transparent opacity-0 hover:opacity-100 transition-opacity duration-700" />
         </div>
 
-        {/* Sort Controls */}
-        <div className="flex items-center gap-2">
-          {!responsiveClasses.hideLabels && (
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-              Sort:
-            </label>
-          )}
-          <select
-            value={sortBy}
-            onChange={(e) => setSortBy(e.target.value as SortBy)}
-            className="px-3 py-2.5 h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-300 dark:focus:border-pink-500 text-sm transition-all duration-200"
-          >
-            <option value="updatedAt">Last Updated</option>
-            <option value="createdAt">Created Date</option>
-            <option value="dueDate">Due Date</option>
-            <option value="priority">Priority</option>
-            <option value="title">Title</option>
-          </select>
-          <button
-            onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
-            className="p-2.5 h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 focus:outline-none focus:ring-2 focus:ring-pink-500/20 transition-all duration-200"
-          >
-            {sortOrder === "asc" ? (
-              <SortAsc className="h-4 w-4" />
-            ) : (
-              <SortDesc className="h-4 w-4" />
+        <div className={`relative ${compactMode ? 'p-3' : 'p-4'}`}>
+          {/* Top Row: Search + Quick Actions */}
+          <div className="flex flex-wrap items-center gap-3">
+            {/* Search Input with glow effect */}
+            <div className={`relative flex-1 min-w-[200px] ${compactMode ? 'max-w-full' : 'max-w-md'}`}>
+              <div className={`
+                absolute inset-0 rounded-xl
+                bg-gradient-to-r from-purple-500/20 via-pink-500/20 to-purple-500/20
+                blur-xl transition-opacity duration-500
+                ${searchFocused ? 'opacity-100' : 'opacity-0'}
+              `} />
+              <div className="relative">
+                <Search className={`
+                  absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4
+                  transition-colors duration-300
+                  ${searchFocused ? 'text-purple-400' : 'text-white/40'}
+                `} />
+                <input
+                  type="text"
+                  placeholder="Search tasks..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onFocus={() => setSearchFocused(true)}
+                  onBlur={() => setSearchFocused(false)}
+                  className="
+                    w-full pl-10 pr-10 py-2.5
+                    bg-white/5 hover:bg-white/10
+                    border border-white/10 hover:border-purple-400/30
+                    rounded-xl text-white placeholder:text-white/30
+                    focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400/50
+                    transition-all duration-300
+                  "
+                />
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm("")}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-white/10 transition-colors"
+                  >
+                    <X className="h-3.5 w-3.5 text-white/50 hover:text-white" />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Sort Controls */}
+            <div className="flex items-center gap-2">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortBy)}
+                className="
+                  px-3 py-2.5 min-w-[140px]
+                  bg-white/5 hover:bg-white/10
+                  border border-white/10 hover:border-purple-400/30
+                  rounded-xl text-sm text-white/90
+                  focus:outline-none focus:ring-2 focus:ring-purple-500/30 focus:border-purple-400/50
+                  transition-all duration-300
+                  cursor-pointer appearance-none
+                  bg-no-repeat bg-right
+                  pr-8
+                "
+                style={{
+                  backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%239333ea' stroke-width='2'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E")`,
+                  backgroundSize: '16px',
+                  backgroundPosition: 'right 8px center',
+                }}
+              >
+                {sortOptions.map(opt => (
+                  <option key={opt.value} value={opt.value} className="bg-gray-900">
+                    {opt.label}
+                  </option>
+                ))}
+              </select>
+
+              <button
+                onClick={() => setSortOrder(sortOrder === "asc" ? "desc" : "asc")}
+                className="
+                  p-2.5
+                  bg-white/5 hover:bg-white/10
+                  border border-white/10 hover:border-purple-400/30
+                  rounded-xl text-white/70 hover:text-purple-400
+                  focus:outline-none focus:ring-2 focus:ring-purple-500/30
+                  transition-all duration-300
+                  group
+                "
+                title={sortOrder === "asc" ? "Ascending" : "Descending"}
+              >
+                {sortOrder === "asc" ? (
+                  <SortAsc className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                ) : (
+                  <SortDesc className="h-4 w-4 group-hover:scale-110 transition-transform" />
+                )}
+              </button>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              {/* My Tasks Toggle */}
+              <button
+                onClick={() => setAssigneeFilter(assigneeFilter === "MY_TASKS" ? "ALL" : "MY_TASKS")}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5
+                  rounded-xl text-sm font-medium
+                  transition-all duration-300
+                  ${assigneeFilter === "MY_TASKS"
+                    ? "bg-gradient-to-r from-purple-500/30 to-pink-500/30 border-purple-400/50 text-white shadow-lg shadow-purple-500/20"
+                    : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-purple-400/30 text-white/70 hover:text-white"
+                  }
+                  border
+                `}
+              >
+                <User className={`h-4 w-4 ${assigneeFilter === "MY_TASKS" ? "text-purple-300" : ""}`} />
+                {!compactMode && <span>My Tasks</span>}
+              </button>
+
+              {/* Filter Toggle */}
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={`
+                  flex items-center gap-2 px-4 py-2.5
+                  rounded-xl text-sm font-medium
+                  transition-all duration-300 relative
+                  ${showFilters || hasActiveFilters
+                    ? "bg-gradient-to-r from-violet-500/30 to-blue-500/30 border-violet-400/50 text-white shadow-lg shadow-violet-500/20"
+                    : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-violet-400/30 text-white/70 hover:text-white"
+                  }
+                  border
+                `}
+              >
+                <Filter className={`h-4 w-4 ${showFilters ? "text-violet-300" : ""}`} />
+                {!compactMode && <span>Filters</span>}
+                {activeFilterCount > 0 && (
+                  <span className="
+                    absolute -top-1.5 -right-1.5
+                    min-w-[18px] h-[18px] px-1
+                    bg-gradient-to-br from-pink-500 to-purple-600
+                    rounded-full text-[10px] font-bold text-white
+                    flex items-center justify-center
+                    shadow-lg shadow-purple-500/30
+                    animate-in zoom-in duration-200
+                  ">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Columns Settings */}
+              <button
+                onClick={() => setShowColumnSettings(true)}
+                className="
+                  flex items-center gap-2 px-4 py-2.5
+                  bg-white/5 hover:bg-white/10
+                  border border-white/10 hover:border-blue-400/30
+                  rounded-xl text-sm font-medium text-white/70 hover:text-white
+                  transition-all duration-300
+                "
+              >
+                <Settings className="h-4 w-4" />
+                {!compactMode && <span>Columns</span>}
+              </button>
+            </div>
+
+            {/* Task Count Badge */}
+            {!compactMode && (
+              <div className="
+                flex items-center gap-2 px-3 py-2
+                bg-white/5 rounded-xl
+                text-xs text-white/50
+                border border-white/5
+              ">
+                <Sparkles className="h-3 w-3 text-purple-400" />
+                <span>
+                  <span className="text-white/90 font-semibold">{filteredTasksCount}</span>
+                  <span className="mx-1">/</span>
+                  <span>{totalTasks}</span>
+                </span>
+              </div>
             )}
-          </button>
-        </div>
-
-        {/* Quick My Tasks Filter */}
-        <button
-          onClick={() =>
-            setAssigneeFilter(
-              assigneeFilter === "MY_TASKS" ? "ALL" : "MY_TASKS"
-            )
-          }
-          className={`flex items-center space-x-2 px-4 py-3 h-12 border rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-            assigneeFilter === "MY_TASKS"
-              ? "bg-gradient-to-r from-pink-50 to-purple-50 dark:from-pink-900/30 dark:to-purple-900/30 text-pink-700 dark:text-pink-300 border-pink-200 dark:border-pink-700"
-              : "text-gray-600 dark:text-gray-400 hover:text-pink-600 dark:hover:text-pink-400 hover:bg-pink-50 dark:hover:bg-pink-900/20 border-gray-200 dark:border-gray-700"
-          }`}
-        >
-          <User className="h-4 w-4" />
-          {!responsiveClasses.compactButtons && <span>My Tasks</span>}
-        </button>
-
-        {!responsiveClasses.compactButtons && (
-          <span className="text-sm text-gray-500 dark:text-gray-400 whitespace-nowrap">
-            {filteredTasksCount} of {totalTasks} tasks
-          </span>
-        )}
-        
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center space-x-2 px-4 py-3 h-12 border rounded-xl text-sm font-medium transition-all duration-200 whitespace-nowrap ${
-            showFilters || hasActiveFilters
-              ? "bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/30 dark:to-blue-900/30 text-purple-700 dark:text-purple-300 border-purple-200 dark:border-purple-700"
-              : "text-gray-600 dark:text-gray-400 hover:text-purple-600 dark:hover:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 border-gray-200 dark:border-gray-700"
-          }`}
-        >
-          <Filter className="h-4 w-4" />
-          {!responsiveClasses.compactButtons && <span>Filters</span>}
-          {hasActiveFilters && (
-            <span className="ml-1 px-2 py-0.5 text-xs bg-white dark:bg-gray-600 text-gray-700 dark:text-gray-200 rounded-full">
-              {responsiveClasses.compactButtons ? "!" : "Active"}
-            </span>
-          )}
-        </button>
-
-        {/* Column Settings Button */}
-        <button
-          onClick={() => setShowColumnSettings(true)}
-          className="flex items-center space-x-2 px-4 py-3 h-12 border rounded-xl text-sm font-medium border-gray-200 text-gray-600 bg-white dark:border-gray-700 dark:text-gray-400 dark:bg-gray-700 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200 whitespace-nowrap"
-        >
-          <Settings className="h-4 w-4" />
-          {!responsiveClasses.compactButtons && <span>Columns</span>}
-        </button>
-
-        {(searchTerm || hasActiveFilters) && (
-          <button
-            onClick={clearAllFilters}
-            className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 whitespace-nowrap"
-          >
-            {responsiveClasses.compactButtons ? "Clear" : "Clear all"}
-          </button>
-        )}
-      </div>
-
-      {/* Filter Controls */}
-      {showFilters && (
-        <div className="border-t border-gray-200 dark:border-gray-600 pt-4">
-          <div className={`grid ${responsiveClasses.filterGrid}`}>
-            {/* Priority Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Priority
-              </label>
-              <select
-                value={priorityFilter}
-                onChange={(e) =>
-                  setPriorityFilter(e.target.value as PriorityFilter)
-                }
-                className="w-full px-3 py-2.5 h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-300 dark:focus:border-pink-500 text-sm transition-all duration-200"
-              >
-                <option value="ALL">All Priorities</option>
-                <option value="URGENT">Urgent Priority</option>
-                <option value="HIGH">High Priority</option>
-                <option value="MEDIUM">Medium Priority</option>
-                <option value="LOW">Low Priority</option>
-              </select>
-            </div>
-
-            {/* Assignee Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Assignment
-              </label>
-              <select
-                value={assigneeFilter}
-                onChange={(e) =>
-                  setAssigneeFilter(e.target.value as AssigneeFilter)
-                }
-                className="w-full px-3 py-2.5 h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-300 dark:focus:border-pink-500 text-sm transition-all duration-200"
-              >
-                <option value="ALL">All Tasks</option>
-                <option value="MY_TASKS">My Tasks</option>
-                <option value="ASSIGNED">Assigned</option>
-                <option value="UNASSIGNED">Unassigned</option>
-              </select>
-            </div>
-
-            {/* Due Date Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Due Date
-              </label>
-              <select
-                value={dueDateFilter}
-                onChange={(e) =>
-                  setDueDateFilter(e.target.value as DueDateFilter)
-                }
-                className="w-full px-3 py-2.5 h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-300 dark:focus:border-pink-500 text-sm transition-all duration-200"
-              >
-                <option value="ALL">All Dates</option>
-                <option value="OVERDUE">Overdue</option>
-                <option value="TODAY">Due Today</option>
-                <option value="WEEK">Due This Week</option>
-              </select>
-            </div>
-
-            {/* Workflow Filter */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Workflow Type
-              </label>
-              <select
-                value={workflowFilter}
-                onChange={(e) =>
-                  setWorkflowFilter(e.target.value as WorkflowFilter)
-                }
-                className="w-full px-3 py-2.5 h-12 border border-gray-200 dark:border-gray-600 rounded-xl bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-pink-500/20 focus:border-pink-300 dark:focus:border-pink-500 text-sm transition-all duration-200"
-              >
-                <option value="ALL">All Workflows</option>
-                <option value="NORMAL">🗒️ Normal Content</option>
-                <option value="GAME">🎮 Games</option>
-                <option value="POLL">📊 Polls</option>
-                <option value="LIVESTREAM">📺 Livestreams</option>
-                <option value="LEGACY">🏷️ Legacy OTP/PTR</option>
-              </select>
-            </div>
           </div>
+
+          {/* Active Filter Chips */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-white/5">
+              {priorityFilter !== "ALL" && (
+                <FilterChip
+                  label="Priority"
+                  value={getFilterLabel("priority", priorityFilter)}
+                  onRemove={() => setPriorityFilter("ALL")}
+                  color="amber"
+                />
+              )}
+              {assigneeFilter !== "ALL" && assigneeFilter !== "MY_TASKS" && (
+                <FilterChip
+                  label="Assignment"
+                  value={getFilterLabel("assignee", assigneeFilter)}
+                  onRemove={() => setAssigneeFilter("ALL")}
+                  color="emerald"
+                />
+              )}
+              {dueDateFilter !== "ALL" && (
+                <FilterChip
+                  label="Due"
+                  value={getFilterLabel("dueDate", dueDateFilter)}
+                  onRemove={() => setDueDateFilter("ALL")}
+                  color="pink"
+                />
+              )}
+              {workflowFilter !== "ALL" && (
+                <FilterChip
+                  label="Workflow"
+                  value={getFilterLabel("workflow", workflowFilter)}
+                  onRemove={() => setWorkflowFilter("ALL")}
+                  color="blue"
+                />
+              )}
+
+              <button
+                onClick={clearAllFilters}
+                className="
+                  ml-auto px-3 py-1.5
+                  text-xs text-white/40 hover:text-white/80
+                  hover:bg-white/5 rounded-full
+                  transition-all duration-200
+                  flex items-center gap-1.5
+                "
+              >
+                <X className="h-3 w-3" />
+                Clear all
+              </button>
+            </div>
+          )}
+
+          {/* Expanded Filter Panel */}
+          {showFilters && (
+            <div className="
+              mt-4 pt-4
+              border-t border-white/10
+              animate-in slide-in-from-top-2 fade-in duration-300
+            ">
+              <div className={`grid gap-4 ${compactMode ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-2 lg:grid-cols-4'}`}>
+                <PremiumDropdown<PriorityFilter>
+                  value={priorityFilter}
+                  onChange={setPriorityFilter}
+                  options={PRIORITY_OPTIONS}
+                  label="Priority"
+                  headerText="Select Priority Level"
+                />
+                <PremiumDropdown<AssigneeFilter>
+                  value={assigneeFilter}
+                  onChange={setAssigneeFilter}
+                  options={ASSIGNEE_OPTIONS}
+                  label="Assignment"
+                  headerText="Filter by Assignment"
+                />
+                <PremiumDropdown<DueDateFilter>
+                  value={dueDateFilter}
+                  onChange={setDueDateFilter}
+                  options={DUEDATE_OPTIONS}
+                  label="Due Date"
+                  headerText="Filter by Due Date"
+                />
+                <PremiumDropdown<WorkflowFilter>
+                  value={workflowFilter}
+                  onChange={setWorkflowFilter}
+                  options={WORKFLOW_OPTIONS}
+                  label="Workflow Type"
+                  headerText="Filter by Workflow"
+                />
+              </div>
+            </div>
+          )}
         </div>
-      )}
       </div>
     </div>
   );

@@ -1,9 +1,13 @@
 "use client";
 
-import AIDatasetPage from "@/components/AIDatasetPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Database } from "lucide-react";
 import { useState, useEffect } from "react";
+
+const AIDatasetPage = dynamic(
+  () => import("@/components/AIDatasetPage"),
+  { ssr: false }
+);
 
 export default function DatasetPage() {
   const [startCreating, setStartCreating] = useState(false);
@@ -47,12 +51,7 @@ export default function DatasetPage() {
   if (!startCreating) {
     return (
       <div className="flex flex-col items-center justify-center h-full">
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="text-center"
-        >
+        <div className="text-center">
           <div className="mb-6 p-6 rounded-full bg-gradient-to-r from-pink-500/20 to-rose-500/20 backdrop-blur-sm">
             <Database className="w-16 h-16 text-pink-500" />
           </div>
@@ -71,20 +70,10 @@ export default function DatasetPage() {
           >
             Start Managing
           </button>
-        </motion.div>
+        </div>
       </div>
     );
   }
 
-  if (startCreating) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.4 }}
-      >
-        <AIDatasetPage />
-      </motion.div>
-    );
-  }
+  return <AIDatasetPage />;
 }

@@ -1,9 +1,13 @@
 "use client";
 
-import AIVaultPage from "@/components/AIVaultPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Archive } from "lucide-react";
 import { useState } from "react";
+
+const AIVaultPage = dynamic(
+  () => import("@/components/AIVaultPage"),
+  { ssr: false }
+);
 
 export default function VaultPage() {
   const [startCreating, setStartCreating] = useState(false);

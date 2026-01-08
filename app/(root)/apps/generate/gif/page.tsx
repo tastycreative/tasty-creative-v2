@@ -1,8 +1,13 @@
 "use client";
 
-import GifMaker from "@/components/GifMaker";
+import dynamic from "next/dynamic";
 import { Film } from "lucide-react";
 import { useState } from "react";
+
+const GifMaker = dynamic(
+  () => import("@/components/GifMaker"),
+  { ssr: false }
+);
 
 export default function GIFPage() {
   const [startCreating, setStartCreating] = useState(true);

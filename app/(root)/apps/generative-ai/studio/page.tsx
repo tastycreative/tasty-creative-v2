@@ -1,9 +1,13 @@
 "use client";
 
-import AIStudioPage from "@/components/AIStudioPage";
-import { motion } from "framer-motion";
+import dynamic from "next/dynamic";
 import { Crown } from "lucide-react";
 import { useState } from "react";
+
+const AIStudioPage = dynamic(
+  () => import("@/components/AIStudioPage"),
+  { ssr: false }
+);
 
 export default function VIPPage() {
   const [startCreating, setStartCreating] = useState(false);

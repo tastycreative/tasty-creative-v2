@@ -264,7 +264,6 @@ const PodAdminDashboard = () => {
       }
 
       const result = await response.json();
-      console.log('🔄 New schema teams response:', result);
 
       if (result.success && result.teams) {
         const apiTeams: Team[] = await Promise.all(
@@ -305,14 +304,7 @@ const PodAdminDashboard = () => {
             };
           })
         );
-        
-        console.log('📊 Parsed teams with new schema:', apiTeams.map(t => ({ 
-          id: t.id,
-          name: t.name, 
-          memberCount: t.members.length, 
-          creators: t.creators
-        })));
-        
+
         setTeams(apiTeams);
         setStats({
           totalUsers: users.length,
@@ -348,9 +340,6 @@ const PodAdminDashboard = () => {
           errorText.includes("Quota exceeded") &&
           retryCount < 3
         ) {
-          console.log(
-            `Quota exceeded, retrying in ${(retryCount + 1) * 2} seconds...`
-          );
           await new Promise((resolve) =>
             setTimeout(resolve, (retryCount + 1) * 2000)
           );
@@ -392,9 +381,6 @@ const PodAdminDashboard = () => {
         err.message.includes("quota") &&
         retryCount < 3
       ) {
-        console.log(
-          `Retrying team data fetch after error, attempt ${retryCount + 1}`
-        );
         await new Promise((resolve) =>
           setTimeout(resolve, (retryCount + 1) * 2000)
         );
@@ -506,13 +492,8 @@ const PodAdminDashboard = () => {
           searchEmail: data.userEmail, 
           foundUser: user ? { id: user.id, email: user.email, name: user.name } : null 
         });
-      } else {
-        console.log('User found by email:', { 
-          searchEmail: data.userEmail, 
-          foundUser: { id: user.id, email: user.email, name: user.name } 
-        });
       }
-      
+
       if (!user || !user.email) {
         console.error('User not found or missing email:', { userId: data.userId, userEmail: data.userEmail });
         alert(`Error: Could not find user with email ${data.userEmail} or ID ${data.userId}`);
@@ -559,10 +540,7 @@ const PodAdminDashboard = () => {
       } else if (dbResponse.value && !dbResponse.value.ok) {
         const errorData = await dbResponse.value.json();
         alert(`Member added locally, but failed to sync with database: ${errorData.error}`);
-      } else {
-        console.log("Successfully synced team members with database");
       }
-
 
       setShowAddMemberForm(null);
     } catch (error) {
@@ -576,8 +554,6 @@ const PodAdminDashboard = () => {
     teamId: string,
     users: { userId: string; role: string; userEmail?: string; userName?: string }[]
   ) => {
-    console.log('🔍 addMultipleMembersToTeam - Received data:', { teamId, users });
-    console.log('🔍 addMultipleMembersToTeam - Current availableUsers:', availableUsers.map((u: SystemUser) => ({ id: u.id, email: u.email, name: u.name })));
     
     try {
       const team = teams.find((t) => t.id === teamId);
@@ -585,7 +561,6 @@ const PodAdminDashboard = () => {
 
       const newMembers = users
         .map((userData) => {
-          console.log('🔍 Processing user data:', userData);
           
           // Try to find user by email first (more reliable), then by ID
           let user = availableUsers.find((u: SystemUser) => u.email === userData.userEmail);
@@ -596,13 +571,8 @@ const PodAdminDashboard = () => {
               searchId: userData.userId,
               foundUser: user ? { id: user.id, email: user.email, name: user.name } : null 
             });
-          } else {
-            console.log('User found by email:', { 
-              searchEmail: userData.userEmail, 
-              foundUser: { id: user.id, email: user.email, name: user.name } 
-            });
           }
-          
+
           if (!user || !user.email) {
             console.error('User not found or missing email:', { userId: userData.userId, userEmail: userData.userEmail });
             return null;
@@ -615,25 +585,21 @@ const PodAdminDashboard = () => {
             role: userData.role as any,
           };
           
-          console.log('🔍 Created new member object:', newMember);
           return newMember;
         })
         .filter(
           (member): member is NonNullable<typeof member> => member !== null
         ); // Type guard to remove nulls
 
-      console.log('🔍 addMultipleMembersToTeam - Final newMembers:', newMembers);
 
       if (newMembers.length === 0) {
         alert("No valid users found to add. Users must have email addresses.");
         return;
       }
 
-      console.log('🔍 addMultipleMembersToTeam - Team before update:', team.members.map(m => ({ id: m.id, email: m.email, name: m.name })));
 
       const updatedMembers = [...team.members, ...newMembers];
 
-      console.log('🔍 addMultipleMembersToTeam - Updated members to send to API:', updatedMembers.map(m => ({ id: m.id, email: m.email, name: m.name })));
 
       // Update team in local state first
       setTeams(
@@ -655,17 +621,10 @@ const PodAdminDashboard = () => {
           }),
         });
 
-        console.log('🔍 addMultipleMembersToTeam - API request sent:', {
-          teamId,
-          members: updatedMembers.map(m => ({ id: m.id, email: m.email, name: m.name }))
-        });
-
         if (!dbResponse.ok) {
           const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
           alert(`Members added locally, but failed to sync with database: ${errorData.error}`);
-        } else {
-          console.log("Successfully synced team members with database");
         }
       } catch (dbError) {
         console.error("Error syncing with database:", dbError);
@@ -711,14 +670,11 @@ const PodAdminDashboard = () => {
           const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
           alert(`Member removed locally, but failed to sync with database: ${errorData.error}`);
-        } else {
-          console.log("Successfully synced team members with database");
         }
       } catch (dbError) {
         console.error("Error syncing with database:", dbError);
         alert("Member removed locally, but failed to sync with database");
       }
-
     } catch (error) {
       console.error("Error removing member:", error);
       alert("Failed to remove member from team");
@@ -762,14 +718,11 @@ const PodAdminDashboard = () => {
           const errorData = await dbResponse.json();
           console.error("Failed to update database:", errorData.error);
           alert(`Member role updated locally, but failed to sync with database: ${errorData.error}`);
-        } else {
-          console.log("Successfully synced team members with database");
         }
       } catch (dbError) {
         console.error("Error syncing with database:", dbError);
         alert("Member role updated locally, but failed to sync with database");
       }
-
 
       setEditingMember(null);
     } catch (error) {
@@ -784,12 +737,8 @@ const PodAdminDashboard = () => {
       const response = await fetch("/api/creators-db");
       const data = await response.json();
       
-      console.log('Full API response (main):', data);
-      console.log('data.creators type:', typeof data.creators);
-      console.log('Is creators array:', Array.isArray(data.creators));
 
       if (Array.isArray(data.creators)) {
-        console.log('Raw creators data from API:', data.creators);
         
         // Extract creator names from database
         const creatorNames = data.creators
@@ -800,7 +749,6 @@ const PodAdminDashboard = () => {
           )
           .sort();
           
-        console.log('Processed creator names:', creatorNames);
         setAvailableCreators(creatorNames);
       } else {
         console.error(
@@ -1108,7 +1056,6 @@ const PodAdminDashboard = () => {
         throw new Error(errorData.error || "Failed to update team name in database");
       }
 
-      console.log("Successfully updated team name in database");
 
 
       // Update team in local state
@@ -1169,7 +1116,6 @@ const PodAdminDashboard = () => {
         throw new Error(errorData.error || "Failed to update team prefix in database");
       }
 
-      console.log("Successfully updated team prefix in database");
 
       // Update team in local state
       setTeams((prev) =>
@@ -1253,7 +1199,6 @@ const PodAdminDashboard = () => {
             // Don't throw error here, just log it as team was created successfully
           } else {
             const assignResult = await assignResponse.json();
-            console.log(`Successfully assigned ${assignResult.assignments?.length || 0} creators to team`);
           }
         } catch (assignError) {
           console.warn("Error assigning creators to team:", assignError);
@@ -1335,7 +1280,6 @@ const PodAdminDashboard = () => {
           (acc, team) => acc + team.members.length,
           0
         );
-        console.log('📈 Stats calculation - Total members:', totalMembers, 'from teams:', fetchedTeams.length);
 
         setStats({
           totalUsers: 0, // Will be updated when users are fetched
@@ -2179,7 +2123,6 @@ const PodAdminDashboard = () => {
                                       )
                                     ) {
                                       // TODO: Implement team deletion
-                                      console.log("Delete team:", team.id);
                                     }
                                     setShowTeamMenu(null);
                                   }}
@@ -3914,12 +3857,8 @@ const AddTeamForm = ({
       const response = await fetch("/api/creators-db");
       const data = await response.json();
       
-      console.log('Full API response:', data);
-      console.log('data.creators type:', typeof data.creators);
-      console.log('Is creators array:', Array.isArray(data.creators));
 
       if (Array.isArray(data.creators)) {
-        console.log('Raw creators data from API (modal):', data.creators);
         
         // Extract creator names and IDs from database
         const creatorsData = data.creators
@@ -3934,7 +3873,6 @@ const AddTeamForm = ({
           )
           .sort((a: any, b: any) => a.name.localeCompare(b.name));
           
-        console.log('Processed creators data (modal):', creatorsData);
         setAvailableCreators(creatorsData);
       } else {
         console.error(
@@ -4417,8 +4355,6 @@ const AddMemberForm = ({
         userName: user.name || undefined,
       }));
 
-      console.log('🔍 AddMemberForm - About to submit users:', usersToAdd);
-      console.log('🔍 AddMemberForm - Selected users from state:', selectedUsers.map(u => ({ id: u.id, email: u.email, name: u.name })));
 
       // Submit all users at once
       await onSubmit(usersToAdd);

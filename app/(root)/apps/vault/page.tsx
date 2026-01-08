@@ -1,13 +1,17 @@
-import VaultPage from "@/components/VaultPage";
-import React from "react";
+"use client";
 
-const page = () => {
+import dynamic from "next/dynamic";
+
+const VaultPage = dynamic(
+  () => import("@/components/VaultPage"),
+  { ssr: false }
+);
+
+export default function Page() {
   return (
     <div>
       <title>Vault | Tasty Creative</title>
       <VaultPage />
     </div>
   );
-};
-
-export default page;
+}
