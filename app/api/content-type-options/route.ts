@@ -8,20 +8,57 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
     const clientModelId = searchParams.get("clientModelId");
+    const pageType = searchParams.get("pageType");
+    const fetchAll = searchParams.get("fetchAll"); // Special parameter to fetch all content types
+
+    // Build where clause with proper AND/OR logic
+    const whereClause: any = {
+      isActive: true,
+    };
+
+    // Add category filter
+    if (category) {
+      whereClause.category = category;
+    }
+
+    // Build AND conditions array for complex filters
+    const andConditions: any[] = [];
+
+    // Page type filtering: if a specific type is requested (FREE, PAID, VIP),
+    // include both that type AND "ALL_PAGES" options
+    if (pageType) {
+      andConditions.push({
+        OR: [
+          { pageType: pageType },
+          { pageType: "ALL_PAGES" }
+        ]
+      });
+    }
+
+    // Model filtering logic
+    if (fetchAll === 'true') {
+      // Fetch all content types (both global and model-specific) - no filter needed
+      // Don't add any clientModelId filter
+    } else if (clientModelId) {
+      // Specific model: get both model-specific and global
+      andConditions.push({
+        OR: [
+          { clientModelId: clientModelId },
+          { clientModelId: null }
+        ]
+      });
+    } else {
+      // No clientModelId and not fetchAll: get only global options
+      whereClause.clientModelId = null;
+    }
+
+    // Add AND conditions if any exist
+    if (andConditions.length > 0) {
+      whereClause.AND = andConditions;
+    }
 
     const contentTypeOptions = await prisma.contentTypeOption.findMany({
-      where: {
-        isActive: true,
-        ...(category && { category }),
-        // If clientModelId is provided, get both model-specific and global options
-        // If not provided, get only global options (clientModelId is null)
-        ...(clientModelId ? {
-          OR: [
-            { clientModelId: clientModelId },
-            { clientModelId: null }
-          ]
-        } : { clientModelId: null }),
-      },
+      where: whereClause,
       include: {
         clientModel: {
           select: {
@@ -40,6 +77,7 @@ export async function GET(req: NextRequest) {
       contentTypeOptions,
       category,
       clientModelId,
+      pageType,
     });
   } catch (error) {
     console.error("Error fetching content type options:", error);
@@ -60,6 +98,7 @@ export async function POST(req: NextRequest) {
       value,
       label,
       category,
+      pageType,
       priceType,
       priceFixed,
       priceMin,
@@ -142,6 +181,7 @@ export async function POST(req: NextRequest) {
           value,
           label,
           category,
+          pageType: pageType || 'ALL_PAGES',
           priceType: isFree ? null : priceType,
           priceFixed: isFree ? null : priceFixed,
           priceMin: isFree ? null : priceMin,

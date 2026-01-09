@@ -28,6 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
 import {
   Tooltip,
@@ -52,6 +57,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Save,
   HelpCircle,
   Sparkles,
@@ -113,6 +119,7 @@ interface ModularFormData {
   driveLink: string;
   caption?: string;
   pricingCategory?: string; // PORN_ACCURATE, PORN_SCAM, GF_ACCURATE, GF_SCAM
+  pageType?: string; // ALL_PAGES, FREE, PAID, VIP - filter for content types
 
   // Content Details fields (NEW)
   contentType?: string;
@@ -385,6 +392,7 @@ export default function ModularWorkflowWizard() {
       driveLink: "",
       caption: "",
       pricingCategory: "PORN_ACCURATE", // Default pricing tier
+      pageType: "ALL_PAGES", // Default page type filter
     },
   });
 
@@ -416,6 +424,7 @@ export default function ModularWorkflowWizard() {
       value: string;
       label: string;
       category: string;
+      pageType?: string | null;
       priceType?: string;
       priceFixed?: number;
       priceMin?: number;
@@ -429,6 +438,7 @@ export default function ModularWorkflowWizard() {
     value: string;
     label: string;
     category: string;
+    pageType?: string | null;
     priceType?: string;
     priceFixed?: number;
     priceMin?: number;
@@ -441,19 +451,20 @@ export default function ModularWorkflowWizard() {
   const selectedComponents = watch("selectedComponents") || [];
   const platform = watch("platform");
   const pricingCategory = watch("pricingCategory");
+  const pageType = watch("pageType");
   const selectedModel = watch("model");
 
   // Get current team
   const currentTeam = availableTeams.find((team) => team.id === selectedTeamId);
   // Compute preview team name based on selected platform (ui-only preview)
-  const previewTeamName = platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR';
+  const previewTeamName = platform === "fansly" ? "OTP-Fansly" : "OTP-PTR";
 
   // Auto-select appropriate team when platform changes (best-effort)
   useEffect(() => {
     if (!availableTeams || availableTeams.length === 0) return;
 
     // prefer explicit Fansly team when platform === 'fansly'
-    if (platform === 'fansly') {
+    if (platform === "fansly") {
       const fanslyTeam = availableTeams.find((t) => /fansly/i.test(t.name));
       if (fanslyTeam && selectedTeamId !== fanslyTeam.id) {
         setSelectedTeamId(fanslyTeam.id);
@@ -462,7 +473,9 @@ export default function ModularWorkflowWizard() {
     }
 
     // For onlyfans or default, choose OTP-PTR-like team
-    const ptrTeam = availableTeams.find((t) => /otp-?ptr|ptr|onlyfans/i.test(t.name));
+    const ptrTeam = availableTeams.find((t) =>
+      /otp-?ptr|ptr|onlyfans/i.test(t.name)
+    );
     if (ptrTeam && selectedTeamId !== ptrTeam.id) {
       setSelectedTeamId(ptrTeam.id);
     }
@@ -484,11 +497,11 @@ export default function ModularWorkflowWizard() {
         if (data.success && Array.isArray(data.clientModels)) {
           // Map client models to the format expected by the form
           const uniqueModels = data.clientModels
-            .filter((model: any) => model.status?.toLowerCase() !== 'dropped') // Filter out dropped models
+            .filter((model: any) => model.status?.toLowerCase() !== "dropped") // Filter out dropped models
             .map((model: any) => ({
               name: model.clientName || model.name, // Use clientName which is the actual field from API
-              profile: model.url || '',
-              status: model.status || 'active'
+              profile: model.url || "",
+              status: model.status || "active",
             }))
             .filter(
               (model: any, index: number, arr: any[]) =>
@@ -534,11 +547,16 @@ export default function ModularWorkflowWizard() {
       );
       const clientModelId = selectedModelData?.id;
 
-      // Build URL with category and optional clientModelId
+      // Build URL with category, pageType, and optional clientModelId
       let url = `/api/content-type-options?category=${encodeURIComponent(category)}`;
+      if (pageType && pageType !== "ALL_PAGES") {
+        url += `&pageType=${encodeURIComponent(pageType)}`;
+      }
       if (clientModelId) {
         url += `&clientModelId=${encodeURIComponent(clientModelId)}`;
-        console.log(`📊 Fetching content types for model: ${selectedModel} (ID: ${clientModelId})`);
+        console.log(
+          `📊 Fetching content types for model: ${selectedModel} (ID: ${clientModelId})`
+        );
       }
 
       const response = await fetch(url);
@@ -552,7 +570,7 @@ export default function ModularWorkflowWizard() {
     } finally {
       setLoadingContentTypes(false);
     }
-  }, [pricingCategory, selectedModel, internalModels]);
+  }, [pricingCategory, pageType, selectedModel, internalModels]);
 
   // Load content type options from database (refetch when pricing category changes)
   useEffect(() => {
@@ -829,7 +847,9 @@ export default function ModularWorkflowWizard() {
       // Upload files first (with error handling for missing AWS config)
       let uploadedAttachments = attachments;
       if (localFiles.length > 0) {
-        setSubmissionProgress(`Uploading ${localFiles.length} file${localFiles.length > 1 ? 's' : ''}...`);
+        setSubmissionProgress(
+          `Uploading ${localFiles.length} file${localFiles.length > 1 ? "s" : ""}...`
+        );
         try {
           const newAttachments = await uploadAllLocalFiles(
             localFiles,
@@ -921,7 +941,9 @@ export default function ModularWorkflowWizard() {
 
       setSubmissionProgress("Finalizing...");
 
-      toast.success(`Workflow created successfully! Assigned to ${result.task.teamName}`);
+      toast.success(
+        `Workflow created successfully! Assigned to ${result.task.teamName}`
+      );
 
       // Refresh tasks and redirect to the team where the task was actually created
       const createdTeamId = result.task.teamId;
@@ -992,7 +1014,9 @@ export default function ModularWorkflowWizard() {
 
             {/* Platform Selection */}
             <div className="mb-8">
-              <h3 className="text-lg font-semibold mb-4 text-center">Select Platform</h3>
+              <h3 className="text-lg font-semibold mb-4 text-center">
+                Select Platform
+              </h3>
               <div className="grid grid-cols-2 gap-4">
                 {[
                   {
@@ -1044,7 +1068,9 @@ export default function ModularWorkflowWizard() {
               </div>
             </div>
 
-            <h3 className="text-lg font-semibold mb-4 text-center">Select Submission Type</h3>
+            <h3 className="text-lg font-semibold mb-4 text-center">
+              Select Submission Type
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               {[
                 {
@@ -1232,11 +1258,10 @@ export default function ModularWorkflowWizard() {
         return (
           <div className="space-y-6 max-w-2xl mx-auto">
             <div className="text-center mb-8">
-                <h2 className="text-2xl font-bold mb-2">Content Details</h2>
+              <h2 className="text-2xl font-bold mb-2">Content Details</h2>
               <p className="text-gray-600 dark:text-gray-300">
                 Add the specific information for your workflow
               </p>
-              
             </div>
 
             <Card>
@@ -1265,7 +1290,9 @@ export default function ModularWorkflowWizard() {
                       value: model.name,
                       label: model.name,
                     }))}
-                    placeholder={loadingModels ? "Loading models..." : "Select a model"}
+                    placeholder={
+                      loadingModels ? "Loading models..." : "Select a model"
+                    }
                     searchPlaceholder="Search models..."
                     emptyMessage="No models found."
                     disabled={loadingModels}
@@ -1273,38 +1300,84 @@ export default function ModularWorkflowWizard() {
                   />
                 </div>
 
-                <div>
-                  <Label htmlFor="pricingCategory" className="flex items-center gap-2">
-                    Pricing Tier <span className="text-red-500">*</span>
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger>
-                          <HelpCircle className="w-4 h-4 text-gray-400" />
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <p>Select the pricing tier for content types</p>
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Label>
-                  <Select
-                    onValueChange={(value) => setValue("pricingCategory", value)}
-                    defaultValue="PORN_ACCURATE"
-                    value={pricingCategory}
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="PORN_ACCURATE">Porn Accurate</SelectItem>
-                      <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
-                      <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
-                      <SelectItem value="GF_SCAM">GF Scam</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <p className="text-xs text-gray-500 mt-1">
-                    This determines available content types and pricing
-                  </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label
+                      htmlFor="pricingCategory"
+                      className="flex items-center gap-2"
+                    >
+                      Pricing Tier <span className="text-red-500">*</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <HelpCircle className="w-4 h-4 text-gray-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Select the pricing tier for content types</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                    <Select
+                      onValueChange={(value) =>
+                        setValue("pricingCategory", value)
+                      }
+                      defaultValue="PORN_ACCURATE"
+                      value={pricingCategory}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="PORN_ACCURATE">
+                          Porn Accurate
+                        </SelectItem>
+                        <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
+                        <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
+                        <SelectItem value="GF_SCAM">GF Scam</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      This determines available content types and pricing
+                    </p>
+                  </div>
+
+                  <div>
+                    <Label className="flex items-center gap-2">
+                      Page Type <span className="text-red-500">*</span>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger>
+                            <HelpCircle className="w-4 h-4 text-gray-400" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              Filter content types by page distribution (Free,
+                              Paid, VIP, etc.)
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </Label>
+                    <Select
+                      onValueChange={(value) => setValue("pageType", value)}
+                      defaultValue="ALL_PAGES"
+                      value={pageType}
+                    >
+                      <SelectTrigger className="mt-2">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="ALL_PAGES">All Pages</SelectItem>
+                        <SelectItem value="FREE">Free</SelectItem>
+                        <SelectItem value="PAID">Paid</SelectItem>
+                        <SelectItem value="VIP">VIP</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <p className="text-xs text-gray-500 mt-1">
+                      Filter content types by distribution channel
+                    </p>
+                  </div>
                 </div>
 
                 <div>
@@ -1346,10 +1419,7 @@ export default function ModularWorkflowWizard() {
                     {/* Content Type */}
                     <div>
                       <div className="flex items-center justify-between mb-2">
-                        <Label
-                          htmlFor="contentType"
-                          className="font-medium"
-                        >
+                        <Label htmlFor="contentType" className="font-medium">
                           Content Type
                         </Label>
                         <button
@@ -1359,47 +1429,78 @@ export default function ModularWorkflowWizard() {
                           className="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 disabled:opacity-50 transition-colors"
                           title="Refresh content types"
                         >
-                          <RefreshCw className={`h-4 w-4 ${loadingContentTypes ? 'animate-spin' : ''}`} />
+                          <RefreshCw
+                            className={`h-4 w-4 ${loadingContentTypes ? "animate-spin" : ""}`}
+                          />
                         </button>
                       </div>
                       <Select
                         onValueChange={(value) => {
                           setValue("contentType", value);
                           // Store the full content type option object
-                          const selectedOption = contentTypeOptions.find(opt => opt.value === value);
+                          const selectedOption = contentTypeOptions.find(
+                            (opt) => opt.value === value
+                          );
                           setSelectedContentTypeOption(selectedOption || null);
                         }}
                         disabled={loadingContentTypes}
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={loadingContentTypes ? "Loading..." : "Select content type..."} />
+                          <SelectValue
+                            placeholder={
+                              loadingContentTypes
+                                ? "Loading..."
+                                : "Select content type..."
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px] overflow-y-auto">
                           {contentTypeOptions.map((option, index) => {
                             // Format price display - show $--.-- if no price is set
                             let priceDisplay = " - $--.--";
-                            if (option.priceType === "FIXED" && option.priceFixed) {
+                            if (
+                              option.priceType === "FIXED" &&
+                              option.priceFixed
+                            ) {
                               priceDisplay = ` - $${option.priceFixed.toFixed(2)}`;
-                            } else if (option.priceType === "RANGE" && option.priceMin && option.priceMax) {
+                            } else if (
+                              option.priceType === "RANGE" &&
+                              option.priceMin &&
+                              option.priceMax
+                            ) {
                               priceDisplay = ` - $${option.priceMin.toFixed(2)}-${option.priceMax.toFixed(2)}`;
-                            } else if (option.priceType === "MINIMUM" && option.priceMin) {
+                            } else if (
+                              option.priceType === "MINIMUM" &&
+                              option.priceMin
+                            ) {
                               priceDisplay = ` - $${option.priceMin.toFixed(2)}+`;
                             }
 
                             return (
-                              <SelectItem key={`${option.value}-${index}`} value={option.value}>
-                                {option.label}{priceDisplay}
+                              <SelectItem
+                                key={`${option.value}-${index}`}
+                                value={option.value}
+                              >
+                                {option.label}
+                                {priceDisplay}
                               </SelectItem>
                             );
                           })}
                         </SelectContent>
                       </Select>
                       <p className="text-xs text-gray-500 mt-1">
-                        {loadingContentTypes ? "Loading content types..." : "Select from available content types with pricing"}
+                        {loadingContentTypes
+                          ? "Loading content types..."
+                          : "Select from available content types with pricing"}
                       </p>
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         💡 Need to update prices?{" "}
-                        <Link href="/settings" target="_blank" rel="noopener noreferrer" className="underline hover:text-blue-800 dark:hover:text-blue-300">
+                        <Link
+                          href="/settings"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-blue-800 dark:hover:text-blue-300"
+                        >
                           Go to Settings
                         </Link>
                       </p>
@@ -1702,7 +1803,6 @@ export default function ModularWorkflowWizard() {
                       💡 Tip: You can change the team assignment in the right
                       sidebar before submitting
                     </p>
-                  
                   </div>
                 ) : (
                   <div className="p-4 bg-amber-50 dark:bg-amber-950 border border-amber-200 dark:border-amber-800 rounded-lg">
@@ -1794,7 +1894,9 @@ export default function ModularWorkflowWizard() {
                     </p>
                     <div className="text-center">
                       <Badge className="bg-blue-600 text-white px-4 py-1">
-                        {formData.platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR'}
+                        {formData.platform === "fansly"
+                          ? "OTP-Fansly"
+                          : "OTP-PTR"}
                       </Badge>
                     </div>
                   </div>
@@ -1845,7 +1947,9 @@ export default function ModularWorkflowWizard() {
                     ))}
                     <ArrowRight className="w-4 h-4 text-gray-400" />
                     <Badge className="bg-blue-600 text-white">
-                      {formData.platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR'}
+                      {formData.platform === "fansly"
+                        ? "OTP-Fansly"
+                        : "OTP-PTR"}
                     </Badge>
                   </div>
                 </div>
@@ -1894,10 +1998,26 @@ export default function ModularWorkflowWizard() {
                         Pricing Tier
                       </p>
                       <p className="font-medium">
-                        {formData.pricingCategory === 'PORN_ACCURATE' && '💎 Porn Accurate'}
-                        {formData.pricingCategory === 'PORN_SCAM' && '🔴 Porn Scam'}
-                        {formData.pricingCategory === 'GF_ACCURATE' && '💕 GF Accurate'}
-                        {formData.pricingCategory === 'GF_SCAM' && '🟠 GF Scam'}
+                        {formData.pricingCategory === "PORN_ACCURATE" &&
+                          "💎 Porn Accurate"}
+                        {formData.pricingCategory === "PORN_SCAM" &&
+                          "🔴 Porn Scam"}
+                        {formData.pricingCategory === "GF_ACCURATE" &&
+                          "💕 GF Accurate"}
+                        {formData.pricingCategory === "GF_SCAM" && "🟠 GF Scam"}
+                      </p>
+                    </div>
+                  )}
+                  {formData.pageType && (
+                    <div>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Page Type
+                      </p>
+                      <p className="font-medium">
+                        {formData.pageType === "ALL_PAGES" && "📄 All Pages"}
+                        {formData.pageType === "FREE" && "🆓 Free"}
+                        {formData.pageType === "PAID" && "💰 Paid"}
+                        {formData.pageType === "VIP" && "⭐ VIP"}
                       </p>
                     </div>
                   )}
@@ -1910,11 +2030,16 @@ export default function ModularWorkflowWizard() {
                         <span>{formData.contentType}</span>
                         {selectedContentTypeOption && (
                           <span className="text-emerald-600 dark:text-emerald-400 font-bold">
-                            {selectedContentTypeOption.priceType === 'FIXED' && selectedContentTypeOption.priceFixed &&
+                            {selectedContentTypeOption.priceType === "FIXED" &&
+                              selectedContentTypeOption.priceFixed &&
                               `$${selectedContentTypeOption.priceFixed.toFixed(2)}`}
-                            {selectedContentTypeOption.priceType === 'RANGE' && selectedContentTypeOption.priceMin && selectedContentTypeOption.priceMax &&
+                            {selectedContentTypeOption.priceType === "RANGE" &&
+                              selectedContentTypeOption.priceMin &&
+                              selectedContentTypeOption.priceMax &&
                               `$${selectedContentTypeOption.priceMin.toFixed(2)}-$${selectedContentTypeOption.priceMax.toFixed(2)}`}
-                            {selectedContentTypeOption.priceType === 'MINIMUM' && selectedContentTypeOption.priceMin &&
+                            {selectedContentTypeOption.priceType ===
+                              "MINIMUM" &&
+                              selectedContentTypeOption.priceMin &&
                               `$${selectedContentTypeOption.priceMin.toFixed(2)}+`}
                           </span>
                         )}
@@ -2032,7 +2157,11 @@ export default function ModularWorkflowWizard() {
                   </h4>
                   <p className="text-sm">
                     This workflow will be assigned to{" "}
-                    <strong>{formData.platform === 'fansly' ? 'OTP-Fansly' : 'OTP-PTR'}</strong>
+                    <strong>
+                      {formData.platform === "fansly"
+                        ? "OTP-Fansly"
+                        : "OTP-PTR"}
+                    </strong>
                   </p>
                   <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                     {formData.submissionType === "ptr"
@@ -2228,73 +2357,73 @@ export default function ModularWorkflowWizard() {
                   </Button>
                 </div>
 
-              <div className="space-y-4">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Info className="w-4 h-4" />
-                      Current Step
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {WIZARD_STEPS[currentStep].description}
-                    </p>
-                  </CardContent>
-                </Card>
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Info className="w-4 h-4" />
+                        Current Step
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {WIZARD_STEPS[currentStep].description}
+                      </p>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <Command className="w-4 h-4" />
-                      Keyboard Shortcuts
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2 text-sm">
-                      <div className="flex justify-between">
-                        <span>Next step</span>
-                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
-                          →
-                        </kbd>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <Command className="w-4 h-4" />
+                        Keyboard Shortcuts
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span>Next step</span>
+                          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+                            →
+                          </kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Previous step</span>
+                          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+                            ←
+                          </kbd>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Save draft</span>
+                          <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
+                            Ctrl+S
+                          </kbd>
+                        </div>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Previous step</span>
-                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
-                          ←
-                        </kbd>
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Save draft</span>
-                        <kbd className="px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded">
-                          Ctrl+S
-                        </kbd>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
 
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="text-sm flex items-center gap-2">
-                      <BookOpen className="w-4 h-4" />
-                      Quick Guide
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
-                      <li>1. Choose a template or start fresh</li>
-                      <li>2. Select OTP or PTR based on urgency</li>
-                      <li>3. Pick your content style</li>
-                      <li>4. Add optional components</li>
-                      <li>5. Fill in content details</li>
-                      <li>6. Review and submit</li>
-                    </ol>
-                  </CardContent>
-                </Card>
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <BookOpen className="w-4 h-4" />
+                        Quick Guide
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ol className="space-y-2 text-sm text-gray-600 dark:text-gray-400">
+                        <li>1. Choose a template or start fresh</li>
+                        <li>2. Select OTP or PTR based on urgency</li>
+                        <li>3. Pick your content style</li>
+                        <li>4. Add optional components</li>
+                        <li>5. Fill in content details</li>
+                        <li>6. Review and submit</li>
+                      </ol>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
-            </div>
-          </motion.div>
+            </motion.div>
           </>
         )}
       </AnimatePresence>

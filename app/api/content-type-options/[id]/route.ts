@@ -36,6 +36,7 @@ export async function PUT(
     const body = await req.json();
     const {
       label,
+      pageType,
       priceType,
       priceFixed,
       priceMin,
@@ -130,6 +131,7 @@ export async function PUT(
         where: { id },
         data: {
           label,
+          pageType: pageType || 'ALL_PAGES',
           priceType: effectivePriceType,
           priceFixed: effectivePriceFixed,
           priceMin: effectivePriceMin,

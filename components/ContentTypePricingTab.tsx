@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Badge } from '@/components/ui/badge';
 import { Checkbox } from '@/components/ui/checkbox';
 import { toast } from 'sonner';
-import { DollarSign, Edit, Plus, Trash2, Search, RefreshCw, AlertCircle, History, ArrowRight, Clock, LayoutGrid, Table as TableIcon, User } from 'lucide-react';
+import { DollarSign, Edit, Plus, Trash2, Search, RefreshCw, AlertCircle, History, ArrowRight, Clock, LayoutGrid, Table as TableIcon, User, ChevronDown } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
@@ -54,6 +55,7 @@ interface ContentTypeOption {
   value: string;
   label: string;
   category: string;
+  pageType: string | null;
   isFree: boolean;
   priceType: string | null;
   priceFixed: number | null;
@@ -89,6 +91,7 @@ const ContentTypePricingTab = () => {
   const [selectedOption, setSelectedOption] = useState<ContentTypeOption | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('all');
   const [filterModel, setFilterModel] = useState<string>('all');
+  const [filterPageType, setFilterPageType] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -97,6 +100,7 @@ const ContentTypePricingTab = () => {
   // Form state for editing
   const [formData, setFormData] = useState({
     label: '',
+    pageTypes: ['ALL_PAGES'] as string[],
     isFree: false,
     priceType: 'FIXED',
     priceFixed: '',
@@ -109,6 +113,7 @@ const ContentTypePricingTab = () => {
   const [addFormData, setAddFormData] = useState({
     value: '',
     category: 'PORN_ACCURATE',
+    pageTypes: ['ALL_PAGES'] as string[],
     isFree: false,
     priceType: 'FIXED',
     priceFixed: '',
@@ -136,32 +141,9 @@ const ContentTypePricingTab = () => {
 
   // Fetch content type options with React Query
   const { data: contentTypeOptions = [], isLoading, refetch } = useQuery({
-    queryKey: ['content-type-options', filterCategory, filterModel, clientModels.length],
+    queryKey: ['content-type-options', filterCategory, filterModel],
     queryFn: async () => {
-      // If 'all' is selected, we need to fetch for each model + global to show everything
-      if (filterModel === 'all' || !filterModel) {
-        const categoryParam = filterCategory !== 'all' ? `category=${filterCategory}` : '';
-
-        // Fetch global + all model-specific options
-        const allResponses = await Promise.all([
-          fetch(`/api/content-type-options${categoryParam ? `?${categoryParam}` : ''}`), // Global only
-          ...clientModels.map(model =>
-            fetch(`/api/content-type-options?clientModelId=${model.id}${categoryParam ? `&${categoryParam}` : ''}`)
-          )
-        ]);
-
-        const allData = await Promise.all(allResponses.map(r => r.json()));
-        const allOptions = allData.flatMap(d => d.success ? d.contentTypeOptions : []);
-
-        // Remove duplicates by id
-        const uniqueOptions = Array.from(
-          new Map(allOptions.map(opt => [opt.id, opt])).values()
-        );
-
-        return uniqueOptions as ContentTypeOption[];
-      }
-
-      // Build params for specific model or global only filter
+      // Build params
       const params = new URLSearchParams();
 
       if (filterCategory !== 'all') {
@@ -171,9 +153,12 @@ const ContentTypePricingTab = () => {
       if (filterModel === 'global') {
         // Global only - backend returns only items with clientModelId = null
         // No clientModelId parameter needed
-      } else if (filterModel) {
+      } else if (filterModel && filterModel !== 'all') {
         // Specific model selected - get that model's prices + global
         params.append('clientModelId', filterModel);
+      } else {
+        // 'all' is selected - use special parameter to fetch everything efficiently
+        params.append('fetchAll', 'true');
       }
 
       const url = params.toString()
@@ -190,7 +175,6 @@ const ContentTypePricingTab = () => {
       return data.contentTypeOptions as ContentTypeOption[];
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
-    enabled: (filterModel !== 'all' && filterModel !== '') || clientModels.length > 0, // Wait for models to load if "all" is selected
   });
 
   // Fetch price history for selected option
@@ -211,17 +195,27 @@ const ContentTypePricingTab = () => {
     enabled: !!selectedOption?.id && historyDialogOpen,
   });
 
-  // Filter content types based on search query
+  // Filter content types based on search query and pageType
   const filteredContentTypes = useMemo(() => {
-    if (!searchQuery.trim()) return contentTypeOptions;
+    let filtered = contentTypeOptions;
 
-    const query = searchQuery.toLowerCase();
-    return contentTypeOptions.filter(option =>
-      option.label.toLowerCase().includes(query) ||
-      option.value.toLowerCase().includes(query) ||
-      option.description?.toLowerCase().includes(query)
-    );
-  }, [contentTypeOptions, searchQuery]);
+    // Apply pageType filter
+    if (filterPageType !== 'all') {
+      filtered = filtered.filter(option => option.pageType === filterPageType);
+    }
+
+    // Apply search query filter
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(option =>
+        option.label.toLowerCase().includes(query) ||
+        option.value.toLowerCase().includes(query) ||
+        option.description?.toLowerCase().includes(query)
+      );
+    }
+
+    return filtered;
+  }, [contentTypeOptions, searchQuery, filterPageType]);
 
   // Group content types by model for grid view
   const groupedByModel = useMemo(() => {
@@ -259,6 +253,7 @@ const ContentTypePricingTab = () => {
     mutationFn: async (updateData: {
       id: string;
       label: string;
+      pageType: string;
       isFree: boolean;
       priceType: string | null;
       priceFixed: number | null;
@@ -351,6 +346,7 @@ const ContentTypePricingTab = () => {
       value: string;
       label: string;
       category: string;
+      pageType: string;
       isFree: boolean;
       priceType: string | null;
       priceFixed: number | null;
@@ -380,8 +376,9 @@ const ContentTypePricingTab = () => {
       // Reset form
       setAddFormData({
         value: '',
-        category: 'CHEAP_PORN',
-        priceType: 'RANGE',
+        category: 'PORN_ACCURATE',
+        pageTypes: ['ALL_PAGES'],
+        priceType: 'FIXED',
         priceFixed: '',
         priceMin: '',
         priceMax: '',
@@ -400,6 +397,7 @@ const ContentTypePricingTab = () => {
     setSelectedOption(option);
     setFormData({
       label: option.label,
+      pageTypes: option.pageType ? [option.pageType] : ['ALL_PAGES'],
       isFree: option.isFree || false,
       priceType: option.priceType || 'FIXED',
       priceFixed: option.priceFixed?.toString() || '',
@@ -488,9 +486,20 @@ const ContentTypePricingTab = () => {
       }
     }
 
+    // Determine final pageType based on checkbox selections
+    let finalPageType = 'ALL_PAGES';
+    if (formData.pageTypes.includes('ALL_PAGES')) {
+      finalPageType = 'ALL_PAGES';
+    } else if (formData.pageTypes.length > 0) {
+      // For now, take the first selected type (backend only supports single value)
+      // TODO: Update backend to support multiple page types if needed
+      finalPageType = formData.pageTypes[0];
+    }
+
     const updateData = {
       id: selectedOption.id,
       label: formData.label,
+      pageType: finalPageType,
       isFree: formData.isFree,
       priceType: formData.isFree ? null : formData.priceType,
       priceFixed: !formData.isFree && formData.priceType === 'FIXED' ? parseFloat(formData.priceFixed) : null,
@@ -508,6 +517,22 @@ const ContentTypePricingTab = () => {
   const handleDelete = () => {
     if (!selectedOption) return;
     deleteMutation.mutate(selectedOption.id);
+  };
+
+  // Get page type display name
+  const getPageTypeName = (pageType: string | null) => {
+    switch (pageType) {
+      case 'ALL_PAGES':
+        return 'All Pages';
+      case 'FREE':
+        return 'Free';
+      case 'PAID':
+        return 'Paid';
+      case 'VIP':
+        return 'VIP';
+      default:
+        return 'All Pages';
+    }
   };
 
   // Get category display name
@@ -601,10 +626,21 @@ const ContentTypePricingTab = () => {
       }
     }
 
+    // Determine final pageType based on checkbox selections
+    let finalPageType = 'ALL_PAGES';
+    if (addFormData.pageTypes.includes('ALL_PAGES')) {
+      finalPageType = 'ALL_PAGES';
+    } else if (addFormData.pageTypes.length > 0) {
+      // For now, take the first selected type (backend only supports single value)
+      // TODO: Update backend to support multiple page types if needed
+      finalPageType = addFormData.pageTypes[0];
+    }
+
     const createData = {
       value: shortCode,
       label: inputValue,
       category: addFormData.category,
+      pageType: finalPageType,
       isFree: addFormData.isFree,
       priceType: addFormData.isFree ? null : addFormData.priceType,
       priceFixed: !addFormData.isFree && addFormData.priceType === 'FIXED' ? parseFloat(addFormData.priceFixed) : null,
@@ -779,6 +815,18 @@ const ContentTypePricingTab = () => {
                     <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
                     <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
                     <SelectItem value="GF_SCAM">GF Scam</SelectItem>
+                  </SelectContent>
+                </Select>
+                <Select value={filterPageType} onValueChange={setFilterPageType}>
+                  <SelectTrigger className="w-full sm:w-48">
+                    <SelectValue placeholder="Filter by page type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Page Types</SelectItem>
+                    <SelectItem value="ALL_PAGES">All Pages</SelectItem>
+                    <SelectItem value="FREE">Free</SelectItem>
+                    <SelectItem value="PAID">Paid</SelectItem>
+                    <SelectItem value="VIP">VIP</SelectItem>
                   </SelectContent>
                 </Select>
                 <div className="w-full sm:w-48">
@@ -979,6 +1027,9 @@ const ContentTypePricingTab = () => {
                                       <Badge className={cn(getCategoryColor(option.category), 'text-[10px] px-1.5 py-0.5 h-5')}>
                                         {getCategoryName(option.category)}
                                       </Badge>
+                                      <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5 bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300">
+                                        {getPageTypeName(option.pageType)}
+                                      </Badge>
                                       <Badge variant="outline" className="text-[10px] px-1.5 py-0.5 h-5">
                                         {option.isFree ? 'FREE' : option.priceType}
                                       </Badge>
@@ -1055,6 +1106,7 @@ const ContentTypePricingTab = () => {
                         <TableHead>Content Type</TableHead>
                         <TableHead>Model</TableHead>
                         <TableHead>Pricing Tier</TableHead>
+                        <TableHead>Page Type</TableHead>
                         <TableHead>Price Type</TableHead>
                         <TableHead>Price</TableHead>
                         <TableHead>Status</TableHead>
@@ -1116,6 +1168,11 @@ const ContentTypePricingTab = () => {
                             <TableCell>
                               <Badge className={getCategoryColor(option.category)}>
                                 {getCategoryName(option.category)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="font-normal bg-purple-50 dark:bg-purple-900/20 border-purple-200 dark:border-purple-700 text-purple-700 dark:text-purple-300">
+                                {getPageTypeName(option.pageType)}
                               </Badge>
                             </TableCell>
                             <TableCell>
@@ -1183,86 +1240,165 @@ const ContentTypePricingTab = () => {
               Create a new content type with pricing information
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-4">
             <div>
               <Label htmlFor="add-value">Content Type <span className="text-red-500">*</span></Label>
               <Input
                 id="add-value"
                 value={addFormData.value}
                 onChange={(e) => setAddFormData({ ...addFormData, value: e.target.value })}
-                placeholder="e.g., BG (Boy/Girl), BGG, SOLO"
+                placeholder="e.g., BG (Boy/Girl)"
+                className="mt-1.5"
               />
-              <p className="text-xs text-gray-500 mt-1">Enter the content type name. You can include a description in parentheses.</p>
             </div>
 
             <div>
-              <Label htmlFor="add-model">Model (Optional)</Label>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2">
-                  <ModelsDropdownList
-                    value={clientModels.find(m => m.id === addFormData.clientModelId)?.clientName || ''}
-                    onValueChange={(clientName) => {
-                      // Find the model by clientName and set the ID
-                      const selectedModel = clientModels.find(m => m.clientName === clientName);
-                      setAddFormData({
-                        ...addFormData,
-                        clientModelId: selectedModel?.id || ''
-                      });
-                    }}
-                    placeholder="Select a model (or leave empty for global pricing)"
-                    className="flex-1"
-                  />
-                  {addFormData.clientModelId && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setAddFormData({ ...addFormData, clientModelId: '' })}
-                      className="shrink-0"
-                    >
-                      Clear
-                    </Button>
-                  )}
-                </div>
-                {!addFormData.clientModelId && (
-                  <div className="flex items-center gap-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
-                    <DollarSign className="w-4 h-4 text-blue-600" />
-                    <span className="text-xs text-blue-700 dark:text-blue-300">
-                      No model selected - creating global pricing (default for all models)
-                    </span>
-                  </div>
+              <Label htmlFor="add-model">Model <span className="text-xs text-gray-500">(Optional - leave empty for global)</span></Label>
+              <div className="flex items-center gap-2 mt-1.5">
+                <ModelsDropdownList
+                  value={clientModels.find(m => m.id === addFormData.clientModelId)?.clientName || ''}
+                  onValueChange={(clientName) => {
+                    const selectedModel = clientModels.find(m => m.clientName === clientName);
+                    setAddFormData({
+                      ...addFormData,
+                      clientModelId: selectedModel?.id || ''
+                    });
+                  }}
+                  placeholder="Global pricing (all models)"
+                  className="flex-1"
+                />
+                {addFormData.clientModelId && (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setAddFormData({ ...addFormData, clientModelId: '' })}
+                    className="shrink-0"
+                  >
+                    Clear
+                  </Button>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Select a specific model for custom pricing, or leave empty for global default pricing.
-              </p>
             </div>
 
-            <div>
-              <Label htmlFor="add-category">Pricing Tier <span className="text-red-500">*</span></Label>
-              <Select
-                value={addFormData.category}
-                onValueChange={(value) => setAddFormData({ ...addFormData, category: value })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="PORN_ACCURATE">Porn Accurate</SelectItem>
-                  <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
-                  <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
-                  <SelectItem value="GF_SCAM">GF Scam</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label htmlFor="add-category">Pricing Tier <span className="text-red-500">*</span></Label>
+                <Select
+                  value={addFormData.category}
+                  onValueChange={(value) => setAddFormData({ ...addFormData, category: value })}
+                >
+                  <SelectTrigger className="mt-1.5">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="PORN_ACCURATE">Porn Accurate</SelectItem>
+                    <SelectItem value="PORN_SCAM">Porn Scam</SelectItem>
+                    <SelectItem value="GF_ACCURATE">GF Accurate</SelectItem>
+                    <SelectItem value="GF_SCAM">GF Scam</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="add-pageType">Page Type <span className="text-red-500">*</span></Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-between mt-1.5"
+                    >
+                      <span className="text-sm">
+                        {addFormData.pageTypes.includes('ALL_PAGES')
+                          ? 'All Pages'
+                          : addFormData.pageTypes.length > 0
+                          ? addFormData.pageTypes.map(pt => {
+                              switch(pt) {
+                                case 'FREE': return 'Free';
+                                case 'PAID': return 'Paid';
+                                case 'VIP': return 'VIP';
+                                default: return pt;
+                              }
+                            }).join(', ')
+                          : 'Select...'}
+                      </span>
+                      <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-3">
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="add-all-pages"
+                          checked={addFormData.pageTypes.includes('ALL_PAGES')}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setAddFormData({ ...addFormData, pageTypes: ['ALL_PAGES'] });
+                            } else {
+                              setAddFormData({ ...addFormData, pageTypes: [] });
+                            }
+                          }}
+                        />
+                        <Label htmlFor="add-all-pages" className="cursor-pointer">All Pages</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="add-free"
+                          checked={addFormData.pageTypes.includes('FREE')}
+                          onCheckedChange={(checked) => {
+                            const newTypes = addFormData.pageTypes.filter(t => t !== 'ALL_PAGES' && t !== 'FREE');
+                            if (checked) {
+                              setAddFormData({ ...addFormData, pageTypes: [...newTypes, 'FREE'] });
+                            } else {
+                              setAddFormData({ ...addFormData, pageTypes: newTypes });
+                            }
+                          }}
+                        />
+                        <Label htmlFor="add-free" className="cursor-pointer">Free</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="add-paid"
+                          checked={addFormData.pageTypes.includes('PAID')}
+                          onCheckedChange={(checked) => {
+                            const newTypes = addFormData.pageTypes.filter(t => t !== 'ALL_PAGES' && t !== 'PAID');
+                            if (checked) {
+                              setAddFormData({ ...addFormData, pageTypes: [...newTypes, 'PAID'] });
+                            } else {
+                              setAddFormData({ ...addFormData, pageTypes: newTypes });
+                            }
+                          }}
+                        />
+                        <Label htmlFor="add-paid" className="cursor-pointer">Paid</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="add-vip"
+                          checked={addFormData.pageTypes.includes('VIP')}
+                          onCheckedChange={(checked) => {
+                            const newTypes = addFormData.pageTypes.filter(t => t !== 'ALL_PAGES' && t !== 'VIP');
+                            if (checked) {
+                              setAddFormData({ ...addFormData, pageTypes: [...newTypes, 'VIP'] });
+                            } else {
+                              setAddFormData({ ...addFormData, pageTypes: newTypes });
+                            }
+                          }}
+                        />
+                        <Label htmlFor="add-vip" className="cursor-pointer">VIP</Label>
+                      </div>
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              </div>
             </div>
 
-            <div className="flex items-center">
+            <div className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
               <Checkbox
                 id="add-isFree"
                 checked={addFormData.isFree}
                 onCheckedChange={(checked) => setAddFormData({ ...addFormData, isFree: checked === true })}
               />
-              <Label htmlFor="add-isFree" className="text-sm ml-2 font-medium cursor-pointer">
+              <Label htmlFor="add-isFree" className="text-sm font-medium cursor-pointer">
                 Free content (no charge)
               </Label>
             </div>
@@ -1423,43 +1559,56 @@ const ContentTypePricingTab = () => {
             </DialogDescription>
           </DialogHeader>
 
-          {/* Model Indicator */}
+          {/* Model and Category Indicators */}
           {selectedOption && (
-            <div className={cn(
-              "flex items-center gap-2 p-3 rounded-lg border-2",
-              selectedOption.clientModel
-                ? "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800"
-                : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
-            )}>
-              {selectedOption.clientModel ? (
-                <>
-                  <User className="w-5 h-5 text-pink-600 dark:text-pink-400" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-pink-900 dark:text-pink-100">
-                      Model-Specific Pricing
-                    </p>
-                    <p className="text-xs text-pink-700 dark:text-pink-300">
-                      {selectedOption.clientModel.clientName}
-                    </p>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                  <div className="flex-1">
-                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
-                      Global Pricing
-                    </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300">
-                      Default for all models
-                    </p>
-                  </div>
-                </>
-              )}
+            <div className="space-y-2">
+              {/* Model Indicator */}
+              <div className={cn(
+                "flex items-center gap-2 p-3 rounded-lg border-2",
+                selectedOption.clientModel
+                  ? "bg-pink-50 dark:bg-pink-900/20 border-pink-200 dark:border-pink-800"
+                  : "bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800"
+              )}>
+                {selectedOption.clientModel ? (
+                  <>
+                    <User className="w-5 h-5 text-pink-600 dark:text-pink-400" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-pink-900 dark:text-pink-100">
+                        Model-Specific Pricing
+                      </p>
+                      <p className="text-xs text-pink-700 dark:text-pink-300">
+                        {selectedOption.clientModel.clientName}
+                      </p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <DollarSign className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-blue-900 dark:text-blue-100">
+                        Global Pricing
+                      </p>
+                      <p className="text-xs text-blue-700 dark:text-blue-300">
+                        Default for all models
+                      </p>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              {/* Category Indicator */}
+              <div className="flex items-center gap-2 p-2 rounded-lg border bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+                <span className="text-xs font-medium text-gray-600 dark:text-gray-400">
+                  Pricing Tier:
+                </span>
+                <Badge className={getCategoryColor(selectedOption.category)}>
+                  {getCategoryName(selectedOption.category)}
+                </Badge>
+              </div>
             </div>
           )}
 
-          <div className="space-y-4 py-4">
+          <div className="space-y-3 py-4">
             <div>
               <Label htmlFor="label">Content Type <span className="text-red-500">*</span></Label>
               <Input
@@ -1467,10 +1616,102 @@ const ContentTypePricingTab = () => {
                 value={formData.label}
                 onChange={(e) => setFormData({ ...formData, label: e.target.value })}
                 placeholder="e.g., BG (Boy/Girl)"
+                className="mt-1.5"
               />
             </div>
 
-            <div className="flex items-center space-x-2 p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            <div>
+              <Label htmlFor="edit-pageType">Page Type</Label>
+              <Popover>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-between mt-1.5"
+                  >
+                    <span>
+                      {formData.pageTypes.includes('ALL_PAGES')
+                        ? 'All Pages'
+                        : formData.pageTypes.length > 0
+                        ? formData.pageTypes.map(pt => {
+                            switch(pt) {
+                              case 'FREE': return 'Free';
+                              case 'PAID': return 'Paid';
+                              case 'VIP': return 'VIP';
+                              default: return pt;
+                            }
+                          }).join(', ')
+                        : 'Select page types...'}
+                    </span>
+                    <ChevronDown className="ml-2 h-4 w-4 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-3">
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-all-pages"
+                        checked={formData.pageTypes.includes('ALL_PAGES')}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData({ ...formData, pageTypes: ['ALL_PAGES'] });
+                          } else {
+                            setFormData({ ...formData, pageTypes: [] });
+                          }
+                        }}
+                      />
+                      <Label htmlFor="edit-all-pages" className="cursor-pointer">All Pages</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-free"
+                        checked={formData.pageTypes.includes('FREE')}
+                        onCheckedChange={(checked) => {
+                          const newTypes = formData.pageTypes.filter(t => t !== 'ALL_PAGES' && t !== 'FREE');
+                          if (checked) {
+                            setFormData({ ...formData, pageTypes: [...newTypes, 'FREE'] });
+                          } else {
+                            setFormData({ ...formData, pageTypes: newTypes });
+                          }
+                        }}
+                      />
+                      <Label htmlFor="edit-free" className="cursor-pointer">Free</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-paid"
+                        checked={formData.pageTypes.includes('PAID')}
+                        onCheckedChange={(checked) => {
+                          const newTypes = formData.pageTypes.filter(t => t !== 'ALL_PAGES' && t !== 'PAID');
+                          if (checked) {
+                            setFormData({ ...formData, pageTypes: [...newTypes, 'PAID'] });
+                          } else {
+                            setFormData({ ...formData, pageTypes: newTypes });
+                          }
+                        }}
+                      />
+                      <Label htmlFor="edit-paid" className="cursor-pointer">Paid</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="edit-vip"
+                        checked={formData.pageTypes.includes('VIP')}
+                        onCheckedChange={(checked) => {
+                          const newTypes = formData.pageTypes.filter(t => t !== 'ALL_PAGES' && t !== 'VIP');
+                          if (checked) {
+                            setFormData({ ...formData, pageTypes: [...newTypes, 'VIP'] });
+                          } else {
+                            setFormData({ ...formData, pageTypes: newTypes });
+                          }
+                        }}
+                      />
+                      <Label htmlFor="edit-vip" className="cursor-pointer">VIP</Label>
+                    </div>
+                  </div>
+                </PopoverContent>
+              </Popover>
+            </div>
+
+            <div className="flex items-center space-x-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-md">
               <Checkbox
                 id="edit-isFree"
                 checked={formData.isFree}
@@ -1489,7 +1730,7 @@ const ContentTypePricingTab = () => {
                     value={formData.priceType}
                     onValueChange={(value) => setFormData({ ...formData, priceType: value })}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="mt-1.5">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
@@ -1516,6 +1757,7 @@ const ContentTypePricingTab = () => {
                         }
                       }}
                       placeholder="19.99"
+                      className="mt-1.5"
                     />
                   </div>
                 )}
@@ -1536,6 +1778,7 @@ const ContentTypePricingTab = () => {
                         }
                       }}
                       placeholder="14.99"
+                      className="mt-1.5"
                     />
                   </div>
                 )}
@@ -1556,12 +1799,13 @@ const ContentTypePricingTab = () => {
                         }
                       }}
                       placeholder="19.99"
-                      className={
+                      className={cn(
+                        "mt-1.5",
                         formData.priceMin && formData.priceMax &&
                         parseFloat(formData.priceMin) > parseFloat(formData.priceMax)
                           ? 'border-red-500 focus-visible:ring-red-500'
                           : ''
-                      }
+                      )}
                     />
                     {formData.priceMin && formData.priceMax &&
                      parseFloat(formData.priceMin) > parseFloat(formData.priceMax) && (
@@ -1582,6 +1826,7 @@ const ContentTypePricingTab = () => {
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 placeholder="Add a helpful description..."
+                className="mt-1.5"
               />
             </div>
           </div>
