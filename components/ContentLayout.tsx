@@ -20,7 +20,7 @@ const ContentLayout = ({ children  }: { children: React.ReactNode}) => {
         <div className="w-full h-full overflow-hidden bg-pink-50/30 dark:bg-gray-950 transition-colors">
           {/* Content */}
           <ProtectedFeature>
-            <div className="relative h-full p-6">{children}</div>
+            <div className="relative h-full">{children}</div>
           </ProtectedFeature>
         </div>
       </div>
