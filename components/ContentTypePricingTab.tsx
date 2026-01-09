@@ -600,17 +600,19 @@ const ContentTypePricingTab = () => {
     }
 
     // Extract short code from the input (e.g., "BG (Boy/Girl)" -> "BG")
-    const inputValue = addFormData.value.trim();
-    const shortCode = inputValue.split(/[\s(]/)[0].toUpperCase();
+  const inputValue = addFormData.value.trim();
+  const shortCode = inputValue.toUpperCase();
 
     // Client-side duplicate validation (check against label field)
     const duplicate = contentTypeOptions.find(
-      option => option.label.toLowerCase() === inputValue.toLowerCase() &&
-                option.category === addFormData.category
+      option =>
+        option.value.toLowerCase() === shortCode.toLowerCase() &&
+        option.category === addFormData.category &&
+        (option.clientModelId || '') === (addFormData.clientModelId || '')
     );
 
     if (duplicate) {
-      toast.error(`Content type "${inputValue}" already exists in the "${getCategoryName(addFormData.category)}" tier`);
+      toast.error(`Content type code "${shortCode}" already exists in the "${getCategoryName(addFormData.category)}" tier for this model.`);
       return;
     }
 
