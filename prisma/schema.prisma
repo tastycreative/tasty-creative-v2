@@ -1283,7 +1283,7 @@ model ContentTypeOption {
   pricingHistory ContentTypePricingHistory[] @relation("ContentTypePricingHistory")
   workflows      ModularWorkflow[]           @relation("WorkflowContentType")
 
-  @@unique([value, category, clientModelId])
+  @@unique([value, category, clientModelId, pageType])
   @@index([isActive])
   @@index([order])
   @@index([category])

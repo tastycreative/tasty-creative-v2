@@ -603,16 +603,25 @@ const ContentTypePricingTab = () => {
   const inputValue = addFormData.value.trim();
   const shortCode = inputValue.toUpperCase();
 
-    // Client-side duplicate validation (check against label field)
+    // Determine pageType for validation
+    let validationPageType = 'ALL_PAGES';
+    if (addFormData.pageTypes.includes('ALL_PAGES')) {
+      validationPageType = 'ALL_PAGES';
+    } else if (addFormData.pageTypes.length > 0) {
+      validationPageType = addFormData.pageTypes[0];
+    }
+
+    // Client-side duplicate validation (check against value, category, model, AND pageType)
     const duplicate = contentTypeOptions.find(
       option =>
         option.value.toLowerCase() === shortCode.toLowerCase() &&
         option.category === addFormData.category &&
-        (option.clientModelId || '') === (addFormData.clientModelId || '')
+        (option.clientModelId || '') === (addFormData.clientModelId || '') &&
+        (option.pageType || 'ALL_PAGES') === validationPageType
     );
 
     if (duplicate) {
-      toast.error(`Content type code "${shortCode}" already exists in the "${getCategoryName(addFormData.category)}" tier for this model.`);
+      toast.error(`Content type code "${shortCode}" already exists in the "${getCategoryName(addFormData.category)}" tier for this model with page type "${getPageTypeName(validationPageType)}".`);
       return;
     }
 
