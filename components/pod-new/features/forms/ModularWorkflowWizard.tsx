@@ -1456,6 +1456,27 @@ export default function ModularWorkflowWizard() {
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px] overflow-y-auto">
                           {contentTypeOptions.map((option, index) => {
+                            // Format page type display
+                            let pageTypeDisplay = "";
+                            if (option.pageType) {
+                              switch (option.pageType) {
+                                case "ALL_PAGES":
+                                  pageTypeDisplay = " (All Pages)";
+                                  break;
+                                case "FREE":
+                                  pageTypeDisplay = " (Free)";
+                                  break;
+                                case "PAID":
+                                  pageTypeDisplay = " (Paid)";
+                                  break;
+                                case "VIP":
+                                  pageTypeDisplay = " (VIP)";
+                                  break;
+                                default:
+                                  pageTypeDisplay = "";
+                              }
+                            }
+
                             // Format price display - show $--.-- if no price is set
                             let priceDisplay = " - $--.--";
                             if (
@@ -1481,8 +1502,18 @@ export default function ModularWorkflowWizard() {
                                 key={`${option.value}-${index}`}
                                 value={option.value}
                               >
-                                {option.label}
-                                {priceDisplay}
+                                <div className="flex flex-col">
+                                  <span className="font-medium">
+                                    {option.label}
+                                    {pageTypeDisplay}
+                                    {priceDisplay}
+                                  </span>
+                                  {option.description && (
+                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                      {option.description}
+                                    </span>
+                                  )}
+                                </div>
                               </SelectItem>
                             );
                           })}
