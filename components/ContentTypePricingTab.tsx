@@ -486,6 +486,10 @@ const ContentTypePricingTab = () => {
       }
     }
 
+    // Extract short code from the label (e.g., "BG (Boy/Girl)" -> "BG")
+    const inputValue = formData.label.trim();
+    const shortCode = inputValue.toUpperCase();
+
     // Determine final pageType based on checkbox selections
     let finalPageType = 'ALL_PAGES';
     if (formData.pageTypes.includes('ALL_PAGES')) {
@@ -498,7 +502,8 @@ const ContentTypePricingTab = () => {
 
     const updateData = {
       id: selectedOption.id,
-      label: formData.label,
+      value: shortCode,
+      label: inputValue,
       pageType: finalPageType,
       isFree: formData.isFree,
       priceType: formData.isFree ? null : formData.priceType,

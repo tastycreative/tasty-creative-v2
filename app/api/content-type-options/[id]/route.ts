@@ -35,6 +35,7 @@ export async function PUT(
     const { id } = await params;
     const body = await req.json();
     const {
+      value,
       label,
       pageType,
       priceType,
@@ -56,6 +57,16 @@ export async function PUT(
         {
           success: false,
           error: "Label is required",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!value) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Value (content type code) is required",
         },
         { status: 400 }
       );
@@ -109,6 +120,34 @@ export async function PUT(
       );
     }
 
+    // Check for duplicate value (if value or other unique fields are being changed)
+    const effectivePageType = pageType || existingOption.pageType || 'ALL_PAGES';
+    const category = existingOption.category; // Category cannot be changed
+    const clientModelId = existingOption.clientModelId;
+
+    // Only check for duplicates if the value, pageType, category, or clientModelId would change
+    if (value !== existingOption.value || effectivePageType !== existingOption.pageType) {
+      const duplicate = await prisma.contentTypeOption.findFirst({
+        where: {
+          id: { not: id }, // Exclude current record
+          value: value,
+          category: category,
+          clientModelId: clientModelId,
+          pageType: effectivePageType,
+        },
+      });
+
+      if (duplicate) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `A content type with code "${value}" already exists for this tier, model, and page type combination.`,
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     // Determine effective values based on isFree
     const effectivePriceType = isFree ? null : priceType;
     const effectivePriceFixed = isFree ? null : (priceFixed ?? null);
@@ -130,8 +169,9 @@ export async function PUT(
       prisma.contentTypeOption.update({
         where: { id },
         data: {
+          value,
           label,
-          pageType: pageType || 'ALL_PAGES',
+          pageType: effectivePageType,
           priceType: effectivePriceType,
           priceFixed: effectivePriceFixed,
           priceMin: effectivePriceMin,
