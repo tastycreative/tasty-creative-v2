@@ -369,24 +369,6 @@ const ContentTypePricingTab = () => {
 
       return data.contentTypeOption;
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
-      toast.success('Content type created successfully');
-      setAddDialogOpen(false);
-      // Reset form
-      setAddFormData({
-        value: '',
-        category: 'PORN_ACCURATE',
-        pageTypes: ['ALL_PAGES'],
-        priceType: 'FIXED',
-        priceFixed: '',
-        priceMin: '',
-        priceMax: '',
-        description: '',
-        isFree: false,
-        clientModelId: '',
-      });
-    },
     onError: (error: Error) => {
       toast.error(error.message || 'Failed to create content type');
     },
@@ -570,7 +552,7 @@ const ContentTypePricingTab = () => {
   };
 
   // Create new content type
-  const handleCreate = () => {
+  const handleCreate = (addAnother = false) => {
     // Validation
     if (!addFormData.value.trim()) {
       toast.error('Content type is required');
@@ -668,7 +650,30 @@ const ContentTypePricingTab = () => {
       clientModelId: addFormData.clientModelId || null,
     };
 
-    createMutation.mutate(createData);
+    createMutation.mutate(createData, {
+      onSuccess: (data, variables) => {
+        queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
+        toast.success('Content type created successfully');
+
+        if (!addAnother) {
+          setAddDialogOpen(false);
+        }
+
+        // Reset form but keep model and tier selections if adding another
+        setAddFormData({
+          value: '',
+          category: addAnother ? addFormData.category : 'PORN_ACCURATE',
+          pageTypes: addAnother ? addFormData.pageTypes : ['ALL_PAGES'],
+          priceType: addAnother ? addFormData.priceType : 'FIXED',
+          priceFixed: '',
+          priceMin: '',
+          priceMax: '',
+          description: '',
+          isFree: addAnother ? addFormData.isFree : false,
+          clientModelId: addAnother ? addFormData.clientModelId : '',
+        });
+      },
+    });
   };
 
   // Format price display
@@ -765,7 +770,7 @@ const ContentTypePricingTab = () => {
       <Card>
         <CardHeader>
           <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <CardTitle className="flex items-center gap-2">
                   <DollarSign className="w-5 h-5 text-pink-600" />
@@ -775,7 +780,7 @@ const ContentTypePricingTab = () => {
                   Manage pricing for different content types across pricing tiers
                 </CardDescription>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 {selectedIds.size > 0 && (
                   <Button
                     variant="destructive"
@@ -784,7 +789,7 @@ const ContentTypePricingTab = () => {
                     className="gap-2"
                   >
                     <Trash2 className="w-4 h-4" />
-                    Delete Selected ({selectedIds.size})
+                    <span className="hidden sm:inline">Delete Selected</span> ({selectedIds.size})
                   </Button>
                 )}
                 <Button
@@ -794,7 +799,7 @@ const ContentTypePricingTab = () => {
                   className="gap-2 bg-pink-600 hover:bg-pink-700"
                 >
                   <Plus className="w-4 h-4" />
-                  Add New
+                  <span className="hidden sm:inline">Add New</span>
                 </Button>
                 <Button
                   variant="outline"
@@ -804,7 +809,7 @@ const ContentTypePricingTab = () => {
                   className="gap-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                  Refresh
+                  <span className="hidden sm:inline">Refresh</span>
                 </Button>
               </div>
             </div>
@@ -822,7 +827,7 @@ const ContentTypePricingTab = () => {
                   />
                 </div>
                 <Select value={filterCategory} onValueChange={setFilterCategory}>
-                  <SelectTrigger className="w-full sm:w-48">
+                  <SelectTrigger className="w-full sm:w-40 md:w-48">
                     <SelectValue placeholder="Filter by tier" />
                   </SelectTrigger>
                   <SelectContent>
@@ -834,7 +839,7 @@ const ContentTypePricingTab = () => {
                   </SelectContent>
                 </Select>
                 <Select value={filterPageType} onValueChange={setFilterPageType}>
-                  <SelectTrigger className="w-full sm:w-48">
+                  <SelectTrigger className="w-full sm:w-40 md:w-48">
                     <SelectValue placeholder="Filter by page type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -845,7 +850,7 @@ const ContentTypePricingTab = () => {
                     <SelectItem value="VIP">VIP</SelectItem>
                   </SelectContent>
                 </Select>
-                <div className="w-full sm:w-48">
+                <div className="w-full sm:w-40 md:w-48">
                   <Select
                     value={filterModel || 'all'}
                     onValueChange={(value) => {
@@ -904,24 +909,24 @@ const ContentTypePricingTab = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 w-full sm:w-auto">
                   <Button
                     variant={viewMode === 'grid' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setViewMode('grid')}
-                    className="gap-2"
+                    className="gap-2 flex-1 sm:flex-initial"
                   >
                     <LayoutGrid className="w-4 h-4" />
-                    By Model
+                    <span className="hidden xs:inline">By Model</span>
                   </Button>
                   <Button
                     variant={viewMode === 'table' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setViewMode('table')}
-                    className="gap-2"
+                    className="gap-2 flex-1 sm:flex-initial"
                   >
                     <TableIcon className="w-4 h-4" />
-                    Table
+                    <span className="hidden xs:inline">Table</span>
                   </Button>
                 </div>
               </div>
@@ -1100,7 +1105,7 @@ const ContentTypePricingTab = () => {
 
               {/* Table View */}
               {viewMode === 'table' && (
-                <div className="rounded-md border">
+                <div className="rounded-md border overflow-x-auto">
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -1249,7 +1254,7 @@ const ContentTypePricingTab = () => {
 
       {/* Add New Content Type Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Add New Content Type</DialogTitle>
             <DialogDescription>
@@ -1257,17 +1262,7 @@ const ContentTypePricingTab = () => {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 py-4">
-            <div>
-              <Label htmlFor="add-value">Content Type <span className="text-red-500">*</span></Label>
-              <Input
-                id="add-value"
-                value={addFormData.value}
-                onChange={(e) => setAddFormData({ ...addFormData, value: e.target.value })}
-                placeholder="e.g., BG (Boy/Girl)"
-                className="mt-1.5"
-              />
-            </div>
-
+            {/* Model Selection First */}
             <div>
               <Label htmlFor="add-model">Model <span className="text-xs text-gray-500">(Optional - leave empty for global)</span></Label>
               <div className="flex items-center gap-2 mt-1.5">
@@ -1297,7 +1292,20 @@ const ContentTypePricingTab = () => {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <Separator />
+
+            <div>
+              <Label htmlFor="add-value">Content Type <span className="text-red-500">*</span></Label>
+              <Input
+                id="add-value"
+                value={addFormData.value}
+                onChange={(e) => setAddFormData({ ...addFormData, value: e.target.value })}
+                placeholder="e.g., BG (Boy/Girl)"
+                className="mt-1.5"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <Label htmlFor="add-category">Pricing Tier <span className="text-red-500">*</span></Label>
                 <Select
@@ -1536,38 +1544,59 @@ const ContentTypePricingTab = () => {
               />
             </div>
           </div>
-          <DialogFooter>
+          <DialogFooter className="flex-col sm:flex-row gap-2">
             <Button
               variant="outline"
               onClick={() => setAddDialogOpen(false)}
               disabled={createMutation.isPending}
+              className="w-full sm:w-auto"
             >
               Cancel
             </Button>
-            <Button
-              onClick={handleCreate}
-              className="bg-pink-600 hover:bg-pink-700"
-              disabled={createMutation.isPending}
-            >
-              {createMutation.isPending ? (
-                <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Content Type
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2 flex-1 sm:flex-initial">
+              <Button
+                onClick={() => handleCreate(false)}
+                className="bg-pink-600 hover:bg-pink-700 flex-1 sm:flex-initial"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={() => handleCreate(true)}
+                variant="outline"
+                className="border-pink-600 text-pink-600 hover:bg-pink-50 flex-1 sm:flex-initial"
+                disabled={createMutation.isPending}
+              >
+                {createMutation.isPending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    <span className="hidden sm:inline">Create &</span> Add Another
+                  </>
+                )}
+              </Button>
+            </div>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Content Type Pricing</DialogTitle>
             <DialogDescription>
@@ -1874,7 +1903,7 @@ const ContentTypePricingTab = () => {
 
       {/* Delete Confirmation Dialog */}
       <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Deactivate Content Type</DialogTitle>
             <DialogDescription>
@@ -1909,7 +1938,7 @@ const ContentTypePricingTab = () => {
 
       {/* Bulk Delete Confirmation Dialog */}
       <Dialog open={bulkDeleteDialogOpen} onOpenChange={setBulkDeleteDialogOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md w-[95vw] sm:w-full">
           <DialogHeader>
             <DialogTitle>Deactivate Multiple Content Types</DialogTitle>
             <DialogDescription>
@@ -1944,7 +1973,7 @@ const ContentTypePricingTab = () => {
 
       {/* Price History Dialog */}
       <Dialog open={historyDialogOpen} onOpenChange={setHistoryDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[80vh]">
+        <DialogContent className="max-w-2xl w-[95vw] sm:w-full max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <History className="w-5 h-5 text-pink-600" />
