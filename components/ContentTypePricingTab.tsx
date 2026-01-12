@@ -68,6 +68,7 @@ interface ContentTypeOption {
   clientModel?: {
     id: string;
     clientName: string;
+    pricingDescription?: string | null;
   } | null;
   createdAt: string;
   updatedAt: string;
@@ -227,6 +228,7 @@ const ContentTypePricingTab = () => {
       modelId: string | null;
       modelName: string | null;
       model: ClientModel | null;
+      pricingDescription: string | null;
       options: ContentTypeOption[]
     } } = {};
 
@@ -243,6 +245,7 @@ const ContentTypePricingTab = () => {
           modelId: option.clientModelId,
           modelName: option.clientModel?.clientName || null,
           model: fullModel,
+          pricingDescription: option.clientModel?.pricingDescription || fullModel?.pricingDescription || null,
           options: []
         };
       }
@@ -261,7 +264,7 @@ const ContentTypePricingTab = () => {
       if (keyB === 'global') return -1;  // Global goes to the end
       return (groupA.modelName || '').localeCompare(groupB.modelName || '');
     });
-  }, [filteredContentTypes]);
+  }, [filteredContentTypes, clientModels]);
 
   // Update mutation
   const updateMutation = useMutation({
@@ -1192,15 +1195,15 @@ const ContentTypePricingTab = () => {
                                 </div>
                               ) : (
                                 <div className="flex items-start gap-2 group/desc">
-                                  {group.model.pricingDescription ? (
+                                  {group.pricingDescription ? (
                                     <>
                                       <p className="text-xs text-gray-600 dark:text-gray-400 italic flex-1">
-                                        {group.model.pricingDescription}
+                                        {group.pricingDescription}
                                       </p>
                                       <Button
                                         size="sm"
                                         variant="ghost"
-                                        onClick={() => handleEditModelDescription(group.modelId!, group.model?.pricingDescription)}
+                                        onClick={() => handleEditModelDescription(group.modelId!, group.pricingDescription)}
                                         className="text-xs h-6 px-2 opacity-0 group-hover/desc:opacity-100 transition-opacity"
                                       >
                                         <Edit className="w-3 h-3" />

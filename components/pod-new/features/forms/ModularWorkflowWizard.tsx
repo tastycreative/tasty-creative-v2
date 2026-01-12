@@ -430,6 +430,11 @@ export default function ModularWorkflowWizard() {
       priceMin?: number;
       priceMax?: number;
       description?: string;
+      clientModel?: {
+        id: string;
+        clientName: string;
+        pricingDescription?: string | null;
+      } | null;
     }>
   >([]);
   const [loadingContentTypes, setLoadingContentTypes] = useState(true);
@@ -443,6 +448,11 @@ export default function ModularWorkflowWizard() {
     priceFixed?: number;
     priceMin?: number;
     priceMax?: number;
+    clientModel?: {
+      id: string;
+      clientName: string;
+      pricingDescription?: string | null;
+    } | null;
   } | null>(null);
 
   // Watch form values
@@ -1435,17 +1445,20 @@ export default function ModularWorkflowWizard() {
                         </button>
                       </div>
                       <Select
-                        onValueChange={(value) => {
-                          setValue("contentType", value);
-                          // Store the full content type option object
+                        value={selectedContentTypeOption?.id}
+                        onValueChange={(id) => {
+                          // Find the selected option by ID (unique identifier)
                           const selectedOption = contentTypeOptions.find(
-                            (opt) => opt.value === value
+                            (opt) => opt.id === id
                           );
-                          setSelectedContentTypeOption(selectedOption || null);
+                          if (selectedOption) {
+                            setValue("contentType", selectedOption.value);
+                            setSelectedContentTypeOption(selectedOption);
+                          }
                         }}
                         disabled={loadingContentTypes}
                       >
-                        <SelectTrigger>
+                        <SelectTrigger className="w-full! max-w-full overflow-hidden">
                           <SelectValue
                             placeholder={
                               loadingContentTypes
@@ -1497,19 +1510,34 @@ export default function ModularWorkflowWizard() {
                               priceDisplay = ` - $${option.priceMin.toFixed(2)}+`;
                             }
 
+                            // Format model display
+                            const modelDisplay = option.clientModel?.clientName
+                              ? ` [${option.clientModel.clientName}]`
+                              : "";
+
                             return (
                               <SelectItem
-                                key={`${option.value}-${index}`}
-                                value={option.value}
+                                key={option.id}
+                                value={option.id}
+                                className="cursor-pointer"
                               >
-                                <div className="flex flex-col">
-                                  <span className="font-medium">
+                                <div className="flex flex-col w-full min-w-0">
+                                  <div className="font-medium truncate">
                                     {option.label}
-                                    {pageTypeDisplay}
-                                    {priceDisplay}
-                                  </span>
+                                    <span className="text-gray-600 dark:text-gray-400 font-normal">
+                                      {pageTypeDisplay}
+                                    </span>
+                                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">
+                                      {priceDisplay}
+                                    </span>
+                                    {modelDisplay && (
+                                      <span className="text-purple-600 dark:text-purple-400 font-normal">
+                                        {modelDisplay}
+                                      </span>
+                                    )}
+                                  </div>
                                   {option.description && (
-                                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                                    <span className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 break-words overflow-hidden">
                                       {option.description}
                                     </span>
                                   )}
