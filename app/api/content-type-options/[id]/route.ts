@@ -120,12 +120,12 @@ export async function PUT(
       );
     }
 
-    // Check for duplicate value (if value or other unique fields are being changed)
+    // Check for duplicate value (if value or pageType is being changed)
     const effectivePageType = pageType || existingOption.pageType || 'ALL_PAGES';
     const category = existingOption.category; // Category cannot be changed
     const clientModelId = existingOption.clientModelId;
 
-    // Only check for duplicates if the value, pageType, category, or clientModelId would change
+    // Only check for duplicates if the value or pageType would change
     if (value !== existingOption.value || effectivePageType !== existingOption.pageType) {
       const duplicate = await prisma.contentTypeOption.findFirst({
         where: {

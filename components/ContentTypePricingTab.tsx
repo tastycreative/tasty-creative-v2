@@ -80,6 +80,7 @@ interface ClientModel {
   name: string | null;
   status: string;
   profilePicture: string | null;
+  pricingDescription?: string | null;
 }
 
 const ContentTypePricingTab = () => {
@@ -96,6 +97,9 @@ const ContentTypePricingTab = () => {
   const [viewMode, setViewMode] = useState<'table' | 'grid'>('grid');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [bulkDeleteDialogOpen, setBulkDeleteDialogOpen] = useState(false);
+  const [editingModelDescriptionId, setEditingModelDescriptionId] = useState<string | null>(null);
+  const [modelDescriptionText, setModelDescriptionText] = useState<string>('');
+  const [isCreating, setIsCreating] = useState(false);
 
   // Form state for editing
   const [formData, setFormData] = useState({
@@ -219,15 +223,26 @@ const ContentTypePricingTab = () => {
 
   // Group content types by model for grid view
   const groupedByModel = useMemo(() => {
-    const groups: { [key: string]: { modelId: string | null; modelName: string | null; options: ContentTypeOption[] } } = {};
+    const groups: { [key: string]: {
+      modelId: string | null;
+      modelName: string | null;
+      model: ClientModel | null;
+      options: ContentTypeOption[]
+    } } = {};
 
     filteredContentTypes.forEach(option => {
       const key = option.clientModelId || 'global';
 
       if (!groups[key]) {
+        // Find the full model data from clientModels
+        const fullModel = option.clientModelId
+          ? clientModels.find(m => m.id === option.clientModelId) || null
+          : null;
+
         groups[key] = {
           modelId: option.clientModelId,
           modelName: option.clientModel?.clientName || null,
+          model: fullModel,
           options: []
         };
       }
@@ -374,6 +389,48 @@ const ContentTypePricingTab = () => {
     },
   });
 
+  // Mutation for updating model pricing description
+  const updateModelDescriptionMutation = useMutation({
+    mutationFn: async ({ modelId, description }: { modelId: string; description: string }) => {
+      const response = await fetch(`/api/models/${modelId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pricingDescription: description }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to update model description');
+      }
+
+      return data.model;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['client-models'] });
+      queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
+      toast.success('Model pricing description updated');
+      setEditingModelDescriptionId(null);
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to update model description');
+    },
+  });
+
+  const handleSaveModelDescription = (modelId: string) => {
+    updateModelDescriptionMutation.mutate({ modelId, description: modelDescriptionText });
+  };
+
+  const handleEditModelDescription = (modelId: string, currentDescription: string | null | undefined) => {
+    setEditingModelDescriptionId(modelId);
+    setModelDescriptionText(currentDescription || '');
+  };
+
+  const handleCancelModelDescriptionEdit = () => {
+    setEditingModelDescriptionId(null);
+    setModelDescriptionText('');
+  };
+
   // Handle edit button click
   const handleEdit = (option: ContentTypeOption) => {
     setSelectedOption(option);
@@ -472,32 +529,108 @@ const ContentTypePricingTab = () => {
     const inputValue = formData.label.trim();
     const shortCode = inputValue.toUpperCase();
 
-    // Determine final pageType based on checkbox selections
-    let finalPageType = 'ALL_PAGES';
-    if (formData.pageTypes.includes('ALL_PAGES')) {
-      finalPageType = 'ALL_PAGES';
-    } else if (formData.pageTypes.length > 0) {
-      // For now, take the first selected type (backend only supports single value)
-      // TODO: Update backend to support multiple page types if needed
-      finalPageType = formData.pageTypes[0];
+    // Determine which page types to create/update
+    const pageTypesToUpdate = formData.pageTypes.includes('ALL_PAGES')
+      ? ['ALL_PAGES']
+      : formData.pageTypes.filter(pt => pt !== 'ALL_PAGES');
+
+    // If the page types haven't changed OR only one page type is selected, do a simple update
+    const originalPageType = selectedOption.pageType || 'ALL_PAGES';
+    const isSinglePageType = pageTypesToUpdate.length === 1;
+    const pageTypeUnchanged = isSinglePageType && pageTypesToUpdate[0] === originalPageType;
+
+    if (pageTypeUnchanged || isSinglePageType) {
+      // Simple update for single page type
+      const finalPageType = pageTypesToUpdate[0];
+
+      const updateData = {
+        id: selectedOption.id,
+        value: shortCode,
+        label: inputValue,
+        pageType: finalPageType,
+        isFree: formData.isFree,
+        priceType: formData.isFree ? null : formData.priceType,
+        priceFixed: !formData.isFree && formData.priceType === 'FIXED' ? parseFloat(formData.priceFixed) : null,
+        priceMin: !formData.isFree && (formData.priceType === 'RANGE' || formData.priceType === 'MINIMUM')
+          ? parseFloat(formData.priceMin)
+          : null,
+        priceMax: !formData.isFree && formData.priceType === 'RANGE' ? parseFloat(formData.priceMax) : null,
+        description: formData.description,
+      };
+
+      updateMutation.mutate(updateData);
+    } else {
+      // Multiple page types selected - need to delete old and create new entries
+      // First, validate no duplicates for the new page types (except the current one)
+      for (const pageType of pageTypesToUpdate) {
+        const duplicate = contentTypeOptions.find(
+          option =>
+            option.id !== selectedOption.id && // Exclude current entry
+            option.value.toLowerCase() === shortCode.toLowerCase() &&
+            option.category === selectedOption.category &&
+            (option.clientModelId || '') === (selectedOption.clientModelId || '') &&
+            (option.pageType || 'ALL_PAGES') === pageType
+        );
+
+        if (duplicate) {
+          toast.error(`Content type code "${shortCode}" already exists for page type "${getPageTypeName(pageType)}". Please delete it first.`);
+          return;
+        }
+      }
+
+      // Delete the original entry and create new ones
+      const deletePromise = fetch(`/api/content-type-options/${selectedOption.id}`, {
+        method: 'DELETE',
+      }).then(res => res.json());
+
+      deletePromise.then(deleteResult => {
+        if (!deleteResult.success) {
+          toast.error('Failed to update: ' + deleteResult.error);
+          return;
+        }
+
+        // Now create new entries for each page type
+        const createPromises = pageTypesToUpdate.map(pageType => {
+          const createData = {
+            value: shortCode,
+            label: inputValue,
+            category: selectedOption.category,
+            pageType: pageType,
+            isFree: formData.isFree,
+            priceType: formData.isFree ? null : formData.priceType,
+            priceFixed: !formData.isFree && formData.priceType === 'FIXED' ? parseFloat(formData.priceFixed) : null,
+            priceMin: !formData.isFree && (formData.priceType === 'RANGE' || formData.priceType === 'MINIMUM')
+              ? parseFloat(formData.priceMin)
+              : null,
+            priceMax: !formData.isFree && formData.priceType === 'RANGE' ? parseFloat(formData.priceMax) : null,
+            description: formData.description,
+            clientModelId: selectedOption.clientModelId || null,
+          };
+
+          return fetch('/api/content-type-options', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(createData),
+          }).then(res => res.json());
+        });
+
+        Promise.all(createPromises).then(results => {
+          const failedResults = results.filter(r => !r.success);
+
+          if (failedResults.length > 0) {
+            toast.error(`Failed to create ${failedResults.length} content type(s): ${failedResults[0].error}`);
+          } else {
+            queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
+            toast.success(`Successfully updated to ${pageTypesToUpdate.length} page type(s)`);
+            setEditDialogOpen(false);
+          }
+        }).catch(error => {
+          toast.error(error.message || 'Failed to create content types');
+        });
+      }).catch(error => {
+        toast.error('Failed to delete original entry: ' + error.message);
+      });
     }
-
-    const updateData = {
-      id: selectedOption.id,
-      value: shortCode,
-      label: inputValue,
-      pageType: finalPageType,
-      isFree: formData.isFree,
-      priceType: formData.isFree ? null : formData.priceType,
-      priceFixed: !formData.isFree && formData.priceType === 'FIXED' ? parseFloat(formData.priceFixed) : null,
-      priceMin: !formData.isFree && (formData.priceType === 'RANGE' || formData.priceType === 'MINIMUM')
-        ? parseFloat(formData.priceMin)
-        : null,
-      priceMax: !formData.isFree && formData.priceType === 'RANGE' ? parseFloat(formData.priceMax) : null,
-      description: formData.description,
-    };
-
-    updateMutation.mutate(updateData);
   };
 
   // Delete content type (soft delete)
@@ -590,26 +723,25 @@ const ContentTypePricingTab = () => {
   const inputValue = addFormData.value.trim();
   const shortCode = inputValue.toUpperCase();
 
-    // Determine pageType for validation
-    let validationPageType = 'ALL_PAGES';
-    if (addFormData.pageTypes.includes('ALL_PAGES')) {
-      validationPageType = 'ALL_PAGES';
-    } else if (addFormData.pageTypes.length > 0) {
-      validationPageType = addFormData.pageTypes[0];
-    }
+    // Determine which page types to create
+    const pageTypesToCreate = addFormData.pageTypes.includes('ALL_PAGES')
+      ? ['ALL_PAGES']
+      : addFormData.pageTypes.filter(pt => pt !== 'ALL_PAGES');
 
-    // Client-side duplicate validation (check against value, category, model, AND pageType)
-    const duplicate = contentTypeOptions.find(
-      option =>
-        option.value.toLowerCase() === shortCode.toLowerCase() &&
-        option.category === addFormData.category &&
-        (option.clientModelId || '') === (addFormData.clientModelId || '') &&
-        (option.pageType || 'ALL_PAGES') === validationPageType
-    );
+    // Validate no duplicates for any of the selected page types
+    for (const pageType of pageTypesToCreate) {
+      const duplicate = contentTypeOptions.find(
+        option =>
+          option.value.toLowerCase() === shortCode.toLowerCase() &&
+          option.category === addFormData.category &&
+          (option.clientModelId || '') === (addFormData.clientModelId || '') &&
+          (option.pageType || 'ALL_PAGES') === pageType
+      );
 
-    if (duplicate) {
-      toast.error(`Content type code "${shortCode}" already exists in the "${getCategoryName(addFormData.category)}" tier for this model with page type "${getPageTypeName(validationPageType)}".`);
-      return;
+      if (duplicate) {
+        toast.error(`Content type code "${shortCode}" already exists in the "${getCategoryName(addFormData.category)}" tier for this model with page type "${getPageTypeName(pageType)}".`);
+        return;
+      }
     }
 
     // Auto-append "+" for minimum price type in description if not already present
@@ -624,36 +756,41 @@ const ContentTypePricingTab = () => {
       }
     }
 
-    // Determine final pageType based on checkbox selections
-    let finalPageType = 'ALL_PAGES';
-    if (addFormData.pageTypes.includes('ALL_PAGES')) {
-      finalPageType = 'ALL_PAGES';
-    } else if (addFormData.pageTypes.length > 0) {
-      // For now, take the first selected type (backend only supports single value)
-      // TODO: Update backend to support multiple page types if needed
-      finalPageType = addFormData.pageTypes[0];
-    }
+    // Create content type for each selected page type
+    setIsCreating(true);
+    const createPromises = pageTypesToCreate.map(pageType => {
+      const createData = {
+        value: shortCode,
+        label: inputValue,
+        category: addFormData.category,
+        pageType: pageType,
+        isFree: addFormData.isFree,
+        priceType: addFormData.isFree ? null : addFormData.priceType,
+        priceFixed: !addFormData.isFree && addFormData.priceType === 'FIXED' ? parseFloat(addFormData.priceFixed) : null,
+        priceMin: !addFormData.isFree && (addFormData.priceType === 'RANGE' || addFormData.priceType === 'MINIMUM')
+          ? parseFloat(addFormData.priceMin)
+          : null,
+        priceMax: !addFormData.isFree && addFormData.priceType === 'RANGE' ? parseFloat(addFormData.priceMax) : null,
+        description: finalDescription,
+        clientModelId: addFormData.clientModelId || null,
+      };
 
-    const createData = {
-      value: shortCode,
-      label: inputValue,
-      category: addFormData.category,
-      pageType: finalPageType,
-      isFree: addFormData.isFree,
-      priceType: addFormData.isFree ? null : addFormData.priceType,
-      priceFixed: !addFormData.isFree && addFormData.priceType === 'FIXED' ? parseFloat(addFormData.priceFixed) : null,
-      priceMin: !addFormData.isFree && (addFormData.priceType === 'RANGE' || addFormData.priceType === 'MINIMUM')
-        ? parseFloat(addFormData.priceMin)
-        : null,
-      priceMax: !addFormData.isFree && addFormData.priceType === 'RANGE' ? parseFloat(addFormData.priceMax) : null,
-      description: finalDescription,
-      clientModelId: addFormData.clientModelId || null,
-    };
+      return fetch('/api/content-type-options', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(createData),
+      }).then(res => res.json());
+    });
 
-    createMutation.mutate(createData, {
-      onSuccess: (data, variables) => {
+    // Execute all creates and handle results
+    Promise.all(createPromises).then(results => {
+      const failedResults = results.filter(r => !r.success);
+
+      if (failedResults.length > 0) {
+        toast.error(`Failed to create ${failedResults.length} content type(s): ${failedResults[0].error}`);
+      } else {
         queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
-        toast.success('Content type created successfully');
+        toast.success(`Successfully created ${pageTypesToCreate.length} content type(s)`);
 
         if (!addAnother) {
           setAddDialogOpen(false);
@@ -672,8 +809,13 @@ const ContentTypePricingTab = () => {
           isFree: addAnother ? addFormData.isFree : false,
           clientModelId: addAnother ? addFormData.clientModelId : '',
         });
-      },
+      }
+    }).catch(error => {
+      toast.error(error.message || 'Failed to create content types');
+    }).finally(() => {
+      setIsCreating(false);
     });
+
   };
 
   // Format price display
@@ -981,7 +1123,7 @@ const ContentTypePricingTab = () => {
                       <Card key={key} className="flex flex-col hover:shadow-lg transition-shadow">
                         {/* Model Card Header */}
                         <CardHeader className="pb-3 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 border-b">
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between mb-2">
                             <div className="flex items-center gap-2">
                               <Checkbox
                                 checked={group.options.every(opt => selectedIds.has(opt.id))}
@@ -1008,6 +1150,77 @@ const ContentTypePricingTab = () => {
                               {group.options.length}
                             </Badge>
                           </div>
+
+                          {/* Model Pricing Description */}
+                          {group.modelId && group.model && (
+                            <div className="mt-2 ml-7">
+                              {editingModelDescriptionId === group.modelId ? (
+                                <div className="space-y-2">
+                                  <textarea
+                                    value={modelDescriptionText}
+                                    onChange={(e) => setModelDescriptionText(e.target.value)}
+                                    placeholder="Add pricing notes for this model (applies to all content types)..."
+                                    className="w-full text-xs p-2 border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
+                                    rows={2}
+                                  />
+                                  <div className="flex gap-2">
+                                    <Button
+                                      size="sm"
+                                      onClick={() => handleSaveModelDescription(group.modelId!)}
+                                      disabled={updateModelDescriptionMutation.isPending}
+                                      className="text-xs h-7 bg-pink-600 hover:bg-pink-700"
+                                    >
+                                      {updateModelDescriptionMutation.isPending ? (
+                                        <>
+                                          <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                                          Saving...
+                                        </>
+                                      ) : (
+                                        'Save'
+                                      )}
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={handleCancelModelDescriptionEdit}
+                                      disabled={updateModelDescriptionMutation.isPending}
+                                      className="text-xs h-7"
+                                    >
+                                      Cancel
+                                    </Button>
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="flex items-start gap-2 group/desc">
+                                  {group.model.pricingDescription ? (
+                                    <>
+                                      <p className="text-xs text-gray-600 dark:text-gray-400 italic flex-1">
+                                        {group.model.pricingDescription}
+                                      </p>
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        onClick={() => handleEditModelDescription(group.modelId!, group.model?.pricingDescription)}
+                                        className="text-xs h-6 px-2 opacity-0 group-hover/desc:opacity-100 transition-opacity"
+                                      >
+                                        <Edit className="w-3 h-3" />
+                                      </Button>
+                                    </>
+                                  ) : (
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      onClick={() => handleEditModelDescription(group.modelId!, null)}
+                                      className="text-xs h-6 px-2 text-gray-500 hover:text-pink-600"
+                                    >
+                                      <Plus className="w-3 h-3 mr-1" />
+                                      Add pricing notes
+                                    </Button>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          )}
                         </CardHeader>
 
                         {/* Content Types List */}
@@ -1548,7 +1761,7 @@ const ContentTypePricingTab = () => {
             <Button
               variant="outline"
               onClick={() => setAddDialogOpen(false)}
-              disabled={createMutation.isPending}
+              disabled={isCreating}
               className="w-full sm:w-auto"
             >
               Cancel
@@ -1557,9 +1770,9 @@ const ContentTypePricingTab = () => {
               <Button
                 onClick={() => handleCreate(false)}
                 className="bg-pink-600 hover:bg-pink-700 flex-1 sm:flex-initial"
-                disabled={createMutation.isPending}
+                disabled={isCreating}
               >
-                {createMutation.isPending ? (
+                {isCreating ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Creating...
@@ -1575,9 +1788,9 @@ const ContentTypePricingTab = () => {
                 onClick={() => handleCreate(true)}
                 variant="outline"
                 className="border-pink-600 text-pink-600 hover:bg-pink-50 flex-1 sm:flex-initial"
-                disabled={createMutation.isPending}
+                disabled={isCreating}
               >
-                {createMutation.isPending ? (
+                {isCreating ? (
                   <>
                     <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
                     Creating...

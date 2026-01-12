@@ -341,6 +341,7 @@ model ClientModel {
   restrictedTermsEmojis String?
   notes                 String?
   generalNotes          String?
+  pricingDescription    String?
   mainInstagram         String?
   mainTwitter           String?
   mainTiktok            String?

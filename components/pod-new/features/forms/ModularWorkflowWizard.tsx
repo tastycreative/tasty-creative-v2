@@ -1524,6 +1524,17 @@ export default function ModularWorkflowWizard() {
                           ? "Loading content types..."
                           : "Select from available content types with pricing"}
                       </p>
+
+                      {/* Model Pricing Description */}
+                      {selectedContentTypeOption?.clientModel?.pricingDescription && (
+                        <div className="mt-2 p-2 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                          <p className="text-xs text-blue-800 dark:text-blue-200 italic">
+                            📋 <span className="font-semibold">Model Pricing Note:</span>{" "}
+                            {selectedContentTypeOption.clientModel.pricingDescription}
+                          </p>
+                        </div>
+                      )}
+
                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
                         💡 Need to update prices?{" "}
                         <Link

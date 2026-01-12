@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
           status: true,
           profilePicture: true,
           profileLink: true,
+          pricingDescription: true,
         },
         orderBy: {
           clientName: 'asc'
@@ -97,6 +98,7 @@ export async function GET(request: NextRequest) {
       name: model.name,
       status: model.status,
       profilePicture: convertGoogleDriveLink(model.profileLink) || convertGoogleDriveLink(model.profilePicture) || null,
+      pricingDescription: model.pricingDescription || null,
     }));
 
     return NextResponse.json({
