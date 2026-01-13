@@ -101,6 +101,8 @@ const ContentTypePricingTab = () => {
   const [editingModelDescriptionId, setEditingModelDescriptionId] = useState<string | null>(null);
   const [modelDescriptionText, setModelDescriptionText] = useState<string>('');
   const [isCreating, setIsCreating] = useState(false);
+  const [variationDialogOpen, setVariationDialogOpen] = useState(false);
+  const [variationSourceOption, setVariationSourceOption] = useState<ContentTypeOption | null>(null);
 
   // Form state for editing
   const [formData, setFormData] = useState({
@@ -1301,6 +1303,18 @@ const ContentTypePricingTab = () => {
                                     <Button
                                       variant="ghost"
                                       size="icon"
+                                      onClick={() => {
+                                        setVariationSourceOption(option);
+                                        setVariationDialogOpen(true);
+                                      }}
+                                      className="h-7 w-7 hover:bg-green-50 hover:text-green-600"
+                                      title="Add price variation"
+                                    >
+                                      <Plus className="w-3.5 h-3.5" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
                                       onClick={() => handleDeleteClick(option)}
                                       className="h-7 w-7 hover:bg-red-50 hover:text-red-600"
                                       title="Deactivate content type"
@@ -1448,6 +1462,18 @@ const ContentTypePricingTab = () => {
                                 <Button
                                   variant="outline"
                                   size="icon"
+                                  onClick={() => {
+                                    setVariationSourceOption(option);
+                                    setVariationDialogOpen(true);
+                                  }}
+                                  className="h-8 w-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                  title="Add price variation"
+                                >
+                                  <Plus className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="icon"
                                   onClick={() => handleDeleteClick(option)}
                                   className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50"
                                   title="Deactivate content type"
@@ -1470,7 +1496,7 @@ const ContentTypePricingTab = () => {
 
       {/* Add New Content Type Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto w-[95vw] sm:w-full">
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[96vw] sm:w-full overflow-x-auto">
           <DialogHeader>
             <DialogTitle>Add New Content Type</DialogTitle>
             <DialogDescription>
@@ -1760,19 +1786,20 @@ const ContentTypePricingTab = () => {
               />
             </div>
           </div>
-          <DialogFooter className="flex-col sm:flex-row gap-2">
-            <Button
-              variant="outline"
-              onClick={() => setAddDialogOpen(false)}
-              disabled={isCreating}
-              className="w-full sm:w-auto"
-            >
-              Cancel
-            </Button>
-            <div className="flex gap-2 flex-1 sm:flex-initial">
+          <DialogFooter className="flex flex-col gap-3">
+            {/* First Row: Cancel and Create */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button
+                variant="outline"
+                onClick={() => setAddDialogOpen(false)}
+                disabled={isCreating}
+                className="w-full sm:flex-1 order-2 sm:order-1"
+              >
+                Cancel
+              </Button>
               <Button
                 onClick={() => handleCreate(false)}
-                className="bg-pink-600 hover:bg-pink-700 flex-1 sm:flex-initial"
+                className="bg-pink-600 hover:bg-pink-700 w-full sm:flex-1 order-1 sm:order-2"
                 disabled={isCreating}
               >
                 {isCreating ? (
@@ -1787,10 +1814,14 @@ const ContentTypePricingTab = () => {
                   </>
                 )}
               </Button>
+            </div>
+
+            {/* Second Row: Add Another and Add Variation */}
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={() => handleCreate(true)}
                 variant="outline"
-                className="border-pink-600 text-pink-600 hover:bg-pink-50 flex-1 sm:flex-initial"
+                className="border-pink-600 text-pink-600 hover:bg-pink-50 w-full sm:flex-1"
                 disabled={isCreating}
               >
                 {isCreating ? (
@@ -1801,7 +1832,105 @@ const ContentTypePricingTab = () => {
                 ) : (
                   <>
                     <Plus className="w-4 h-4 mr-2" />
-                    <span className="hidden sm:inline">Create &</span> Add Another
+                    Add Another
+                  </>
+                )}
+              </Button>
+              <Button
+                onClick={async () => {
+                  // Create the content type first
+                  const { shortCode, inputValue, pageTypesToCreate } = (() => {
+                    const parts = addFormData.value.trim().split(/\s+/);
+                    const code = parts.map(word => word.charAt(0).toUpperCase()).join('');
+                    const types = addFormData.pageTypes.length > 0 ? addFormData.pageTypes : ['ALL_PAGES'];
+                    return { shortCode: code, inputValue: addFormData.value.trim(), pageTypesToCreate: types };
+                  })();
+
+                  if (!inputValue) {
+                    toast.error('Content type name is required');
+                    return;
+                  }
+
+                  setIsCreating(true);
+
+                  try {
+                    const createPromises = pageTypesToCreate.map(pageType => {
+                      const createData = {
+                        value: shortCode,
+                        label: inputValue,
+                        category: addFormData.category,
+                        pageType: pageType,
+                        priceType: addFormData.isFree ? null : addFormData.priceType,
+                        priceFixed: addFormData.isFree ? null : (addFormData.priceFixed ? parseFloat(addFormData.priceFixed) : null),
+                        priceMin: addFormData.isFree ? null : (addFormData.priceMin ? parseFloat(addFormData.priceMin) : null),
+                        priceMax: addFormData.isFree ? null : (addFormData.priceMax ? parseFloat(addFormData.priceMax) : null),
+                        description: addFormData.description || null,
+                        order: 0,
+                        isFree: addFormData.isFree,
+                        clientModelId: addFormData.clientModelId || null,
+                      };
+
+                      return fetch('/api/content-type-options', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(createData),
+                      }).then(res => res.json());
+                    });
+
+                    const results = await Promise.all(createPromises);
+                    const allSuccessful = results.every(result => result.success);
+
+                    if (allSuccessful) {
+                      const firstCreated = results[0].contentTypeOption;
+                      toast.success('Content type created! Opening variation dialog...');
+                      queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
+
+                      // Close add dialog
+                      setAddDialogOpen(false);
+
+                      // Reset add form
+                      setAddFormData({
+                        value: '',
+                        category: 'PORN_ACCURATE',
+                        pageTypes: ['ALL_PAGES'],
+                        isFree: false,
+                        priceType: 'FIXED',
+                        priceFixed: '',
+                        priceMin: '',
+                        priceMax: '',
+                        description: '',
+                        clientModelId: '',
+                      });
+
+                      // Open variation dialog with the first created option
+                      setTimeout(() => {
+                        setVariationSourceOption(firstCreated);
+                        setVariationDialogOpen(true);
+                      }, 300);
+                    } else {
+                      const errors = results.filter(r => !r.success).map(r => r.error);
+                      toast.error('Some content types failed to create: ' + errors.join(', '));
+                    }
+                  } catch (error) {
+                    console.error('Error creating content type:', error);
+                    toast.error('Failed to create content type');
+                  } finally {
+                    setIsCreating(false);
+                  }
+                }}
+                variant="outline"
+                className="border-green-600 text-green-600 hover:bg-green-50 w-full sm:flex-1"
+                disabled={isCreating}
+              >
+                {isCreating ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Variation
                   </>
                 )}
               </Button>
@@ -2321,6 +2450,280 @@ const ContentTypePricingTab = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setHistoryDialogOpen(false)}>
               Close
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Price Variation Dialog */}
+      <Dialog open={variationDialogOpen} onOpenChange={setVariationDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto w-[96vw] sm:w-full overflow-x-auto">
+          <DialogHeader>
+            <DialogTitle>Add Price Variation</DialogTitle>
+            <DialogDescription>
+              Create a new pricing option for <span className="font-semibold text-pink-600">{variationSourceOption?.label}</span>.
+              The content type, model, tier, and page type will be copied from the original.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Show source info */}
+            {variationSourceOption && (
+              <Alert className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                <AlertDescription className="text-sm">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div><span className="font-semibold">Content Type:</span> {variationSourceOption.label}</div>
+                    <div><span className="font-semibold">Tier:</span> {getCategoryName(variationSourceOption.category)}</div>
+                    <div><span className="font-semibold">Page Type:</span> {getPageTypeName(variationSourceOption.pageType)}</div>
+                    <div><span className="font-semibold">Model:</span> {variationSourceOption.clientModel?.clientName || 'Global'}</div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {/* Description */}
+            <div>
+              <Label htmlFor="variation-description">Description *</Label>
+              <Input
+                id="variation-description"
+                placeholder="e.g., 40 mixed vids & pics SFW contents"
+                value={addFormData.description}
+                onChange={(e) => setAddFormData({ ...addFormData, description: e.target.value })}
+                className="mt-1.5"
+              />
+              <p className="text-xs text-gray-500 mt-1">Describe what makes this variation different</p>
+            </div>
+
+            {/* Is Free */}
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="variation-is-free"
+                checked={addFormData.isFree}
+                onCheckedChange={(checked) =>
+                  setAddFormData({
+                    ...addFormData,
+                    isFree: checked as boolean,
+                    priceType: checked ? '' : 'FIXED',
+                    priceFixed: '',
+                    priceMin: '',
+                    priceMax: '',
+                  })
+                }
+              />
+              <Label htmlFor="variation-is-free" className="cursor-pointer">
+                This is a free content type (no pricing)
+              </Label>
+            </div>
+
+            {/* Price Type */}
+            {!addFormData.isFree && (
+              <>
+                <div>
+                  <Label htmlFor="variation-price-type">Price Type *</Label>
+                  <Select
+                    value={addFormData.priceType}
+                    onValueChange={(value) =>
+                      setAddFormData({
+                        ...addFormData,
+                        priceType: value,
+                        priceFixed: '',
+                        priceMin: '',
+                        priceMax: '',
+                      })
+                    }
+                  >
+                    <SelectTrigger className="mt-1.5">
+                      <SelectValue placeholder="Select price type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="FIXED">Fixed Price</SelectItem>
+                      <SelectItem value="RANGE">Price Range</SelectItem>
+                      <SelectItem value="MINIMUM">Minimum Price</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Price Inputs based on type */}
+                {addFormData.priceType === 'FIXED' && (
+                  <div>
+                    <Label htmlFor="variation-price-fixed">Fixed Price ($) *</Label>
+                    <Input
+                      id="variation-price-fixed"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g., 10.00"
+                      value={addFormData.priceFixed}
+                      onChange={(e) => setAddFormData({ ...addFormData, priceFixed: e.target.value })}
+                      className="mt-1.5"
+                    />
+                  </div>
+                )}
+
+                {addFormData.priceType === 'RANGE' && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="variation-price-min">Min Price ($) *</Label>
+                      <Input
+                        id="variation-price-min"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="e.g., 10.00"
+                        value={addFormData.priceMin}
+                        onChange={(e) => setAddFormData({ ...addFormData, priceMin: e.target.value })}
+                        className="mt-1.5"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="variation-price-max">Max Price ($) *</Label>
+                      <Input
+                        id="variation-price-max"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        placeholder="e.g., 24.00"
+                        value={addFormData.priceMax}
+                        onChange={(e) => setAddFormData({ ...addFormData, priceMax: e.target.value })}
+                        className="mt-1.5"
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {addFormData.priceType === 'MINIMUM' && (
+                  <div>
+                    <Label htmlFor="variation-price-minimum">Minimum Price ($) *</Label>
+                    <Input
+                      id="variation-price-minimum"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      placeholder="e.g., 24.00"
+                      value={addFormData.priceMin}
+                      onChange={(e) => setAddFormData({ ...addFormData, priceMin: e.target.value })}
+                      className="mt-1.5"
+                    />
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setVariationDialogOpen(false);
+                setVariationSourceOption(null);
+                setAddFormData({
+                  value: '',
+                  category: 'PORN_ACCURATE',
+                  pageTypes: ['ALL_PAGES'],
+                  isFree: false,
+                  priceType: 'FIXED',
+                  priceFixed: '',
+                  priceMin: '',
+                  priceMax: '',
+                  description: '',
+                  clientModelId: '',
+                });
+              }}
+              disabled={isCreating}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={async () => {
+                if (!variationSourceOption) return;
+
+                // Validation
+                if (!addFormData.description.trim()) {
+                  toast.error('Description is required');
+                  return;
+                }
+
+                if (!addFormData.isFree) {
+                  if (addFormData.priceType === 'FIXED' && !addFormData.priceFixed) {
+                    toast.error('Fixed price is required');
+                    return;
+                  }
+                  if (addFormData.priceType === 'RANGE' && (!addFormData.priceMin || !addFormData.priceMax)) {
+                    toast.error('Min and max prices are required');
+                    return;
+                  }
+                  if (addFormData.priceType === 'MINIMUM' && !addFormData.priceMin) {
+                    toast.error('Minimum price is required');
+                    return;
+                  }
+                }
+
+                setIsCreating(true);
+
+                // Create the variation
+                try {
+                  const response = await fetch('/api/content-type-options', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      value: variationSourceOption.value,
+                      label: variationSourceOption.label,
+                      category: variationSourceOption.category,
+                      pageType: variationSourceOption.pageType,
+                      clientModelId: variationSourceOption.clientModelId,
+                      description: addFormData.description,
+                      isFree: addFormData.isFree,
+                      priceType: addFormData.isFree ? null : addFormData.priceType,
+                      priceFixed: addFormData.isFree ? null : (addFormData.priceFixed ? parseFloat(addFormData.priceFixed) : null),
+                      priceMin: addFormData.isFree ? null : (addFormData.priceMin ? parseFloat(addFormData.priceMin) : null),
+                      priceMax: addFormData.isFree ? null : (addFormData.priceMax ? parseFloat(addFormData.priceMax) : null),
+                      order: variationSourceOption.order,
+                    }),
+                  });
+
+                  const data = await response.json();
+
+                  if (data.success) {
+                    toast.success('Price variation created successfully');
+                    queryClient.invalidateQueries({ queryKey: ['content-type-options'] });
+                    setVariationDialogOpen(false);
+                    setVariationSourceOption(null);
+                    setAddFormData({
+                      value: '',
+                      category: 'PORN_ACCURATE',
+                      pageTypes: ['ALL_PAGES'],
+                      isFree: false,
+                      priceType: 'FIXED',
+                      priceFixed: '',
+                      priceMin: '',
+                      priceMax: '',
+                      description: '',
+                      clientModelId: '',
+                    });
+                  } else {
+                    toast.error(data.error || 'Failed to create price variation');
+                  }
+                } catch (error) {
+                  console.error('Error creating price variation:', error);
+                  toast.error('Failed to create price variation');
+                } finally {
+                  setIsCreating(false);
+                }
+              }}
+              className="bg-pink-600 hover:bg-pink-700"
+              disabled={isCreating}
+            >
+              {isCreating ? (
+                <>
+                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  Creating...
+                </>
+              ) : (
+                <>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Variation
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

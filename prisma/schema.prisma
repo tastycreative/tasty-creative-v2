@@ -1284,13 +1284,15 @@ model ContentTypeOption {
   pricingHistory ContentTypePricingHistory[] @relation("ContentTypePricingHistory")
   workflows      ModularWorkflow[]           @relation("WorkflowContentType")
 
-  @@unique([value, category, clientModelId, pageType])
+  // Removed unique constraint to allow price variations with same value/category/model/pageType
+  // Multiple pricing options can now exist for the same content type
   @@index([isActive])
   @@index([order])
   @@index([category])
   @@index([isFree])
   @@index([clientModelId])
   @@index([pageType])
+  @@index([value, category, clientModelId, pageType])
 }
 
 model ContentTypePricingHistory {
