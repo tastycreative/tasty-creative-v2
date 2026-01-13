@@ -5,56 +5,31 @@ export async function GET(request: NextRequest) {
   try {
     console.log('🎭 Fetching client models from database...');
     
-    // Fetch all client models with basic error handling
-    let clientModels;
-    try {
-      clientModels = await prisma.clientModel.findMany({
-        where: {
-          // Filter for active models - adjust status values as needed
-          status: {
-            notIn: ['inactive', 'deleted', 'disabled']
-          }
+    // Fetch all client models
+    const clientModels = await prisma.clientModel.findMany({
+      where: {
+        // Filter for active models - adjust status values as needed
+        status: {
+          notIn: ['inactive', 'deleted', 'disabled']
         },
-        select: {
-          id: true,
-          clientName: true,
-          name: true,
-          status: true,
-          profilePicture: true,
-          profileLink: true,
-          pricingDescription: true,
-        },
-        orderBy: {
-          clientName: 'asc'
+        // Exclude specific duplicate model with trailing space
+        NOT: {
+          id: '6994e66a-d6d8-46b8-8e22-c300b349d2d5' //Lilah with whitespace
         }
-      });
-    } catch (prismaError) {
-      console.error('❌ Prisma error:', prismaError);
-      // Fallback data if database query fails
-      clientModels = [
-        {
-          id: 'fallback-1',
-          clientName: 'Alanna',
-          name: 'Alanna',
-          status: 'active',
-          profilePicture: null
-        },
-        {
-          id: 'fallback-2', 
-          clientName: 'Sarah',
-          name: 'Sarah',
-          status: 'active',
-          profilePicture: null
-        },
-        {
-          id: 'fallback-3',
-          clientName: 'Jessica', 
-          name: 'Jessica',
-          status: 'active',
-          profilePicture: null
-        }
-      ];
-    }
+      },
+      select: {
+        id: true,
+        clientName: true,
+        name: true,
+        status: true,
+        profilePicture: true,
+        profileLink: true,
+        pricingDescription: true,
+      },
+      orderBy: {
+        clientName: 'asc'
+      }
+    });
 
     console.log(`✅ Found ${clientModels.length} client models`);
 
@@ -108,33 +83,11 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error("❌ Error fetching client models:", error);
-    
-    // Return fallback data instead of failing completely
+
     return NextResponse.json({
-      success: true,
-      clientModels: [
-        {
-          id: 'fallback-1',
-          clientName: 'Alanna',
-          name: 'Alanna', 
-          status: 'active',
-          profilePicture: null
-        },
-        {
-          id: 'fallback-2',
-          clientName: 'Sarah',
-          name: 'Sarah',
-          status: 'active', 
-          profilePicture: null
-        },
-        {
-          id: 'fallback-3',
-          clientName: 'Jessica',
-          name: 'Jessica',
-          status: 'active',
-          profilePicture: null
-        }
-      ]
-    });
+      success: false,
+      error: 'Failed to fetch client models',
+      clientModels: []
+    }, { status: 500 });
   }
 }
