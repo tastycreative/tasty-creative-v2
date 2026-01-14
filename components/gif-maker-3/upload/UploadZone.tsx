@@ -31,16 +31,16 @@ const UploadZone: React.FC<UploadZoneProps> = ({
   return (
     <div className="group">
       <div className="flex items-center gap-3 mb-3">
-        <div className="w-6 h-6 rounded-lg bg-gradient-to-r from-emerald-500 to-blue-500 flex items-center justify-center">
-          <Upload className="w-3 h-3 text-white" />
+        <div className="w-6 h-6 rounded-lg bg-pink-500/10 dark:bg-pink-500/20 border border-pink-300/50 dark:border-pink-500/30 flex items-center justify-center">
+          <Upload className="w-3 h-3 text-pink-500 dark:text-pink-400" />
         </div>
-        <h3 className="text-sm font-semibold text-gray-800 dark:text-slate-200">Upload Media</h3>
+        <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">Upload Media</h3>
       </div>
       <div
         className={`relative border-2 border-dashed rounded-2xl p-8 text-center transition-all duration-300 cursor-pointer overflow-hidden ${
           isDragOver
-            ? "border-blue-400 bg-gradient-to-br from-blue-50 via-blue-50 to-purple-50 dark:from-blue-900/20 dark:via-blue-800/20 dark:to-purple-900/20 scale-105 shadow-xl shadow-blue-500/20"
-            : "border-gray-300 dark:border-slate-600 bg-gradient-to-br from-white to-gray-50 dark:from-slate-800/50 dark:to-slate-700/50 hover:border-emerald-400 dark:hover:border-emerald-500 hover:shadow-lg hover:shadow-emerald-500/10 hover:scale-[1.02]"
+            ? "border-pink-400 bg-gradient-to-br from-pink-50 via-purple-50 to-pink-50 dark:from-pink-900/20 dark:via-purple-900/20 dark:to-pink-900/20 scale-105 shadow-xl shadow-pink-500/20"
+            : "border-pink-200 dark:border-pink-500/30 bg-gradient-to-br from-white to-pink-50/30 dark:from-[#1a1a1f] dark:to-purple-900/10 hover:border-pink-400 dark:hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/10 hover:scale-[1.02]"
         }`}
         onDragOver={onDragOver}
         onDragLeave={onDragLeave}
@@ -48,33 +48,30 @@ const UploadZone: React.FC<UploadZoneProps> = ({
         onClick={handleClick}
       >
         {/* Background Pattern */}
-        <div className="absolute inset-0 opacity-5">
-          <div className="absolute inset-0" style={{
-            backgroundImage: `radial-gradient(circle at 2px 2px, currentColor 1px, transparent 0)`,
-            backgroundSize: '20px 20px'
-          }}></div>
+        <div className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
         </div>
 
         <div className="relative z-10">
-          <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all duration-300 ${
-            isDragOver 
-              ? "bg-gradient-to-br from-blue-500 to-purple-500 shadow-xl shadow-blue-500/30" 
-              : "bg-gradient-to-br from-emerald-500 to-blue-500 group-hover:shadow-lg group-hover:shadow-emerald-500/30 group-hover:scale-110"
+          <div className={`w-16 h-16 mx-auto mb-4 rounded-2xl flex items-center justify-center transition-all duration-300 border ${
+            isDragOver
+              ? "bg-pink-500/20 dark:bg-pink-500/10 border-pink-400 shadow-xl shadow-pink-500/20"
+              : "bg-pink-500/10 dark:bg-pink-500/5 border-pink-300/50 dark:border-pink-500/20 group-hover:shadow-lg group-hover:shadow-pink-500/10 group-hover:scale-110 group-hover:border-pink-400"
           }`}>
-            <Upload className={`transition-all duration-300 text-white ${
+            <Upload className={`transition-all duration-300 text-pink-500 dark:text-pink-400 ${
               isDragOver ? "w-7 h-7" : "w-6 h-6"
             }`} />
           </div>
-          
+
           <p className={`font-medium mb-2 transition-colors ${
-            isDragOver 
-              ? "text-blue-600 dark:text-blue-400 text-base" 
-              : "text-gray-700 dark:text-slate-300 text-sm"
+            isDragOver
+              ? "text-pink-600 dark:text-pink-400 text-base"
+              : "text-gray-700 dark:text-gray-300 text-sm"
           }`}>
             {dragText}
           </p>
-          
-          <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300 bg-emerald-50 dark:bg-emerald-900/20 rounded-lg hover:bg-emerald-100 dark:hover:bg-emerald-800/30 transition-all duration-200 border border-emerald-200 dark:border-emerald-800/50">
+
+          <button className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-pink-600 dark:text-pink-400 hover:text-pink-700 dark:hover:text-pink-300 bg-pink-50 dark:bg-pink-900/20 rounded-xl hover:bg-pink-100 dark:hover:bg-pink-800/30 transition-all duration-200 border border-pink-200 dark:border-pink-500/30">
             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
             </svg>

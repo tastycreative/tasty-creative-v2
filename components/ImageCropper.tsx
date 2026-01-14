@@ -370,16 +370,16 @@ export default function ImageCropper({
 
   return (
     <div className={cn("flex flex-col gap-2 w-full", className)}>
-      <label className="block text-sm font-medium">
+      <label className="block text-sm font-medium text-gray-700 dark:text-gray-200">
         {imageType !== null ? "Upload" : "Download"}{" "}
         {!customRequest ? "and Crop Image" : "Image to be sent"}
       </label>
-      <div className="flex gap-2">
-        <div className="flex gap-2">
+      <div className="flex gap-4">
+        <div className="flex gap-2 items-center">
           <input
             type="checkbox"
             id={`${id}-custom`}
-            className="accent-purple-600 cursor-pointer"
+            className="accent-pink-600 cursor-pointer w-4 h-4"
             checked={imageType === "custom"}
             onChange={(e) => {
               if (e.target.checked) {
@@ -389,15 +389,15 @@ export default function ImageCropper({
               }
             }}
           />
-          <label htmlFor={`${id}-custom`} className="cursor-pointer text-white">
+          <label htmlFor={`${id}-custom`} className="cursor-pointer text-gray-700 dark:text-gray-200 text-sm font-medium">
             Custom Image
           </label>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 items-center">
           <input
             type="checkbox"
             id={`${id}-vault`}
-            className="accent-purple-600 cursor-pointer"
+            className="accent-pink-600 cursor-pointer w-4 h-4"
             checked={imageType === "vault"}
             onChange={(e) => {
               if (e.target.checked) {
@@ -407,7 +407,7 @@ export default function ImageCropper({
               }
             }}
           />
-          <label htmlFor={`${id}-vault`} className="cursor-pointer text-white">
+          <label htmlFor={`${id}-vault`} className="cursor-pointer text-gray-700 dark:text-gray-200 text-sm font-medium">
             Vault Selector
           </label>
         </div>
@@ -417,8 +417,8 @@ export default function ImageCropper({
           <div className="w-full">
             <label
               className={cn(
-                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
-                { "border border-red-500 text-red-500": error }
+                "px-4 w-full py-3 bg-white/70 dark:bg-[#121216] text-gray-700 dark:text-gray-200 rounded-2xl flex items-center justify-center gap-2 border border-pink-200 dark:border-pink-500/30 hover:border-pink-400 dark:hover:border-pink-400 cursor-pointer transition-all duration-200 font-medium shadow-sm hover:shadow-md",
+                { "!border-red-500 !text-red-500": error }
               )}
             >
               <input
@@ -437,7 +437,7 @@ export default function ImageCropper({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                className={cn("text-white", { "text-red-500": error })}
+                className={cn("text-pink-600 dark:text-pink-400", { "!text-red-500": error })}
               >
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7" />
                 <line x1="16" y1="5" x2="22" y2="5" />
@@ -448,31 +448,31 @@ export default function ImageCropper({
           </div>
         ) : imageType === "vault" ? (
           <>
-            <div className="mb-6">
-              <div className="flex items-center justify-between p-4 bg-gray-800 dark:bg-gray-900 rounded-lg">
+            <div className="mb-4">
+              <div className="flex items-center justify-between p-4 bg-white/50 dark:bg-[#121216] rounded-2xl border border-pink-200/50 dark:border-pink-500/20">
                 <div className="flex items-center space-x-3">
                   <span
-                    className={`font-medium ${
-                      !isPaid ? "text-blue-400" : "text-gray-400"
+                    className={`font-medium text-sm ${
+                      !isPaid ? "text-pink-600 dark:text-pink-400" : "text-gray-400 dark:text-gray-500"
                     }`}
                   >
                     Free
                   </span>
                   <div
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-200 ease-in-out cursor-pointer ${
-                      isPaid ? "bg-blue-600" : "bg-gray-600"
+                      isPaid ? "bg-gradient-to-r from-pink-500 to-purple-500" : "bg-gray-200 dark:bg-gray-600"
                     }`}
                     onClick={() => handleToggleChange(!isPaid)}
                   >
                     <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out ${
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-200 ease-in-out shadow-sm ${
                         isPaid ? "translate-x-6" : "translate-x-1"
                       }`}
                     />
                   </div>
                   <span
-                    className={`font-medium ${
-                      isPaid ? "text-blue-400" : "text-gray-400"
+                    className={`font-medium text-sm ${
+                      isPaid ? "text-pink-600 dark:text-pink-400" : "text-gray-400 dark:text-gray-500"
                     }`}
                   >
                     Paid
@@ -485,8 +485,8 @@ export default function ImageCropper({
               disabled={!model}
               onClick={handleVaultSelect}
               className={cn(
-                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
-                { "border border-red-500 text-red-500": error }
+                "px-4 w-full py-3 bg-white/70 dark:bg-[#121216] text-gray-700 dark:text-gray-200 rounded-2xl flex items-center justify-center gap-2 border border-pink-200 dark:border-pink-500/30 hover:border-pink-400 dark:hover:border-pink-400 transition-all duration-200 font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed",
+                { "!border-red-500 !text-red-500": error }
               )}
             >
               <svg
@@ -499,6 +499,7 @@ export default function ImageCropper({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="text-pink-600 dark:text-pink-400"
               >
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
                 <line x1="16" y1="5" x2="22" y2="5"></line>
@@ -520,8 +521,8 @@ export default function ImageCropper({
               disabled={!model}
               onClick={handleGoogleDriveSelect}
               className={cn(
-                "px-4 w-full py-2 bg-black/60 text-white rounded-lg flex items-center justify-center gap-2",
-                { "border border-red-500 text-red-500": error }
+                "px-4 w-full py-3 bg-white/70 dark:bg-[#121216] text-gray-700 dark:text-gray-200 rounded-2xl flex items-center justify-center gap-2 border border-pink-200 dark:border-pink-500/30 hover:border-pink-400 dark:hover:border-pink-400 transition-all duration-200 font-medium shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed",
+                { "!border-red-500 !text-red-500": error }
               )}
             >
               <svg
@@ -534,6 +535,7 @@ export default function ImageCropper({
                 strokeWidth="2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
+                className="text-pink-600 dark:text-pink-400"
               >
                 <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h7"></path>
                 <line x1="16" y1="5" x2="22" y2="5"></line>
@@ -559,13 +561,13 @@ export default function ImageCropper({
       {selectedImage && (
         <div className="flex flex-col w-full items-center gap-4">
           {!customRequest && (
-            <p className="text-xs text-gray-300 dark:text-gray-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               Crop area will maintain a {id === "default" ? "4:5" : "1:2"} ratio{" "}
               {id === "default" ? "(1080x1350px)" : "(500x1000px)"}
             </p>
           )}
 
-          <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+          <div className="border border-pink-200 dark:border-pink-500/30 rounded-2xl overflow-hidden shadow-sm">
             {customRequest ? (
               <Image
                 ref={imageRef}
@@ -604,7 +606,7 @@ export default function ImageCropper({
               <button
                 type="button"
                 onClick={generateCroppedImage}
-                className={`px-6 py-3 bg-gradient-to-r from-purple-600 to-indigo-600 text-white rounded-lg font-medium shadow-md hover:shadow-purple-200 transition-all duration-300 hover:-translate-y-0.5 flex items-center gap-2 ${
+                className={`px-6 py-3 bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white rounded-2xl font-medium shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30 transition-all duration-200 flex items-center gap-2 ${
                   !completedCrop ? "opacity-50 cursor-not-allowed" : ""
                 }`}
                 disabled={!completedCrop}
@@ -637,7 +639,7 @@ export default function ImageCropper({
                 Apply Crop
               </button>
 
-              <div className="text-sm text-gray-500 dark:text-gray-400 bg-black/40 dark:bg-gray-800/60 px-4 py-2 rounded-lg border dark:border-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400 bg-white/50 dark:bg-[#121216] px-4 py-2 rounded-2xl border border-pink-200/50 dark:border-pink-500/20">
                 {imageSize.width > 0 && (
                   <div className="flex items-center gap-2">
                     <svg
@@ -668,17 +670,22 @@ export default function ImageCropper({
 
       {/* Google Drive File Picker Modal */}
       {showFilePicker && typeof window !== 'undefined' && createPortal(
-        <div className="fixed inset-0 bg-black/50 dark:bg-white/20 backdrop-blur-sm flex items-center justify-center" style={{ zIndex: 9999 }}>
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 backdrop-blur-sm flex items-center justify-center" style={{ zIndex: 9999 }}>
           <div
             className={cn(
-              "bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg w-[90vw] h-[80vh] max-w-6xl shadow-2xl overflow-auto relative",
+              "bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-[#121216] dark:via-[#121216] dark:to-purple-900/10 border border-pink-200/60 dark:border-pink-500/20 rounded-2xl w-[90vw] h-[80vh] max-w-6xl shadow-2xl overflow-auto relative",
               { "overflow-hidden": isDownloading }
             )}
           >
+            {/* Background Pattern */}
+            <div className="absolute inset-0 opacity-[0.02] dark:opacity-[0.05] pointer-events-none">
+              <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.3),rgba(255,255,255,0))]"></div>
+            </div>
+
             {isDownloading && (
-              <div className="fixed inset-0 w-full min-h-screen flex flex-col items-center justify-center bg-black/90 overflow-hidden z-2">
+              <div className="fixed inset-0 w-full min-h-screen flex flex-col items-center justify-center bg-black/90 overflow-hidden z-50">
                 <svg
-                  className="animate-spin h-8 w-8 text-purple-500 mb-2"
+                  className="animate-spin h-8 w-8 text-pink-500 mb-2"
                   xmlns="http://www.w3.org/2000/svg"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -697,21 +704,21 @@ export default function ImageCropper({
                     d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                   ></path>
                 </svg>
-                <span className="text-sm text-gray-500 dark:text-gray-400">
+                <span className="text-sm text-gray-300 font-medium">
                   Downloading File...
                 </span>
               </div>
             )}
-            <div className="sticky top-0 pt-6 pb-2 px-6 bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm z-50 border-b border-gray-200 dark:border-gray-700">
+            <div className="sticky top-0 pt-6 pb-2 px-6 bg-white/90 dark:bg-[#121216]/95 backdrop-blur-sm z-40 border-b border-pink-200/60 dark:border-pink-500/20">
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-gray-900 dark:text-white">
+                <h3 className="text-lg font-bold bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent">
                   {currentFolder
                     ? `Folder: ${currentFolder.name}`
                     : "Select an image"}
                 </h3>
                 <button
                   onClick={() => setShowFilePicker(false)}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 cursor-pointer"
+                  className="p-2 rounded-xl text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 hover:bg-pink-50 dark:hover:bg-pink-500/10 cursor-pointer transition-all duration-200"
                 >
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
@@ -732,10 +739,10 @@ export default function ImageCropper({
 
               {/* Folder navigation */}
               {parentFolder && (
-                <div className="mb-4 w-full h-full px-6">
+                <div className="mb-4 w-full h-full">
                   <button
                     onClick={handleNavigateUp}
-                    className="flex items-center text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                    className="flex items-center text-sm text-pink-600 hover:text-pink-700 dark:text-pink-400 dark:hover:text-pink-300 font-medium transition-colors duration-200"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -759,18 +766,18 @@ export default function ImageCropper({
 
             {isGooglePickerLoading ? (
               <div className="flex justify-center items-center py-8 h-full w-full px-6">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-700 dark:border-purple-400"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-pink-500"></div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 px-6 pb-6">
+              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 px-6 pb-6 pt-4 relative">
                 {googleFiles.length > 0 ? (
                   googleFiles.map((file) => (
                     <div
                       key={file.id}
-                      className="border border-gray-200 dark:border-gray-600 rounded-md p-2 cursor-pointer hover:bg-gradient-to-r hover:from-purple-600 hover:to-blue-600 bg-white dark:bg-gray-700"
+                      className="group border border-pink-200/60 dark:border-pink-500/20 rounded-2xl p-3 cursor-pointer bg-white/70 dark:bg-[#1a1a1f] hover:border-pink-400 dark:hover:border-pink-400 hover:shadow-lg hover:shadow-pink-500/10 transition-all duration-200"
                       onClick={() => handleFileSelected(file)}
                     >
-                      <div className="h-24 bg-gray-100 dark:bg-gray-600 flex items-center justify-center mb-2 overflow-hidden rounded">
+                      <div className="h-24 bg-pink-50/50 dark:bg-pink-500/5 flex items-center justify-center mb-2 overflow-hidden rounded-xl">
                         {file.isFolder ? (
                           <svg
                             xmlns="http://www.w3.org/2000/svg"
@@ -782,7 +789,7 @@ export default function ImageCropper({
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="text-amber-500 dark:text-amber-400"
+                            className="text-pink-500 dark:text-pink-400"
                           >
                             <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
                           </svg>
@@ -821,7 +828,7 @@ export default function ImageCropper({
                           </svg>
                         )}
                       </div>
-                      <p className="text-xs truncate text-gray-900 dark:text-gray-100">
+                      <p className="text-xs truncate text-gray-700 dark:text-gray-200 font-medium">
                         {file.isFolder ? `📁 ${file.name}` : file.name}
                       </p>
                     </div>

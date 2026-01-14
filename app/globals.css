@@ -641,3 +641,82 @@ html, body {
 .pod-main-content > div {
   min-height: 100%;
 }
+
+/* Sidebar Scrollbar - Ultra Thin */
+.sidebar-scrollbar {
+  scrollbar-width: none; /* Firefox - hide default */
+}
+
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 3px !important;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(107, 114, 128, 0.4) !important;
+  border-radius: 3px !important;
+}
+
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(107, 114, 128, 0.6) !important;
+}
+
+/* Dark mode sidebar scrollbar */
+.dark .sidebar-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.5) !important;
+}
+
+.dark .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.7) !important;
+}
+
+/* Caption Bank - Glass Card Styles */
+.glass-card {
+  background: rgba(24, 26, 31, 0.4);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card:hover {
+  border-color: rgba(236, 72, 153, 0.3);
+  background: rgba(24, 26, 31, 0.6);
+  transform: translateY(-2px);
+}
+
+/* Caption Bank - Search Container */
+.search-container {
+  background: rgba(18, 20, 24, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Caption Bank - Pink Gradient Button */
+.pink-gradient {
+  background: linear-gradient(135deg, #ec4899 0%, #be185d 100%);
+}
+
+.pink-gradient:hover {
+  opacity: 0.9;
+}
+
+/* Caption Bank - Text Gradient */
+.text-gradient {
+  background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Caption Bank - No scrollbar utility */
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
