@@ -7,9 +7,32 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
     const category = searchParams.get("category");
-    const clientModelId = searchParams.get("clientModelId");
+    let clientModelId = searchParams.get("clientModelId");
+    const modelName = searchParams.get("modelName"); // NEW: Accept modelName parameter
     const pageType = searchParams.get("pageType");
     const fetchAll = searchParams.get("fetchAll"); // Special parameter to fetch all content types
+
+    // If modelName is provided but no clientModelId, look up the ID
+    if (modelName && !clientModelId) {
+      const clientModel = await prisma.clientModel.findFirst({
+        where: {
+          clientName: modelName,
+          status: {
+            notIn: ['inactive', 'deleted', 'disabled']
+          }
+        },
+        select: {
+          id: true
+        }
+      });
+
+      if (clientModel) {
+        clientModelId = clientModel.id;
+        console.log(`🔍 Looked up model "${modelName}" -> ID: ${clientModelId}`);
+      } else {
+        console.log(`⚠️ Model "${modelName}" not found`);
+      }
+    }
 
     // Build where clause with proper AND/OR logic
     const whereClause: any = {
@@ -26,7 +49,8 @@ export async function GET(req: NextRequest) {
 
     // Page type filtering: if a specific type is requested (FREE, PAID, VIP),
     // include both that type AND "ALL_PAGES" options
-    if (pageType) {
+    // BUT if "ALL_PAGES" is requested, show ALL page types (no filter)
+    if (pageType && pageType !== "ALL_PAGES") {
       andConditions.push({
         OR: [
           { pageType: pageType },
@@ -34,6 +58,7 @@ export async function GET(req: NextRequest) {
         ]
       });
     }
+    // If pageType is "ALL_PAGES" or not provided, don't filter by pageType at all
 
     // Model filtering logic
     if (fetchAll === 'true') {

@@ -280,6 +280,13 @@ export async function GET(request: NextRequest) {
                 priceMin: true,
                 priceMax: true,
                 description: true,
+                clientModel: {
+                  select: {
+                    id: true,
+                    clientName: true,
+                    pricingDescription: true,
+                  },
+                },
               },
             },
           },

@@ -195,6 +195,11 @@ export default function EnhancedTaskDetailModalRedesigned({
       priceMin?: number;
       priceMax?: number;
       description?: string;
+      clientModel?: {
+        id: string;
+        clientName: string;
+        pricingDescription?: string | null;
+      } | null;
     }>
   >([]);
   const [loadingContentTypes, setLoadingContentTypes] = useState(false);
@@ -258,13 +263,29 @@ export default function EnhancedTaskDetailModalRedesigned({
 
       setLoadingContentTypes(true);
       try {
-        // Get current pricing category from workflow or editing data
+        // Get current pricing category, model ID, and page type from workflow or editing data
         const currentCategory =
           (editingTaskData as any)?.ModularWorkflow?.pricingCategory ||
           workflowData?.pricingCategory ||
           "EXPENSIVE_PORN";
 
-        const url = `/api/content-type-options?category=${encodeURIComponent(currentCategory)}`;
+        // Get model name and page type from workflow data
+        const currentModelName = workflowData?.modelName || null;
+        const currentPageType = workflowData?.pageType || "ALL_PAGES";
+
+        // Build URL with all necessary parameters
+        const params = new URLSearchParams();
+        params.append("category", currentCategory);
+
+        // Pass modelName to API - it will look up the clientModelId server-side
+        if (currentModelName) {
+          params.append("modelName", currentModelName);
+        }
+        if (currentPageType) {
+          params.append("pageType", currentPageType);
+        }
+
+        const url = `/api/content-type-options?${params.toString()}`;
         const response = await fetch(url);
         const data = await response.json();
 
@@ -283,6 +304,12 @@ export default function EnhancedTaskDetailModalRedesigned({
     isEditingTask,
     hasWorkflow,
     (editingTaskData as any)?.ModularWorkflow?.pricingCategory,
+    (editingTaskData as any)?.ModularWorkflow?.clientModelId,
+    (editingTaskData as any)?.ModularWorkflow?.pageType,
+    selectedTask?.clientModelId,
+    workflowData?.pricingCategory,
+    workflowData?.clientModelId,
+    workflowData?.pageType,
   ]);
 
   // Initialize OFTV editing data when edit mode starts
@@ -2008,8 +2035,25 @@ export default function EnhancedTaskDetailModalRedesigned({
                           <label className="block text-[10px] font-semibold text-gray-500 dark:text-gray-400 uppercase mb-1 tracking-wide">
                             Model
                           </label>
-                          <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                            {workflowData.modelName}
+                          <div className="space-y-1">
+                            <div className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                              {workflowData.modelName}
+                            </div>
+                            {/* Model Pricing Description */}
+                            {(() => {
+                              // Get pricing description from contentTypeOption's clientModel if available
+                              const pricingDesc =
+                                workflowData?.contentTypeOption?.clientModel
+                                  ?.pricingDescription;
+                              if (pricingDesc) {
+                                return (
+                                  <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium italic">
+                                    📝 {pricingDesc}
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })()}
                           </div>
                         </div>
                       )}
@@ -2197,10 +2241,18 @@ export default function EnhancedTaskDetailModalRedesigned({
                                   ) {
                                     priceDisplay = ` - $${option.priceMin.toFixed(2)}+`;
                                   }
+
+                                  // Format description and pricing notes
+                                  let additionalInfo = "";
+                                  if (option.description) {
+                                    additionalInfo += ` (${option.description})`;
+                                  }
+
                                   return (
                                     <option key={option.id} value={option.id}>
                                       {option.label}
                                       {priceDisplay}
+                                      {additionalInfo}
                                     </option>
                                   );
                                 })}
@@ -2249,27 +2301,37 @@ export default function EnhancedTaskDetailModalRedesigned({
                               })()}
                             </div>
                           ) : workflowData?.contentTypeOption ? (
-                            <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
-                                {workflowData.contentTypeOption.label ||
-                                  workflowData.contentTypeOption.value}
-                              </span>
-                              <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded whitespace-nowrap">
-                                {workflowData.contentTypeOption.priceType ===
-                                  "FIXED" &&
-                                workflowData.contentTypeOption.priceFixed
-                                  ? `$${workflowData.contentTypeOption.priceFixed.toFixed(2)}`
-                                  : workflowData.contentTypeOption.priceType ===
-                                        "RANGE" &&
-                                      workflowData.contentTypeOption.priceMin &&
-                                      workflowData.contentTypeOption.priceMax
-                                    ? `$${workflowData.contentTypeOption.priceMin.toFixed(2)}-$${workflowData.contentTypeOption.priceMax.toFixed(2)}`
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between gap-2">
+                                <span className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">
+                                  {workflowData.contentTypeOption.label ||
+                                    workflowData.contentTypeOption.value}
+                                </span>
+                                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/20 px-2 py-0.5 rounded whitespace-nowrap">
+                                  {workflowData.contentTypeOption.priceType ===
+                                    "FIXED" &&
+                                  workflowData.contentTypeOption.priceFixed
+                                    ? `$${workflowData.contentTypeOption.priceFixed.toFixed(2)}`
                                     : workflowData.contentTypeOption
-                                          .priceType === "MINIMUM" &&
-                                        workflowData.contentTypeOption.priceMin
-                                      ? `$${workflowData.contentTypeOption.priceMin.toFixed(2)}+`
-                                      : "$--.--"}
-                              </span>
+                                          .priceType === "RANGE" &&
+                                        workflowData.contentTypeOption
+                                          .priceMin &&
+                                        workflowData.contentTypeOption.priceMax
+                                      ? `$${workflowData.contentTypeOption.priceMin.toFixed(2)}-$${workflowData.contentTypeOption.priceMax.toFixed(2)}`
+                                      : workflowData.contentTypeOption
+                                            .priceType === "MINIMUM" &&
+                                          workflowData.contentTypeOption
+                                            .priceMin
+                                        ? `$${workflowData.contentTypeOption.priceMin.toFixed(2)}+`
+                                        : "$--.--"}
+                                </span>
+                              </div>
+                              {/* Content type description */}
+                              {workflowData.contentTypeOption.description && (
+                                <div className="text-[10px] text-gray-600 dark:text-gray-400 italic">
+                                  {workflowData.contentTypeOption.description}
+                                </div>
+                              )}
                             </div>
                           ) : (
                             <div className="text-xs text-gray-500 italic">
