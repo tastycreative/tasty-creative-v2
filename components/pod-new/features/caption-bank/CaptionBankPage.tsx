@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useGalleryData } from "@/hooks/useGalleryQuery";
 import { CaptionCard } from "./CaptionCard";
-import { Search, Filter, FileText, Loader2, Check, ChevronsUpDown, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Loader2, Check, ChevronsUpDown, Plus, PenLine, ChevronDown, Users, LayoutGrid, CalendarDays, SlidersHorizontal, Diamond } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -20,7 +20,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -77,7 +77,7 @@ export function CaptionBankPage() {
     });
   }, [captionItems, searchQuery, selectedCreator, selectedCategory]);
 
-  // Reset to page 1 to filters change
+  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [searchQuery, selectedCreator, selectedCategory]);
@@ -89,257 +89,272 @@ export function CaptionBankPage() {
     return filteredCaptions.slice(startIndex, startIndex + ITEMS_PER_PAGE);
   }, [filteredCaptions, currentPage]);
 
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
-    // Smooth scroll to top of content
-    if (contentStartRef.current) {
-      contentStartRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+  const handleLoadMore = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(prev => prev + 1);
     }
   };
 
+  // Team avatars data
+  const teamAvatars = useMemo(() => {
+    const uniqueCreators = creators.slice(0, 2);
+    const remainingCount = Math.max(0, creators.length - 2);
+    return { displayed: uniqueCreators, remaining: remainingCount };
+  }, [creators]);
+
   if (error) {
     return (
-      <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 p-6 flex items-center justify-center">
-        <div className="text-center py-12 bg-white/80 dark:bg-gray-800/80 backdrop-blur-md rounded-3xl p-8 shadow-xl">
-          <p className="text-red-500 font-medium">Failed to load captions. Please try again.</p>
+      <div className="min-h-screen bg-[#0f1115] p-6 flex items-center justify-center">
+        <div className="text-center py-12 glass-card rounded-3xl p-8">
+          <p className="text-red-400 font-medium">Failed to load captions. Please try again.</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-pink-50/30 dark:bg-gray-950 pb-20">
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,119,198,0.1),rgba(255,255,255,0))] pointer-events-none" />
-
-      <div className="relative z-10 px-6 max-w-[1600px] mx-auto pt-8">
+    <div
+      className="min-h-screen text-slate-300 font-sans selection:bg-pink-500/30 pb-20"
+      style={{
+        backgroundColor: '#0f1115',
+        backgroundImage: `
+          radial-gradient(circle at 0% 0%, rgba(236, 72, 153, 0.03) 0%, transparent 40%),
+          radial-gradient(circle at 100% 100%, rgba(236, 72, 153, 0.03) 0%, transparent 40%)
+        `
+      }}
+    >
+      <div className="max-w-[1400px] mx-auto px-8 py-12">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
-          <div>
-            <motion.div 
-              initial={{ opacity: 0, y: -20 }}
+        <header className="flex flex-col md:flex-row items-center justify-between gap-8 mb-16">
+          <div className="space-y-2 text-center md:text-left">
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex items-center gap-2 mb-2"
+              className="flex items-center justify-center md:justify-start gap-2 text-pink-500 mb-1"
             >
-              <div className="p-2 rounded-xl bg-gradient-to-br from-pink-500/10 to-purple-500/10 dark:from-pink-400/20 dark:to-purple-400/20 border border-pink-200/50 dark:border-pink-500/30 backdrop-blur-sm">
-                <Sparkles className="h-4 w-4 text-pink-600 dark:text-pink-400" />
-              </div>
-              <span className="text-xs font-bold tracking-wider text-pink-600 dark:text-pink-400 uppercase">
-                Content Intelligence
-              </span>
+              <Diamond className="h-3.5 w-3.5" />
+              <span className="text-[10px] uppercase tracking-[0.3em] font-bold">Premium Repository</span>
             </motion.div>
-            
-            <motion.h1 
-              initial={{ opacity: 0, y: -20 }}
+            <motion.h1
+              initial={{ opacity: 0, y: -10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1 }}
-              className="text-4xl md:text-5xl font-black bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent mb-3 tracking-tight"
+              className="text-4xl font-semibold text-white tracking-tight flex items-center gap-4"
             >
               Caption Bank
+              <span className="h-1.5 w-1.5 rounded-full bg-pink-500 shadow-[0_0_10px_rgba(236,72,153,1)]" />
+              <span className="text-lg font-normal text-slate-500 tracking-normal">
+                {filteredCaptions.length.toLocaleString()} assets
+              </span>
             </motion.h1>
-            
-            <motion.p 
-              initial={{ opacity: 0, y: -20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-              className="text-lg text-gray-600 dark:text-gray-300 max-w-lg leading-relaxed font-medium"
-            >
-              A curated collection of high-performing captions from your gallery.
-            </motion.p>
           </div>
 
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.3 }}
-            className="flex items-center gap-4 px-6 py-3 rounded-full bg-white/40 dark:bg-black/20 backdrop-blur-md border border-white/20 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 group"
+            transition={{ delay: 0.2 }}
+            className="flex items-center gap-3"
           >
-            <div className="flex flex-col items-end">
-              <span className="text-3xl font-black bg-gradient-to-r from-pink-600 to-purple-600 dark:from-pink-400 dark:to-purple-400 bg-clip-text text-transparent leading-none group-hover:scale-105 transition-transform duration-300">
-                {filteredCaptions.length}
-              </span>
-              <span className="text-[10px] font-bold tracking-widest text-gray-500 dark:text-gray-400 uppercase">
-                Captions
-              </span>
-            </div>
-            
-            <div className="h-10 w-10 rounded-full bg-gradient-to-br from-pink-500/10 to-purple-600/10 dark:from-pink-400/10 dark:to-purple-400/10 flex items-center justify-center border border-pink-100/50 dark:border-pink-500/10 group-hover:rotate-12 transition-transform duration-300">
-              <FileText className="h-5 w-5 text-pink-500 dark:text-pink-400 opacity-80" />
+            <Button className="bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white px-6 py-3 h-auto rounded-full text-sm font-semibold shadow-lg shadow-pink-500/20 flex items-center gap-2">
+              <Plus className="h-4 w-4" />
+              New Caption
+            </Button>
+
+            <div className="h-10 w-[1px] bg-white/10 mx-2" />
+
+            <div className="flex -space-x-2">
+              {teamAvatars.displayed.map((creator, idx) => (
+                <div
+                  key={creator}
+                  className={cn(
+                    "w-9 h-9 rounded-full border-2 border-[#0f1115] flex items-center justify-center text-[10px] font-bold",
+                    idx === 0 ? "bg-slate-800" : "bg-pink-500/20 text-pink-500"
+                  )}
+                >
+                  {creator.slice(0, 2).toUpperCase()}
+                </div>
+              ))}
+              {teamAvatars.remaining > 0 && (
+                <div className="w-9 h-9 rounded-full border-2 border-[#0f1115] bg-slate-700 flex items-center justify-center text-[10px] font-bold">
+                  +{teamAvatars.remaining}
+                </div>
+              )}
             </div>
           </motion.div>
-        </div>
+        </header>
 
-        {/* Filters Bar */}
-        <div className="sticky top-4 z-50 mb-8" ref={contentStartRef}>
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-xl rounded-2xl p-2 shadow-sm border border-white/40 dark:border-gray-700/40 ring-1 ring-black/5 dark:ring-white/5"
-          >
-            <div className="flex flex-col md:flex-row gap-2">
-              {/* Search */}
-              <div className="relative flex-1 group">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 group-hover:text-pink-500 transition-colors" />
-                <Input
-                  placeholder="Search by keywords..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-10 h-11 bg-transparent border-transparent hover:bg-white/50 dark:hover:bg-white/5 focus:bg-white dark:focus:bg-gray-800 transition-all rounded-xl placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                />
-              </div>
+        {/* Search & Filters Bar */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3 }}
+          ref={contentStartRef}
+          className="rounded-2xl p-2 mb-16 flex flex-col lg:flex-row items-center gap-2 backdrop-blur-md"
+          style={{
+            background: 'rgba(18, 20, 24, 0.6)',
+            border: '1px solid rgba(255, 255, 255, 0.05)'
+          }}
+        >
+          <div className="relative flex-grow w-full">
+            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full bg-transparent border-none focus-visible:ring-0 py-4 h-auto pl-14 pr-4 text-sm text-white placeholder:text-slate-600"
+              placeholder="Search captions, tags, or creators..."
+            />
+          </div>
 
-              <div className="w-px bg-gray-200 dark:bg-gray-700 h-8 self-center hidden md:block mx-1" />
-
-              {/* Creator Filter */}
-              <Popover open={creatorOpen} onOpenChange={setCreatorOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    role="combobox"
-                    aria-expanded={creatorOpen}
-                    className="h-11 min-w-[180px] justify-between text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white rounded-xl"
-                  >
-                    {selectedCreator === "all"
-                      ? "All Creators"
-                      : selectedCreator}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0" align="end">
-                  <Command>
-                    <CommandInput placeholder="Search creators..." />
-                    <CommandList className="max-h-64">
-                      <CommandEmpty>No creator found.</CommandEmpty>
-                      <CommandGroup>
+          <div className="flex items-center gap-2 p-1 w-full lg:w-auto overflow-x-auto">
+            {/* Creator Filter */}
+            <Popover open={creatorOpen} onOpenChange={setCreatorOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
+                >
+                  <Users className="h-4 w-4" />
+                  {selectedCreator === "all" ? "Creators" : selectedCreator}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0 bg-[#1a1c21] border-white/10" align="start">
+                <Command className="bg-transparent">
+                  <CommandInput placeholder="Search creators..." className="text-white" />
+                  <CommandList className="max-h-64">
+                    <CommandEmpty className="text-slate-500">No creator found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          setSelectedCreator("all");
+                          setCreatorOpen(false);
+                        }}
+                        className="text-slate-300 hover:text-white"
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", selectedCreator === "all" ? "opacity-100" : "opacity-0")} />
+                        All Creators
+                      </CommandItem>
+                      {creators.map((creator) => (
                         <CommandItem
-                          value="all"
+                          key={creator}
+                          value={creator}
                           onSelect={() => {
-                            setSelectedCreator("all");
+                            setSelectedCreator(creator);
                             setCreatorOpen(false);
                           }}
+                          className="text-slate-300 hover:text-white"
                         >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedCreator === "all" ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          All Creators
+                          <Check className={cn("mr-2 h-4 w-4", selectedCreator === creator ? "opacity-100" : "opacity-0")} />
+                          {creator}
                         </CommandItem>
-                        {creators.map((creator) => (
-                          <CommandItem
-                            key={creator}
-                            value={creator}
-                            onSelect={() => {
-                              setSelectedCreator(creator);
-                              setCreatorOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedCreator === creator ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {creator}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
 
-              <div className="w-px bg-gray-200 dark:bg-gray-700 h-8 self-center hidden md:block mx-1" />
-
-              {/* Category Filter */}
-              <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    role="combobox"
-                    aria-expanded={categoryOpen}
-                    className="h-11 min-w-[180px] justify-between text-gray-600 dark:text-gray-300 hover:bg-white/50 dark:hover:bg-white/5 hover:text-black dark:hover:text-white rounded-xl"
-                  >
-                    {selectedCategory === "all"
-                      ? "All Categories"
-                      : selectedCategory}
-                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-[200px] p-0" align="end">
-                  <Command>
-                    <CommandInput placeholder="Search categories..." />
-                    <CommandList className="max-h-64">
-                      <CommandEmpty>No category found.</CommandEmpty>
-                      <CommandGroup>
+            {/* Category Filter */}
+            <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                  {selectedCategory === "all" ? "Category" : selectedCategory}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-[200px] p-0 bg-[#1a1c21] border-white/10" align="start">
+                <Command className="bg-transparent">
+                  <CommandInput placeholder="Search categories..." className="text-white" />
+                  <CommandList className="max-h-64">
+                    <CommandEmpty className="text-slate-500">No category found.</CommandEmpty>
+                    <CommandGroup>
+                      <CommandItem
+                        value="all"
+                        onSelect={() => {
+                          setSelectedCategory("all");
+                          setCategoryOpen(false);
+                        }}
+                        className="text-slate-300 hover:text-white"
+                      >
+                        <Check className={cn("mr-2 h-4 w-4", selectedCategory === "all" ? "opacity-100" : "opacity-0")} />
+                        All Categories
+                      </CommandItem>
+                      {categories.map((category) => (
                         <CommandItem
-                          value="all"
+                          key={category}
+                          value={category}
                           onSelect={() => {
-                            setSelectedCategory("all");
+                            setSelectedCategory(category);
                             setCategoryOpen(false);
                           }}
+                          className="text-slate-300 hover:text-white"
                         >
-                          <Check
-                            className={cn(
-                              "mr-2 h-4 w-4",
-                              selectedCategory === "all" ? "opacity-100" : "opacity-0"
-                            )}
-                          />
-                          All Categories
+                          <Check className={cn("mr-2 h-4 w-4", selectedCategory === category ? "opacity-100" : "opacity-0")} />
+                          {category}
                         </CommandItem>
-                        {categories.map((category) => (
-                          <CommandItem
-                            key={category}
-                            value={category}
-                            onSelect={() => {
-                              setSelectedCategory(category);
-                              setCategoryOpen(false);
-                            }}
-                          >
-                            <Check
-                              className={cn(
-                                "mr-2 h-4 w-4",
-                                selectedCategory === category ? "opacity-100" : "opacity-0"
-                              )}
-                            />
-                            {category}
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
-            </div>
-          </motion.div>
-        </div>
+                      ))}
+                    </CommandGroup>
+                  </CommandList>
+                </Command>
+              </PopoverContent>
+            </Popover>
+
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
+            >
+              <CalendarDays className="h-4 w-4" />
+              Date
+            </Button>
+
+            <div className="w-[1px] h-6 bg-white/10 mx-1" />
+
+            <Button
+              variant="ghost"
+              className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCreator("all");
+                setSelectedCategory("all");
+              }}
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              {searchQuery || selectedCreator !== "all" || selectedCategory !== "all" ? "Clear" : "Filters"}
+            </Button>
+          </div>
+        </motion.div>
 
         {/* Content Area */}
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-32 text-center">
             <Loader2 className="h-10 w-10 animate-spin text-pink-500 mb-4" />
-            <p className="text-gray-500 dark:text-gray-400 font-medium animate-pulse">
+            <p className="text-slate-500 font-medium animate-pulse">
               Curating your captions...
             </p>
           </div>
         ) : filteredCaptions.length === 0 ? (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex flex-col items-center justify-center py-32 text-center bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-[32px] border border-dashed border-gray-200 dark:border-gray-700"
+            className="flex flex-col items-center justify-center py-32 text-center glass-card rounded-[32px]"
+            style={{
+              background: 'rgba(24, 26, 31, 0.4)',
+              backdropFilter: 'blur(16px)',
+              border: '1px solid rgba(255, 255, 255, 0.06)'
+            }}
           >
-            <div className="h-20 w-20 bg-gray-50 dark:bg-gray-700/50 rounded-full flex items-center justify-center mb-6">
-              <Search className="h-8 w-8 text-gray-300 dark:text-gray-500" />
+            <div className="h-20 w-20 bg-slate-800/50 rounded-full flex items-center justify-center mb-6">
+              <Search className="h-8 w-8 text-slate-600" />
             </div>
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">No captions found</h3>
-            <p className="text-gray-500 dark:text-gray-400 max-w-sm">
+            <h3 className="text-xl font-bold text-white mb-2">No captions found</h3>
+            <p className="text-slate-500 max-w-sm">
               We couldn&apos;t find any captions matching your current filters. Try adjusting your search.
             </p>
-            <Button 
-              variant="outline" 
-              className="mt-8 rounded-xl border-gray-200 hover:bg-white hover:border-pink-200 hover:text-pink-600 transition-all shadow-sm"
+            <Button
+              className="mt-8 rounded-xl bg-white/5 hover:bg-white/10 text-slate-300 border border-white/10"
               onClick={() => {
                 setSearchQuery("");
                 setSelectedCreator("all");
@@ -351,7 +366,8 @@ export function CaptionBankPage() {
           </motion.div>
         ) : (
           <>
-            <div className="columns-1 md:columns-2 lg:columns-3 gap-6 space-y-6">
+            {/* Caption Cards Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-10">
               {paginatedCaptions.map((item, index) => (
                 <CaptionCard
                   key={item.id}
@@ -361,43 +377,37 @@ export function CaptionBankPage() {
                   category={item.category}
                   revenue={item.totalRevenue}
                   outcome={item.outcome}
+                  isFeatured={index === 0 && currentPage === 1}
                 />
               ))}
             </div>
 
-            {/* Pagination Controls */}
-            {totalPages > 1 && (
-              <div className="flex items-center justify-center gap-2 mt-12 mb-8">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                  disabled={currentPage === 1}
-                  className="rounded-xl border-white/20 hover:bg-white/40 hover:text-pink-600 disabled:opacity-50"
+            {/* Load More Button */}
+            {currentPage < totalPages && (
+              <div className="mt-24 flex flex-col items-center gap-8">
+                <button
+                  onClick={handleLoadMore}
+                  className="flex flex-col items-center gap-4 group"
                 >
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                
-                <div className="flex items-center gap-1 mx-2">
-                  <span className="text-sm font-medium text-gray-600 dark:text-gray-300">
-                    Page {currentPage} of {totalPages}
+                  <div className="w-14 h-14 rounded-full border border-white/10 flex items-center justify-center text-slate-500 group-hover:border-pink-500 group-hover:text-pink-500 transition-all duration-500">
+                    <ChevronDown className="h-8 w-8 group-hover:translate-y-1 transition-transform duration-500" />
+                  </div>
+                  <span className="text-sm font-semibold tracking-widest text-slate-500 uppercase">
+                    Load Older Captions
                   </span>
-                </div>
-
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                  disabled={currentPage === totalPages}
-                  className="rounded-xl border-white/20 hover:bg-white/40 hover:text-pink-600 disabled:opacity-50"
-                >
-                  <ChevronRight className="h-4 w-4" />
-                </Button>
+                </button>
               </div>
             )}
           </>
         )}
       </div>
+
+      {/* Floating Action Button */}
+      <Button
+        className="fixed bottom-10 right-10 h-16 w-16 rounded-2xl bg-gradient-to-r from-pink-500 to-pink-600 hover:from-pink-600 hover:to-pink-700 text-white flex items-center justify-center shadow-2xl shadow-pink-500/40 hover:scale-105 active:scale-95 transition-all z-50 p-0"
+      >
+        <PenLine className="h-7 w-7" />
+      </Button>
     </div>
   );
 }

@@ -411,8 +411,8 @@ const GifVideoEditor: React.FC = memo(() => {
           <div className="relative p-5 pb-3">
             <div className="flex items-center justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className={`w-8 h-8 rounded-xl ${GalleryTheme.iconBox.gradient} flex items-center justify-center shadow-lg`}>
-                  <Film className="w-4 h-4 text-white" />
+                <div className={`w-8 h-8 rounded-xl ${GalleryTheme.iconBox.gradient} flex items-center justify-center`}>
+                  <Film className="w-4 h-4 text-pink-500 dark:text-pink-400" />
                 </div>
                 <div>
                   <h2 className={`text-lg font-bold ${GalleryTheme.title.full}`}>
@@ -479,7 +479,7 @@ const GifVideoEditor: React.FC = memo(() => {
         </div>
 
         {/* Modern Content Area */}
-        <div className="flex-1 overflow-y-auto bg-gradient-to-b from-pink-50/20 via-purple-50/10 to-white dark:from-gray-800/50 dark:to-gray-900">
+        <div className="flex-1 overflow-y-auto bg-white/50 dark:bg-[#121216]">
           <div className="p-6 space-y-6">
             {activeMediaTab === "videos" && (
               <>

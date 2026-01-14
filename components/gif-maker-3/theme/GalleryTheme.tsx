@@ -6,23 +6,23 @@
 export const GalleryTheme = {
   // Background gradients
   background: {
-    light: "bg-pink-50/30",
-    dark: "dark:bg-gray-950",
-    full: "bg-pink-50/30 dark:bg-gray-950",
+    light: "bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50",
+    dark: "dark:bg-[#121216]",
+    full: "bg-gradient-to-br from-pink-50 via-purple-50 to-blue-50 dark:bg-[#121216]",
   },
 
   // Sidebar backgrounds
   sidebar: {
     light: "bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30",
-    dark: "dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30",
-    full: "bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30",
+    dark: "dark:from-[#121216] dark:via-[#121216] dark:to-purple-900/10",
+    full: "bg-gradient-to-br from-white via-pink-50/30 to-purple-50/30 dark:from-[#121216] dark:via-[#121216] dark:to-purple-900/10",
   },
 
   // Card backgrounds
   card: {
     light: "bg-gradient-to-br from-white via-pink-50/20 to-purple-50/20",
-    dark: "dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30",
-    full: "bg-gradient-to-br from-white via-pink-50/20 to-purple-50/20 dark:from-gray-900 dark:via-gray-800/50 dark:to-purple-900/30",
+    dark: "dark:from-[#121216] dark:via-[#121216] dark:to-purple-900/20",
+    full: "bg-gradient-to-br from-white via-pink-50/20 to-purple-50/20 dark:from-[#121216] dark:via-[#121216] dark:to-purple-900/20",
   },
 
   // Radial pattern overlay
@@ -34,16 +34,16 @@ export const GalleryTheme = {
   // Decorative circles
   decorative: {
     topRight:
-      "absolute top-3 right-3 w-16 h-16 bg-gradient-to-br from-fuchsia-400/20 to-pink-400/20 rounded-full blur-xl animate-pulse",
+      "absolute top-3 right-3 w-16 h-16 bg-gradient-to-br from-pink-400/20 to-purple-400/20 rounded-full blur-xl animate-pulse",
     bottomLeft:
-      "absolute bottom-3 left-3 w-12 h-12 bg-gradient-to-br from-purple-400/20 to-blue-400/20 rounded-full blur-lg animate-pulse delay-1000",
+      "absolute bottom-3 left-3 w-12 h-12 bg-gradient-to-br from-purple-400/20 to-pink-400/20 rounded-full blur-lg animate-pulse delay-1000",
   },
 
   // Typography gradients
   title: {
     light: "from-gray-900 via-pink-600 to-purple-600",
-    dark: "dark:from-white dark:via-pink-400 dark:to-purple-400",
-    full: "bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-white dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent",
+    dark: "dark:from-gray-100 dark:via-pink-400 dark:to-purple-400",
+    full: "bg-gradient-to-r from-gray-900 via-pink-600 to-purple-600 dark:from-gray-100 dark:via-pink-400 dark:to-purple-400 bg-clip-text text-transparent",
   },
 
   // Icon boxes
@@ -52,31 +52,31 @@ export const GalleryTheme = {
     blue: "bg-gradient-to-br from-blue-500/10 to-cyan-500/10",
     emerald: "bg-gradient-to-br from-emerald-500/10 to-green-500/10",
     purple: "bg-gradient-to-br from-purple-500/10 to-pink-500/10",
-    gradient: "bg-gradient-to-br from-pink-500 via-purple-500 to-blue-500",
+    gradient: "bg-pink-500/10 dark:bg-pink-500/20 border border-pink-300/50 dark:border-pink-500/30",
   },
 
   // Borders
   border: {
-    light: "border-gray-200/60",
-    dark: "dark:border-gray-700/60",
-    full: "border border-gray-200/60 dark:border-gray-700/60",
-    subtle: "border-gray-200/30 dark:border-gray-700/30",
+    light: "border-pink-200/60",
+    dark: "dark:border-pink-500/20",
+    full: "border border-pink-200/60 dark:border-pink-500/20",
+    subtle: "border-pink-200/30 dark:border-pink-500/10",
   },
 
   // Buttons and interactive elements
   button: {
     primary:
-      "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600",
-    secondary: "bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700",
-    ghost: "hover:bg-gray-100 dark:hover:bg-gray-800",
+      "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30",
+    secondary: "bg-white/70 dark:bg-[#1a1a1f] hover:bg-pink-50/50 dark:hover:bg-pink-500/10 border border-pink-200/60 dark:border-pink-500/20",
+    ghost: "hover:bg-pink-50/50 dark:hover:bg-pink-500/10",
   },
 
   // Tab system
   tab: {
     active:
-      "bg-white dark:bg-slate-700 text-pink-600 dark:text-pink-400 shadow-lg shadow-pink-500/20 dark:shadow-pink-400/20",
+      "bg-white dark:bg-[#1a1a1f] text-pink-600 dark:text-pink-400 shadow-lg shadow-pink-500/20 dark:shadow-pink-400/20",
     inactive:
-      "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-700/50",
+      "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-pink-500/10",
     indicator: "bg-gradient-to-r from-pink-500 to-purple-500",
   },
 
@@ -104,9 +104,19 @@ export const GalleryTheme = {
 
   // Timeline specific
   timeline: {
-    background: "bg-gray-50 dark:bg-slate-900",
-    toolbar: "bg-white dark:bg-slate-800",
-    border: "border-gray-200 dark:border-slate-700",
+    background: "bg-white/50 dark:bg-[#121216]",
+    toolbar: "bg-white/80 dark:bg-[#121216]",
+    border: "border-pink-200/60 dark:border-pink-500/20",
+  },
+
+  // Input elements
+  input: {
+    base: "bg-white/70 dark:bg-[#1a1a1f] border-pink-200/60 dark:border-pink-500/20 focus:border-pink-400 dark:focus:border-pink-400 focus:ring-pink-500/20",
+  },
+
+  // Export button
+  exportButton: {
+    default: "bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white shadow-lg shadow-pink-500/25 hover:shadow-xl hover:shadow-pink-500/30",
   },
 } as const;
 
