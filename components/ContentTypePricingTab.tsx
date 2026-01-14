@@ -217,7 +217,8 @@ const ContentTypePricingTab = () => {
       filtered = filtered.filter(option =>
         option.label.toLowerCase().includes(query) ||
         option.value.toLowerCase().includes(query) ||
-        option.description?.toLowerCase().includes(query)
+        option.description?.toLowerCase().includes(query) ||
+        option.clientModel?.clientName?.toLowerCase().includes(query)
       );
     }
 
