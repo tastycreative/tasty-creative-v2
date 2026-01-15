@@ -160,7 +160,14 @@ export default function WallPostTaskModal({
   const [editedPriority, setEditedPriority] = useState(task.priority);
   const [editedAssignee, setEditedAssignee] = useState(task.assignedTo || '');
   const [isSavingTask, setIsSavingTask] = useState(false);
-  const [photoFilter, setPhotoFilter] = useState<'ALL' | 'PENDING_REVIEW' | 'READY_TO_POST' | 'POSTED' | 'REJECTED'>('ALL');
+
+  // Initialize photoFilter to READY_TO_POST if there are any photos with that status
+  const initialPhotoFilter = React.useMemo(() => {
+    const hasReadyToPost = (task.wallPostSubmission?.photos || []).some(p => p.status === 'READY_TO_POST');
+    return hasReadyToPost ? 'READY_TO_POST' : 'ALL';
+  }, [task.wallPostSubmission?.photos]);
+
+  const [photoFilter, setPhotoFilter] = useState<'ALL' | 'PENDING_REVIEW' | 'READY_TO_POST' | 'POSTED' | 'REJECTED'>(initialPhotoFilter);
 
   // Download states
   const [isDownloading, setIsDownloading] = useState(false);
@@ -191,6 +198,12 @@ export default function WallPostTaskModal({
   React.useEffect(() => {
     if (task.wallPostSubmission?.photos) {
       setLocalPhotos(task.wallPostSubmission.photos);
+      // Auto-select READY_TO_POST filter if there are any ready-to-post photos
+      const hasReadyToPost = task.wallPostSubmission.photos.some(p => p.status === 'READY_TO_POST');
+      if (hasReadyToPost) {
+        setPhotoFilter('READY_TO_POST');
+        setSelectedPhotoIndex(0);
+      }
     }
   }, [task.wallPostSubmission?.photos]);
 
@@ -1238,10 +1251,10 @@ export default function WallPostTaskModal({
                               <GoogleDriveImage
                                 src={(() => {
                                   const fileId = extractGoogleDriveFileId(photo.url);
-                                  return fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=400` : photo.url;
+                                  return fileId ? `/api/google-drive/thumbnail?fileId=${fileId}&size=2000` : photo.url;
                                 })()}
                                 alt={`Photo ${index + 1}`}
-                                className="w-20 h-20 object-cover rounded"
+                                className="w-20 h-20 object-contain rounded bg-gray-900"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
                                 }}
@@ -1250,7 +1263,7 @@ export default function WallPostTaskModal({
                               <img
                                 src={photo.url}
                                 alt={`Photo ${index + 1}`}
-                                className="w-20 h-20 object-cover rounded"
+                                className="w-20 h-20 object-contain rounded bg-gray-900"
                                 onError={(e) => {
                                   e.currentTarget.style.display = 'none';
                                 }}
