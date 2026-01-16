@@ -49,6 +49,7 @@ interface TeamData {
   name: string;
   projectPrefix?: string;
   columnNotificationsEnabled?: boolean;
+  notifyAllMembers?: boolean;
   creators: { id: string; name: string }[];
   teamMembers: TeamMember[];
 }
@@ -167,7 +168,9 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
   
   // Column notifications toggle state
   const [columnNotificationsEnabled, setColumnNotificationsEnabled] = useState(true);
+  const [notifyAllMembers, setNotifyAllMembers] = useState(false);
   const [updatingNotificationsToggle, setUpdatingNotificationsToggle] = useState(false);
+  const [updatingNotifyAllToggle, setUpdatingNotifyAllToggle] = useState(false);
   
   // Loading states
   const [updatingTeamName, setUpdatingTeamName] = useState(false);
@@ -233,6 +236,7 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
             name: data.name,
             projectPrefix: data.projectPrefix,
             columnNotificationsEnabled: data.columnNotificationsEnabled,
+            notifyAllMembers: data.notifyAllMembers,
             creators: data.creators || [],
             teamMembers: data.teamMembers || []
           });
@@ -243,6 +247,7 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
           setEditingTeamNameValue(data.name);
           setEditingTeamPrefixValue(data.projectPrefix || "");
           setColumnNotificationsEnabled(data.columnNotificationsEnabled ?? true);
+          setNotifyAllMembers(data.notifyAllMembers ?? false);
           setTeamMembers(data.teamMembers || initialMembers);
         }
       }
@@ -398,6 +403,37 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
       alert("Failed to update notification settings");
     } finally {
       setUpdatingNotificationsToggle(false);
+    }
+  };
+
+  // Notify all members toggle update function
+  const updateNotifyAllMembersToggle = async (enabled: boolean) => {
+    if (!isAdmin) return;
+
+    setUpdatingNotifyAllToggle(true);
+    try {
+      const response = await fetch(`/api/pod/teams/${teamId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ notifyAllMembers: enabled }),
+      });
+
+      if (response.ok) {
+        setNotifyAllMembers(enabled);
+        // Update local teamData state immediately
+        setTeamData(prev => prev ? { ...prev, notifyAllMembers: enabled } : null);
+        onTeamUpdate?.();
+        setSuccessMessage(enabled ? 'All members will be notified for every column' : 'Column-specific notifications restored');
+        setTimeout(() => setSuccessMessage(null), 3000);
+      } else {
+        const errorData = await response.json();
+        alert(`Failed to update notification settings: ${errorData.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error("Error updating notification settings:", error);
+      alert("Failed to update notification settings");
+    } finally {
+      setUpdatingNotifyAllToggle(false);
     }
   };
 
@@ -855,7 +891,7 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
                 </div>
 
                 {/* Column Notifications Toggle */}
-                <div className="px-6 py-4">
+                <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-800">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1">
                       <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Column Notifications</label>
@@ -870,8 +906,8 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
                           onClick={() => updateColumnNotificationsToggle(!columnNotificationsEnabled)}
                           disabled={updatingNotificationsToggle}
                           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
-                            columnNotificationsEnabled 
-                              ? 'bg-green-600' 
+                            columnNotificationsEnabled
+                              ? 'bg-green-600'
                               : 'bg-gray-200 dark:bg-gray-700'
                           }`}
                         >
@@ -881,6 +917,42 @@ const TeamSettings: React.FC<TeamSettingsProps> = ({
                             <span
                               className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
                                 columnNotificationsEnabled ? 'translate-x-6' : 'translate-x-1'
+                              }`}
+                            />
+                          )}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Notify All Members Toggle */}
+                <div className="px-6 py-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <label className="text-sm font-medium text-gray-900 dark:text-gray-100">Notify All Members</label>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">When enabled, all team members receive notifications for all columns regardless of column assignments</p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-sm font-medium ${notifyAllMembers ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'}`}>
+                        {notifyAllMembers ? 'Enabled' : 'Disabled'}
+                      </span>
+                      {isAdmin && (
+                        <button
+                          onClick={() => updateNotifyAllMembersToggle(!notifyAllMembers)}
+                          disabled={updatingNotifyAllToggle}
+                          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 ${
+                            notifyAllMembers
+                              ? 'bg-blue-600'
+                              : 'bg-gray-200 dark:bg-gray-700'
+                          }`}
+                        >
+                          {updatingNotifyAllToggle ? (
+                            <Loader2 className="h-3 w-3 text-white animate-spin mx-auto" />
+                          ) : (
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                notifyAllMembers ? 'translate-x-6' : 'translate-x-1'
                               }`}
                             />
                           )}

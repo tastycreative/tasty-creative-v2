@@ -70,6 +70,7 @@ export async function GET(
         description: team.description,
         projectPrefix: team.projectPrefix,
         columnNotificationsEnabled: team.columnNotificationsEnabled,
+        notifyAllMembers: team.notifyAllMembers,
         isActive: team.isActive,
         createdAt: team.createdAt.toISOString(),
         updatedAt: team.updatedAt.toISOString(),

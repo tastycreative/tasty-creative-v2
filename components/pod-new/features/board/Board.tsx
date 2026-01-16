@@ -146,7 +146,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   const isLoadingTeamMembers = membersQuery.isLoading;
   
   // Team settings state
-  const [teamSettings, setTeamSettings] = useState<{columnNotificationsEnabled: boolean} | null>(null);
+  const [teamSettings, setTeamSettings] = useState<{columnNotificationsEnabled: boolean; notifyAllMembers: boolean} | null>(null);
   
   // OFTV Filters state
   const [oftvFilters, setOftvFilters] = useState<OFTVFilters>({
@@ -265,7 +265,10 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
   // Wire TanStack settings query into local state
   useEffect(() => {
     if (settingsQuery.data?.success) {
-      setTeamSettings({ columnNotificationsEnabled: settingsQuery.data.data.columnNotificationsEnabled });
+      setTeamSettings({
+        columnNotificationsEnabled: settingsQuery.data.data.columnNotificationsEnabled,
+        notifyAllMembers: settingsQuery.data.data.notifyAllMembers
+      });
     } else if (settingsQuery.isError) {
       setTeamSettings(null);
     }
@@ -1379,8 +1382,13 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
 
       // Find the target column to get assigned members
     const targetColumn = qColumns.find(column => column.status === newStatus);
-      
-      if (!targetColumn || !targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0) {
+
+      if (!targetColumn) {
+        return;
+      }
+
+      // If notifyAllMembers is disabled and there are no assigned members, skip notifications
+      if (!teamSettings?.notifyAllMembers && (!targetColumn.assignedMembers || targetColumn.assignedMembers.length === 0)) {
         return;
       }
 
@@ -1400,11 +1408,11 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
         teamName: teamName,
         movedBy: session?.user?.name || 'Unknown User',
         movedById: session?.user?.id || '',
-        assignedMembers: targetColumn.assignedMembers.map(assignment => ({
+        assignedMembers: targetColumn.assignedMembers?.map(assignment => ({
           userId: assignment.userId,
           userEmail: assignment.user.email,
           userName: assignment.user.name
-        }))
+        })) || []
       };
 
   // sending column movement notification payload

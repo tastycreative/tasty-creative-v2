@@ -521,6 +521,7 @@ model PodTeam {
   updatedAt                  DateTime?                 @updatedAt
   projectPrefix              String?                   @unique
   columnNotificationsEnabled Boolean                   @default(true)
+  notifyAllMembers           Boolean                   @default(false)
   order                      Int?                      @default(0)
   notifications              Notification[]
   createdBy                  User?                     @relation("PodTeamCreator", fields: [createdById], references: [id])

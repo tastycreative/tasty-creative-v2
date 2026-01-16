@@ -33,13 +33,67 @@ export async function POST(req: NextRequest) {
     } = await req.json();
 
     // Validate required fields
-    if (!taskId || !taskTitle || !newColumn || !teamId || !assignedMembers || !Array.isArray(assignedMembers)) {
-      return NextResponse.json({ 
-        error: 'Missing required fields: taskId, taskTitle, newColumn, teamId, assignedMembers' 
+    if (!taskId || !taskTitle || !newColumn || !teamId) {
+      return NextResponse.json({
+        error: 'Missing required fields: taskId, taskTitle, newColumn, teamId'
       }, { status: 400 });
     }
 
-    // Process notifications for each assigned member
+    // Validate assignedMembers is an array (can be empty if notifyAllMembers is enabled)
+    if (!Array.isArray(assignedMembers)) {
+      return NextResponse.json({
+        error: 'assignedMembers must be an array'
+      }, { status: 400 });
+    }
+
+    // Check team settings for notifyAllMembers
+    const team = await prisma.podTeam.findUnique({
+      where: { id: teamId },
+      select: {
+        notifyAllMembers: true,
+        columnNotificationsEnabled: true,
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                email: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    // If column notifications are disabled, exit early
+    if (team && team.columnNotificationsEnabled === false) {
+      return NextResponse.json({
+        success: true,
+        message: 'Column notifications are disabled for this team',
+        notifications: [],
+        emailResults: []
+      });
+    }
+
+    // Determine who to notify based on team settings
+    let membersToNotify = assignedMembers;
+
+    if (team?.notifyAllMembers) {
+      // Notify all team members
+      membersToNotify = team.members.map(member => ({
+        userId: member.user.id,
+        userEmail: member.user.email || '',
+        userName: member.user.name || 'Unknown User'
+      }));
+      console.log(`📧 Notify All Members is ENABLED. Notifying ${membersToNotify.length} team members`);
+    } else {
+      console.log(`📧 Notify All Members is DISABLED. Notifying ${assignedMembers.length} assigned members`);
+    }
+
+    console.log(`📧 Members to notify:`, membersToNotify.map(m => ({ name: m.userName, email: m.userEmail })));
+
+    // Process notifications for each member
     const notifications = [];
     const emailResults: Array<{
       userId: string;
@@ -47,8 +101,8 @@ export async function POST(req: NextRequest) {
       status: 'sent' | 'failed';
       message: string;
     }> = [];
-    
-    for (const member of assignedMembers) {
+
+    for (const member of membersToNotify) {
       // Don't notify the person who moved the task
       if (member.userId === movedById) {
         continue;
@@ -68,16 +122,21 @@ export async function POST(req: NextRequest) {
           }
         });
 
+        const notificationReason = team?.notifyAllMembers
+          ? `Task "${taskTitle}" moved to "${newColumn}" by ${movedBy}`
+          : `Task "${taskTitle}" moved to your assigned column "${newColumn}" by ${movedBy}`;
+
         notifications.push({
           activityId: activityLog.id,
           userId: member.userId,
           userEmail: member.userEmail,
           userName: member.userName,
-          notificationMessage: `Task "${taskTitle}" moved to your assigned column "${newColumn}" by ${movedBy}`
+          notificationMessage: notificationReason
         });
 
         // Send email notification
         try {
+          console.log(`📧 Sending email to ${member.userEmail} (${member.userName})...`);
           await sendColumnAssignmentNotificationEmail({
             to: member.userEmail,
             userName: member.userName,
@@ -97,7 +156,7 @@ export async function POST(req: NextRequest) {
             message: 'Email notification sent successfully'
           });
 
-          // email sent
+          console.log(`✅ Email sent successfully to ${member.userEmail}`);
         } catch (emailError) {
           emailResults.push({
             userId: member.userId,
@@ -110,16 +169,21 @@ export async function POST(req: NextRequest) {
 
         // Create in-app notification
         try {
+          console.log(`🔔 Creating in-app notification for ${member.userName}...`);
           // Get the user who moved the task for profile data
           const movedByUser = await prisma.user.findUnique({
             where: { id: movedById },
             select: { id: true, name: true, email: true, image: true }
           });
 
+          const notificationTitle = team?.notifyAllMembers
+            ? 'Task moved'
+            : 'Task moved to your column';
+
           const inAppNotification = await createInAppNotification({
             userId: member.userId,
             type: 'TASK_STATUS_CHANGED',
-            title: 'Task moved to your column',
+            title: notificationTitle,
             message: `${movedBy} moved "${taskTitle}" to ${newColumn}`,
             data: {
               taskId,
@@ -148,7 +212,7 @@ export async function POST(req: NextRequest) {
           const realtimeNotification = {
             id: `column_move_${taskId}_${member.userId}_${Date.now()}`,
             type: 'TASK_STATUS_CHANGED',
-            title: 'Task moved to your column',
+            title: notificationTitle,
             message: `${movedBy} moved "${taskTitle}" to ${newColumn}`,
             data: {
               taskId,
@@ -175,6 +239,7 @@ export async function POST(req: NextRequest) {
           };
 
           await publishNotification(realtimeNotification);
+          console.log(`✅ In-app notification created and published for ${member.userName}`);
         } catch (inAppError) {
           console.error(`❌ Failed to create in-app notification for ${member.userEmail}:`, inAppError);
         }
@@ -187,7 +252,12 @@ export async function POST(req: NextRequest) {
     }
 
     // Enhanced logging
-  // summary logged
+    console.log(`\n📊 NOTIFICATION SUMMARY:`);
+    console.log(`   Total members notified: ${notifications.length}`);
+    console.log(`   Emails sent: ${emailResults.filter(r => r.status === 'sent').length}`);
+    console.log(`   Emails failed: ${emailResults.filter(r => r.status === 'failed').length}`);
+    console.log(`   Notify All Members: ${team?.notifyAllMembers ? 'ENABLED' : 'DISABLED'}`);
+    console.log(`   Column Notifications: ${team?.columnNotificationsEnabled ? 'ENABLED' : 'DISABLED'}\n`);
 
     return NextResponse.json({
       success: true,
