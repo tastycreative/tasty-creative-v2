@@ -34,6 +34,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { SearchableSelect } from "@/components/ui/searchable-select";
+import ModelsDropdownList from "@/components/ModelsDropdownList";
 import {
   Tooltip,
   TooltipContent,
@@ -1293,18 +1294,10 @@ export default function ModularWorkflowWizard() {
                       </Tooltip>
                     </TooltipProvider>
                   </Label>
-                  <SearchableSelect
+                  <ModelsDropdownList
                     value={watch("model")}
                     onValueChange={(value) => setValue("model", value)}
-                    options={models.map((model) => ({
-                      value: model.name,
-                      label: model.name,
-                    }))}
-                    placeholder={
-                      loadingModels ? "Loading models..." : "Select a model"
-                    }
-                    searchPlaceholder="Search models..."
-                    emptyMessage="No models found."
+                    placeholder="Choose your model..."
                     disabled={loadingModels}
                     className="mt-2"
                   />
