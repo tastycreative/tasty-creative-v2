@@ -228,7 +228,7 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
             <span className="truncate">Grant Google Access</span>
           </Button>
 
-          <Button
+          {/* <Button
             onClick={handleResetGoogleAuth}
             variant="outline"
             className="w-full bg-white/50 dark:bg-[#1a1a1f] border-pink-200/60 dark:border-pink-500/20 text-gray-700 dark:text-gray-300 hover:bg-pink-50/50 dark:hover:bg-pink-500/10 hover:border-pink-400 dark:hover:border-pink-400 transition-all duration-200 text-sm sm:text-base px-4 py-3 rounded-2xl font-medium"
@@ -237,7 +237,7 @@ const PermissionGoogle: React.FC<PermissionGoogleProps> = ({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
             </svg>
             <span className="truncate">Reset & Re-authenticate</span>
-          </Button>
+          </Button> */}
         </div>
       </div>
     );
