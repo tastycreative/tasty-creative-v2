@@ -11,6 +11,7 @@ import UserProfile from "@/components/ui/UserProfile";
 import UserDropdown from "@/components/UserDropdown";
 import { formatForTaskDetail, formatDueDate } from "@/lib/dateUtils";
 import { extractGoogleDriveFileId, isGoogleDriveUrl } from "@/lib/utils/googleDriveImageUrl";
+import { isS3Url, getProxiedS3Url } from "@/lib/utils/s3ImageUrl";
 import { useTeamMembersQuery } from "@/hooks/useBoardQueries";
 import PermissionGoogle from "@/components/PermissionGoogle";
 
@@ -359,7 +360,7 @@ export default function WallPostTaskModal({
           });
 
           try {
-            // Use authenticated Google Drive API for Google Drive URLs, otherwise use proxy
+            // Use authenticated API for Google Drive URLs, proxy for S3, otherwise use download proxy
             let downloadUrl: string;
             if (isGoogleDriveUrl(photo.url)) {
               const fileId = extractGoogleDriveFileId(photo.url);
@@ -368,6 +369,9 @@ export default function WallPostTaskModal({
               } else {
                 downloadUrl = `/api/download-photo?url=${encodeURIComponent(photo.url)}`;
               }
+            } else if (isS3Url(photo.url)) {
+              // For S3 URLs, use the proxy to get a fresh presigned URL
+              downloadUrl = getProxiedS3Url(photo.url);
             } else {
               downloadUrl = `/api/download-photo?url=${encodeURIComponent(photo.url)}`;
             }
@@ -942,7 +946,7 @@ export default function WallPostTaskModal({
 
                 {selectedPhoto && selectedPhoto.url ? (
                   <>
-                    {/* Only wrap Google Drive images with PermissionGoogle */}
+                    {/* Handle Google Drive images with permission UI */}
                     {isGoogleDriveUrl(selectedPhoto.url) ? (
                       <GoogleDriveImage
                         src={(() => {
@@ -958,8 +962,9 @@ export default function WallPostTaskModal({
                         isMainViewer={true}
                       />
                     ) : (
+                      /* Handle S3 and other URLs - proxy S3 URLs to handle expiration */
                       <img
-                        src={selectedPhoto.url}
+                        src={isS3Url(selectedPhoto.url) ? getProxiedS3Url(selectedPhoto.url) : selectedPhoto.url}
                         alt={`Photo ${selectedPhotoIndex + 1}`}
                         className="max-w-full max-h-full object-contain"
                         onError={(e) => {
@@ -1246,7 +1251,7 @@ export default function WallPostTaskModal({
                           className="block"
                         >
                           {photo.url ? (
-                            // Only wrap Google Drive thumbnails with PermissionGoogle
+                            // Handle Google Drive thumbnails with permission UI
                             isGoogleDriveUrl(photo.url) ? (
                               <GoogleDriveImage
                                 src={(() => {
@@ -1260,8 +1265,9 @@ export default function WallPostTaskModal({
                                 }}
                               />
                             ) : (
+                              // Handle S3 and other URLs - proxy S3 URLs to handle expiration
                               <img
-                                src={photo.url}
+                                src={isS3Url(photo.url) ? getProxiedS3Url(photo.url) : photo.url}
                                 alt={`Photo ${index + 1}`}
                                 className="w-20 h-20 object-contain rounded bg-gray-900"
                                 onError={(e) => {
