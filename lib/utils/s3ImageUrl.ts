@@ -23,7 +23,7 @@ export function isS3Url(url: string | null | undefined): boolean {
 
 /**
  * Converts an S3 URL (potentially expired presigned URL) to a proxied URL
- * that will generate a fresh presigned URL on-demand
+ * that will generate a fresh presigned URL on-demand.
  *
  * @param url - The S3 URL (can be expired presigned URL)
  * @returns Proxied URL that will work even if original is expired
