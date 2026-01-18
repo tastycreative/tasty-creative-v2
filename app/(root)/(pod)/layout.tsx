@@ -5,8 +5,6 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { PanelLeftClose, PanelLeftOpen, PanelRightClose, PanelRightOpen, Focus, Layout, Users } from "lucide-react";
-import LeftSidebar from "@/components/pod-new/layouts/LeftSidebar";
-import RightSidebar from "@/components/pod-new/layouts/RightSidebar";
 import { ThemeToggle } from "@/components/admin/ThemeToggle";
 import AccountMenu from "@/components/AccountMenu";
 import {
@@ -174,7 +172,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
     <div className="h-screen flex bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white overflow-hidden">
       <div className="h-full flex w-full max-w-[1440px] mx-auto">
         {/* Left Sidebar - Full height (collapsed or expanded) */}
-        <div className={`h-full shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto transition-all duration-200 ${
+        <div className={`h-full shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto board-scrollbar transition-all duration-200 ${
           showLeftSidebar ? "w-[220px]" : "w-[60px]"
         }`}>
           <LeftSidebar collapsed={!showLeftSidebar} />
@@ -182,8 +180,8 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
         {/* Right side: Content with header and children that scroll together */}
         <div className="flex-1 flex min-w-0">
-          <main className="flex-1 h-full flex flex-col overflow-hidden">
-            <div className="flex-1 overflow-y-auto min-h-0">
+          <main className="flex-1 h-full flex flex-col overflow-hidden min-w-0">
+            <div className="flex-1 overflow-y-auto overflow-x-hidden min-h-0 board-scrollbar">
               {/* Header + Tabs */}
               <div className="bg-white dark:bg-gray-900">
                 {/* Compact Header */}
@@ -275,7 +273,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
                 </div>
               </div>
               {/* Page Content */}
-              <div className="min-h-full">
+              <div className="min-h-full min-w-0 overflow-x-hidden">
                 {children}
               </div>
             </div>
@@ -283,7 +281,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
           {/* Right Sidebar */}
           {showRightSidebar && (
-            <div className="h-full w-[260px] shrink-0 border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto">
+            <div className="h-full w-[260px] shrink-0 border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto board-scrollbar">
               <RightSidebar collapsed={false} />
             </div>
           )}

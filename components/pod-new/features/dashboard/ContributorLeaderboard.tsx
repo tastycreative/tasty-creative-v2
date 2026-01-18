@@ -86,88 +86,98 @@ export default function ContributorLeaderboard({
       </div>
 
       {/* Chart Container */}
-      <div className="flex items-end space-x-4 h-32 px-1 relative">
-        {/* Y-Axis Labels */}
-        <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[9px] text-gray-600 font-medium -ml-1 h-full z-0">
-          {yAxisLabels.map((label, i) => (
-            <span key={i}>{label}</span>
-          ))}
+      <div className="relative">
+        {/* Chart Area with Bars */}
+        <div className="flex items-end space-x-4 h-32 px-1 relative overflow-hidden">
+          {/* Y-Axis Labels */}
+          <div className="absolute left-0 top-0 bottom-0 flex flex-col justify-between text-[9px] text-gray-600 font-medium -ml-1 h-full z-0">
+            {yAxisLabels.map((label, i) => (
+              <span key={i}>{label}</span>
+            ))}
+          </div>
+
+          {/* Horizontal Grid Lines */}
+          <div className="absolute inset-0 w-full h-full flex flex-col justify-between pointer-events-none pl-4 z-0">
+            <div className="border-b border-dashed border-white/5 w-full h-0" />
+            <div className="border-b border-dashed border-white/5 w-full h-0" />
+            <div className="border-b border-white/10 w-full h-0" />
+          </div>
+
+          {/* Bars */}
+          {barData.map((item, index) => {
+            const barHeight =
+              maxCount > 0 ? (item.count / maxCount) * maxHeight : 0;
+
+            return (
+              <div
+                key={index}
+                className={`flex-1 flex flex-col items-center justify-end h-full z-10 ${index === 0 ? "pl-4" : ""} group ${item.isOther ? "opacity-40" : ""}`}
+              >
+                {/* Bar */}
+                <div className="relative w-full flex justify-center">
+                  <div
+                    className="w-full max-w-[40px] rounded-t-sm transition-all duration-300 group-hover:opacity-90"
+                    style={{
+                      height: `${barHeight}px`,
+                      backgroundColor: item.color.bg,
+                      boxShadow:
+                        item.color.glow !== "none"
+                          ? `0 0 15px ${item.color.glow}`
+                          : "none",
+                    }}
+                  />
+                </div>
+              </div>
+            );
+          })}
         </div>
 
-        {/* Horizontal Grid Lines */}
-        <div className="absolute inset-0 w-full h-full flex flex-col justify-between pointer-events-none pl-4 z-0">
-          <div className="border-b border-dashed border-white/5 w-full h-0" />
-          <div className="border-b border-dashed border-white/5 w-full h-0" />
-          <div className="border-b border-white/10 w-full h-0" />
-        </div>
-
-        {/* Bars */}
-        {barData.map((item, index) => {
-          const barHeight =
-            maxCount > 0 ? (item.count / maxCount) * maxHeight : 0;
-
-          return (
+        {/* Avatars / Labels Row - Outside the chart overflow area */}
+        <div className="flex space-x-4 px-1 mt-2">
+          {barData.map((item, index) => (
             <div
               key={index}
-              className={`flex-1 flex flex-col items-center justify-end h-full z-10 ${index === 0 ? "pl-4" : ""} group ${item.isOther ? "opacity-40" : ""}`}
+              className={`flex-1 flex flex-col items-center ${index === 0 ? "pl-4" : ""} ${item.isOther ? "opacity-40" : ""}`}
             >
-              {/* Bar */}
-              <div className="relative w-full flex justify-center">
-                <div
-                  className="w-full max-w-[40px] rounded-t-sm transition-all duration-300 group-hover:opacity-90"
-                  style={{
-                    height: `${barHeight}px`,
-                    backgroundColor: item.color.bg,
-                    boxShadow:
-                      item.color.glow !== "none"
-                        ? `0 0 15px ${item.color.glow}`
-                        : "none",
-                  }}
+              {item.image ? (
+                <Image
+                  src={item.image}
+                  alt={item.name}
+                  width={24}
+                  height={24}
+                  className="rounded-full border border-pink-500/30 object-cover"
                 />
-              </div>
-
-              {/* Avatar / Icon */}
-              <div className="mt-2 flex flex-col items-center">
-                {item.image ? (
-                  <Image
-                    src={item.image}
-                    alt={item.name}
-                    width={24}
-                    height={24}
-                    className="rounded-full border border-pink-500/30 object-cover"
-                  />
-                ) : item.isOther ? (
-                  <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-[8px] text-gray-400 font-bold border border-gray-700">
-                    +
-                  </div>
-                ) : (
-                  <div
-                    className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold border"
-                    style={{
-                      backgroundColor:
-                        index === 0
-                          ? "rgba(59,130,246,0.3)"
-                          : "rgba(236,72,153,0.3)",
-                      borderColor:
-                        index === 0
-                          ? "rgba(59,130,246,0.3)"
-                          : "rgba(236,72,153,0.3)",
-                      color: index === 0 ? "#93C5FD" : "#F9A8D4",
-                    }}
-                  >
-                    {item.name.charAt(0).toUpperCase()}
-                    {item.name.split(" ")[1]?.charAt(0).toUpperCase() || ""}
-                  </div>
-                )}
-                <span
-                  className={`text-[9px] mt-1 truncate w-12 text-center ${item.isOther ? "text-gray-600" : "text-gray-500"}`}
+              ) : item.isOther ? (
+                <div className="w-6 h-6 rounded-full bg-gray-800 flex items-center justify-center text-[8px] text-gray-400 font-bold border border-gray-700">
+                  +
+                </div>
+              ) : (
+                <div
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-[8px] font-bold border"
+                  style={{
+                    backgroundColor:
+                      index === 0
+                        ? "rgba(59,130,246,0.3)"
+                        : "rgba(236,72,153,0.3)",
+                    borderColor:
+                      index === 0
+                        ? "rgba(59,130,246,0.3)"
+                        : "rgba(236,72,153,0.3)",
+                    color: index === 0 ? "#93C5FD" : "#F9A8D4",
+                  }}
                 >
-                  {item.name}
-                </span>
-              </div>
+                  {item.name.charAt(0).toUpperCase()}
+                  {item.name.split(" ")[1]?.charAt(0).toUpperCase() || ""}
+                </div>
+              )}
+              <span
+                className={`text-[9px] mt-1 truncate w-12 text-center ${item.isOther ? "text-gray-600" : "text-gray-500"}`}
+              >
+                {item.name}
+              </span>
             </div>
-          );
-        })}
+          ))}
+        </div>
       </div>
     </div>
   );

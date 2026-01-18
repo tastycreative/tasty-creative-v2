@@ -34,27 +34,27 @@ export default function RecentSubmissionsTimeline({
   }
 
   return (
-    <div className="bg-[#121216] rounded-2xl p-5 border border-white/5 shadow-lg">
+    <div className="bg-[#121216] rounded-2xl p-5 border border-white/5 shadow-lg overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center mb-6">
-        <div>
-          <h2 className="text-base font-semibold text-white">
+      <div className="flex justify-between items-center mb-6 gap-2">
+        <div className="min-w-0">
+          <h2 className="text-base font-semibold text-white truncate">
             Recent Submissions
           </h2>
-          <p className="text-[11px] text-gray-500">Latest workflow activity</p>
+          <p className="text-[11px] text-gray-500 truncate">Latest workflow activity</p>
         </div>
         <Link
           href="/forms"
-          className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors"
+          className="text-xs text-violet-400 hover:text-violet-300 font-medium transition-colors whitespace-nowrap shrink-0"
         >
           View All
         </Link>
       </div>
 
       {/* Timeline */}
-      <div className="relative pl-2 space-y-6">
-        {/* Timeline Line */}
-        <div className="absolute left-[19px] top-3 bottom-3 w-[1px] bg-white/10" />
+      <div className="relative pl-2 space-y-6 overflow-hidden">
+        {/* Timeline Line - centered on dots (dots are at pl-2 + left-0, width 2.5 = 10px, center at ~13px) */}
+        <div className="absolute left-[12px] top-3 bottom-3 w-[1px] bg-white/10" />
 
         {data.slice(0, 5).map((submission, index) => {
           const timeAgo = formatDistanceToNow(new Date(submission.createdAt), {
@@ -77,18 +77,18 @@ export default function RecentSubmissionsTimeline({
               />
 
               {/* Content Card */}
-              <div className="ml-6 w-full bg-[#1C1C22] p-3.5 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/[0.02] transition-all cursor-pointer">
+              <div className="ml-6 w-full min-w-0 bg-[#1C1C22] p-3.5 rounded-xl border border-white/5 hover:border-white/10 hover:bg-white/[0.02] transition-all cursor-pointer overflow-hidden">
                 {/* Header Row */}
-                <div className="flex justify-between items-start mb-2">
-                  <div className="flex items-center space-x-2.5">
+                <div className="flex justify-between items-start mb-2 gap-2">
+                  <div className="flex items-center space-x-2.5 min-w-0 flex-1">
                     {/* Icon */}
-                    <div className="bg-yellow-500/10 p-1.5 rounded-md">
+                    <div className="bg-yellow-500/10 p-1.5 rounded-md shrink-0">
                       <DollarSign className="w-3 h-3 text-yellow-500" />
                     </div>
 
                     {/* Name & Time */}
-                    <div>
-                      <h4 className="text-sm font-medium text-gray-200">
+                    <div className="min-w-0 flex-1">
+                      <h4 className="text-sm font-medium text-gray-200 truncate">
                         {submission.modelName}
                       </h4>
                       <p className="text-[10px] text-gray-500">{timeAgo} ago</p>
@@ -97,7 +97,7 @@ export default function RecentSubmissionsTimeline({
 
                   {/* Type Badge */}
                   <span
-                    className={`text-[10px] px-2 py-0.5 rounded font-semibold ${
+                    className={`text-[10px] px-2 py-0.5 rounded font-semibold shrink-0 ${
                       isFirst
                         ? "bg-violet-500/20 text-violet-400 border border-violet-500/20"
                         : "bg-gray-700/50 text-gray-400 border border-white/5"
