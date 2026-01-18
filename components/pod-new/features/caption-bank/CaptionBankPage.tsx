@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect } from "react";
 import { useGalleryData } from "@/hooks/useGalleryQuery";
 import { CaptionCard } from "./CaptionCard";
-import { Search, Loader2, Check, ChevronsUpDown, Plus, PenLine, ChevronDown, Users, LayoutGrid, CalendarDays, SlidersHorizontal, Diamond } from "lucide-react";
+import { Search, Loader2, Check, ChevronsUpDown, Plus, PenLine, ChevronDown, Users, LayoutGrid, CalendarDays, SlidersHorizontal, Diamond, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,6 +102,15 @@ export function CaptionBankPage() {
     return { displayed: uniqueCreators, remaining: remainingCount };
   }, [creators]);
 
+  // Count active filters
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery) count++;
+    if (selectedCreator !== "all") count++;
+    if (selectedCategory !== "all") count++;
+    return count;
+  }, [searchQuery, selectedCreator, selectedCategory]);
+
   if (error) {
     return (
       <div className="min-h-screen bg-[#0f1115] p-6 flex items-center justify-center">
@@ -189,141 +198,192 @@ export function CaptionBankPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
           ref={contentStartRef}
-          className="rounded-2xl p-2 mb-16 flex flex-col lg:flex-row items-center gap-2 backdrop-blur-md"
+          className="rounded-2xl p-2 mb-16 backdrop-blur-md"
           style={{
             background: 'rgba(18, 20, 24, 0.6)',
             border: '1px solid rgba(255, 255, 255, 0.05)'
           }}
         >
-          <div className="relative flex-grow w-full">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-slate-500 h-5 w-5" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-transparent border-none focus-visible:ring-0 py-4 h-auto pl-14 pr-4 text-sm text-white placeholder:text-slate-600"
-              placeholder="Search captions, tags, or creators..."
-            />
-          </div>
-
-          <div className="flex items-center gap-2 p-1 w-full lg:w-auto overflow-x-auto">
-            {/* Creator Filter */}
-            <Popover open={creatorOpen} onOpenChange={setCreatorOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
+          <div className="flex items-center gap-2">
+            {/* Search Input */}
+            <div className={cn(
+              "relative flex-1 min-w-0 rounded-xl transition-all duration-200",
+              searchQuery && "bg-blue-500/10 ring-1 ring-blue-500/30"
+            )}>
+              <Search className={cn(
+                "absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 transition-colors duration-200",
+                searchQuery ? "text-blue-400" : "text-slate-500"
+              )} />
+              <Input
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className={cn(
+                  "w-full bg-transparent border-none focus-visible:ring-0 py-3 h-auto pl-11 pr-10 text-sm placeholder:text-slate-600 transition-colors duration-200",
+                  searchQuery ? "text-blue-400" : "text-white"
+                )}
+                placeholder="Search captions, tags, or creators..."
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-blue-500 text-white hover:bg-blue-600 transition-colors"
                 >
-                  <Users className="h-4 w-4" />
-                  {selectedCreator === "all" ? "Creators" : selectedCreator}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0 bg-[#1a1c21] border-white/10" align="start">
-                <Command className="bg-transparent">
-                  <CommandInput placeholder="Search creators..." className="text-white" />
-                  <CommandList className="max-h-64">
-                    <CommandEmpty className="text-slate-500">No creator found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="all"
-                        onSelect={() => {
-                          setSelectedCreator("all");
-                          setCreatorOpen(false);
-                        }}
-                        className="text-slate-300 hover:text-white"
-                      >
-                        <Check className={cn("mr-2 h-4 w-4", selectedCreator === "all" ? "opacity-100" : "opacity-0")} />
-                        All Creators
-                      </CommandItem>
-                      {creators.map((creator) => (
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Filter Buttons */}
+            <div className="flex items-center gap-1.5 flex-shrink-0">
+              {/* Creator Filter */}
+              <Popover open={creatorOpen} onOpenChange={setCreatorOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 h-auto rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200",
+                      selectedCreator !== "all"
+                        ? "bg-pink-500/20 text-pink-400 hover:bg-pink-500/30 ring-1 ring-pink-500/30"
+                        : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                    )}
+                  >
+                    <Users className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{selectedCreator === "all" ? "Creators" : selectedCreator}</span>
+                    {selectedCreator !== "all" && (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-pink-500 text-[9px] font-bold text-white">
+                        1
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0 bg-[#1a1c21] border-white/10" align="end">
+                  <Command className="bg-transparent">
+                    <CommandInput placeholder="Search creators..." className="text-white" />
+                    <CommandList className="max-h-64">
+                      <CommandEmpty className="text-slate-500">No creator found.</CommandEmpty>
+                      <CommandGroup>
                         <CommandItem
-                          key={creator}
-                          value={creator}
+                          value="all"
                           onSelect={() => {
-                            setSelectedCreator(creator);
+                            setSelectedCreator("all");
                             setCreatorOpen(false);
                           }}
                           className="text-slate-300 hover:text-white"
                         >
-                          <Check className={cn("mr-2 h-4 w-4", selectedCreator === creator ? "opacity-100" : "opacity-0")} />
-                          {creator}
+                          <Check className={cn("mr-2 h-4 w-4", selectedCreator === "all" ? "opacity-100" : "opacity-0")} />
+                          All Creators
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                        {creators.map((creator) => (
+                          <CommandItem
+                            key={creator}
+                            value={creator}
+                            onSelect={() => {
+                              setSelectedCreator(creator);
+                              setCreatorOpen(false);
+                            }}
+                            className="text-slate-300 hover:text-white"
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedCreator === creator ? "opacity-100" : "opacity-0")} />
+                            {creator}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
 
-            {/* Category Filter */}
-            <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="ghost"
-                  className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
-                >
-                  <LayoutGrid className="h-4 w-4" />
-                  {selectedCategory === "all" ? "Category" : selectedCategory}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[200px] p-0 bg-[#1a1c21] border-white/10" align="start">
-                <Command className="bg-transparent">
-                  <CommandInput placeholder="Search categories..." className="text-white" />
-                  <CommandList className="max-h-64">
-                    <CommandEmpty className="text-slate-500">No category found.</CommandEmpty>
-                    <CommandGroup>
-                      <CommandItem
-                        value="all"
-                        onSelect={() => {
-                          setSelectedCategory("all");
-                          setCategoryOpen(false);
-                        }}
-                        className="text-slate-300 hover:text-white"
-                      >
-                        <Check className={cn("mr-2 h-4 w-4", selectedCategory === "all" ? "opacity-100" : "opacity-0")} />
-                        All Categories
-                      </CommandItem>
-                      {categories.map((category) => (
+              {/* Category Filter */}
+              <Popover open={categoryOpen} onOpenChange={setCategoryOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className={cn(
+                      "flex items-center gap-1.5 px-3 py-2 h-auto rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200",
+                      selectedCategory !== "all"
+                        ? "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 ring-1 ring-purple-500/30"
+                        : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                    )}
+                  >
+                    <LayoutGrid className="h-3.5 w-3.5" />
+                    <span className="hidden sm:inline">{selectedCategory === "all" ? "Category" : selectedCategory}</span>
+                    {selectedCategory !== "all" && (
+                      <span className="flex h-4 w-4 items-center justify-center rounded-full bg-purple-500 text-[9px] font-bold text-white">
+                        1
+                      </span>
+                    )}
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[200px] p-0 bg-[#1a1c21] border-white/10" align="end">
+                  <Command className="bg-transparent">
+                    <CommandInput placeholder="Search categories..." className="text-white" />
+                    <CommandList className="max-h-64">
+                      <CommandEmpty className="text-slate-500">No category found.</CommandEmpty>
+                      <CommandGroup>
                         <CommandItem
-                          key={category}
-                          value={category}
+                          value="all"
                           onSelect={() => {
-                            setSelectedCategory(category);
+                            setSelectedCategory("all");
                             setCategoryOpen(false);
                           }}
                           className="text-slate-300 hover:text-white"
                         >
-                          <Check className={cn("mr-2 h-4 w-4", selectedCategory === category ? "opacity-100" : "opacity-0")} />
-                          {category}
+                          <Check className={cn("mr-2 h-4 w-4", selectedCategory === "all" ? "opacity-100" : "opacity-0")} />
+                          All Categories
                         </CommandItem>
-                      ))}
-                    </CommandGroup>
-                  </CommandList>
-                </Command>
-              </PopoverContent>
-            </Popover>
+                        {categories.map((category) => (
+                          <CommandItem
+                            key={category}
+                            value={category}
+                            onSelect={() => {
+                              setSelectedCategory(category);
+                              setCategoryOpen(false);
+                            }}
+                            className="text-slate-300 hover:text-white"
+                          >
+                            <Check className={cn("mr-2 h-4 w-4", selectedCategory === category ? "opacity-100" : "opacity-0")} />
+                            {category}
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
 
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
-            >
-              <CalendarDays className="h-4 w-4" />
-              Date
-            </Button>
+              <Button
+                variant="ghost"
+                className="flex items-center gap-1.5 px-3 py-2 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
+              >
+                <CalendarDays className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Date</span>
+              </Button>
 
-            <div className="w-[1px] h-6 bg-white/10 mx-1" />
+              <div className="w-[1px] h-5 bg-white/10" />
 
-            <Button
-              variant="ghost"
-              className="flex items-center gap-2 px-4 py-2.5 h-auto rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white text-xs font-medium whitespace-nowrap"
-              onClick={() => {
-                setSearchQuery("");
-                setSelectedCreator("all");
-                setSelectedCategory("all");
-              }}
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              {searchQuery || selectedCreator !== "all" || selectedCategory !== "all" ? "Clear" : "Filters"}
-            </Button>
+              <Button
+                variant="ghost"
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-2 h-auto rounded-xl text-xs font-medium whitespace-nowrap transition-all duration-200",
+                  activeFilterCount > 0
+                    ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 ring-1 ring-red-500/30"
+                    : "bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white"
+                )}
+                onClick={() => {
+                  setSearchQuery("");
+                  setSelectedCreator("all");
+                  setSelectedCategory("all");
+                }}
+              >
+                <SlidersHorizontal className="h-3.5 w-3.5" />
+                <span>{activeFilterCount > 0 ? "Clear" : "Filters"}</span>
+                {activeFilterCount > 0 && (
+                  <span className="flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[9px] font-bold text-white">
+                    {activeFilterCount}
+                  </span>
+                )}
+              </Button>
+            </div>
           </div>
         </motion.div>
 

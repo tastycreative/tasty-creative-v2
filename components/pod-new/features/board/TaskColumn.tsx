@@ -190,7 +190,7 @@ export default function TaskColumn({
         </div>
       )}
 
-      <div className={`${includeHeader && !isMobile ? 'p-4 flex-1 overflow-y-auto' : ''}`}>
+      <div className={`${includeHeader && !isMobile ? 'p-4 flex-1 overflow-y-auto board-scrollbar' : ''}`}>
         {!isMobile && !includeHeader && showNewTaskForm === status && (
           <div className="mt-4 p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg">
             <input

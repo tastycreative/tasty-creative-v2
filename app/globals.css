@@ -720,3 +720,50 @@ html, body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+/* Board Page - Themed Scrollbar (Violet/Purple) */
+.board-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139, 92, 246, 0.5) transparent;
+}
+
+.board-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.board-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 3px;
+}
+
+.board-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.6);
+  border-radius: 3px;
+  transition: background 0.2s ease;
+}
+
+.board-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.8);
+}
+
+.board-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+/* Dark mode board scrollbar */
+.dark .board-scrollbar {
+  scrollbar-color: rgba(139, 92, 246, 0.6) rgba(31, 41, 55, 0.2);
+}
+
+.dark .board-scrollbar::-webkit-scrollbar-track {
+  background: rgba(31, 41, 55, 0.2);
+}
+
+.dark .board-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(139, 92, 246, 0.7);
+}
+
+.dark .board-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 92, 246, 0.9);
+}

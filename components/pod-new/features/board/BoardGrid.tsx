@@ -90,7 +90,7 @@ export default function BoardGrid({
       <div className="md:hidden">
         <div
           ref={mobileScrollRef}
-          className="flex overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600 min-h-[600px]"
+          className="flex overflow-x-auto board-scrollbar min-h-[600px]"
           title="Click and drag to scroll horizontally"
         >
           {getColumnConfig().map(([status, config], index) => {
@@ -139,7 +139,7 @@ export default function BoardGrid({
       {/* Desktop: Unified Header + Body Scroll Container */}
       <div
         ref={desktopScrollRef}
-        className="hidden md:block overflow-x-auto"
+        className="hidden md:block overflow-x-auto board-scrollbar"
         title="Click and drag to scroll horizontally"
       >
         <div
