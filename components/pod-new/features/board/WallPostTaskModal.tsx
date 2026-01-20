@@ -936,7 +936,7 @@ export default function WallPostTaskModal({
                       if (isS3Url(selectedPhoto.url!)) {
                         return getProxiedS3Url(selectedPhoto.url!);
                       }
-                      // For other URLs, open directly
+                      // For other URLs, open directly.
                       return selectedPhoto.url!;
                     })()}
                     target="_blank"
