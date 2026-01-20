@@ -12,10 +12,11 @@ export async function GET(request: NextRequest) {
         status: {
           notIn: ['inactive', 'deleted', 'disabled']
         },
-        // Exclude specific duplicate model with trailing space
-        NOT: {
-          id: '6994e66a-d6d8-46b8-8e22-c300b349d2d5' //Lilah with whitespace
-        }
+        // Exclude specific duplicate models with trailing whitespace
+        NOT: [
+          { id: '6994e66a-d6d8-46b8-8e22-c300b349d2d5' }, // Lilah with whitespace
+          { id: '44ac17fc-379f-467e-a1de-9b730b1aa90d' }  // Francessca with whitespace
+        ]
       },
       select: {
         id: true,
