@@ -932,13 +932,23 @@ export default function WallPostTaskModal({
                         const fileId = extractGoogleDriveFileId(selectedPhoto.url!);
                         return fileId ? `https://drive.google.com/file/d/${fileId}/view` : selectedPhoto.url!;
                       }
-                      // For S3 or other URLs, open directly
+                      // For S3 URLs, use proxied URL to get fresh presigned URL
+                      if (isS3Url(selectedPhoto.url!)) {
+                        return getProxiedS3Url(selectedPhoto.url!);
+                      }
+                      // For other URLs, open directly
                       return selectedPhoto.url!;
                     })()}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="absolute top-4 right-4 z-10 p-2.5 bg-black/60 hover:bg-black/80 text-white rounded-lg transition-all hover:scale-110 backdrop-blur-sm border border-white/20"
-                    title={isGoogleDriveUrl(selectedPhoto.url) ? "Open in Google Drive" : "Open in new tab"}
+                    title={
+                      isGoogleDriveUrl(selectedPhoto.url)
+                        ? "Open in Google Drive"
+                        : isS3Url(selectedPhoto.url)
+                        ? "Open image"
+                        : "Open in new tab"
+                    }
                   >
                     <ExternalLink className="h-5 w-5" />
                   </a>
