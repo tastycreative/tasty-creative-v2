@@ -109,25 +109,35 @@ export async function POST(request: NextRequest) {
       // Fetch all image files from the folder
       console.log(`Fetching images from folder: ${resourceMetadata.data.name}`);
 
-      const listResponse = await drive.files.list({
-        q: `'${resourceId}' in parents and (mimeType contains 'image/')`,
-        spaces: "drive",
-        fields: "files(id, name, mimeType, size, thumbnailLink, webViewLink, modifiedTime)",
-        pageSize: 1000, // Max allowed by API
-        orderBy: "name", // Sort by name for consistent ordering
-        supportsAllDrives: true,
-        includeItemsFromAllDrives: true,
-      });
+      // Drive can return paginated results. Accumulate all pages using nextPageToken.
+      const accumulatedFiles: any[] = [];
+      let nextPageToken: string | undefined = undefined;
 
-      const files = listResponse.data.files || [];
-      console.log(`Found ${files.length} images in folder`);
+      do {
+        const listResponse = await drive.files.list({
+          q: `'${resourceId}' in parents and (mimeType contains 'image/')`,
+          spaces: 'drive',
+          fields: "nextPageToken, files(id, name, mimeType, size, thumbnailLink, webViewLink, modifiedTime)",
+          pageSize: 1000,
+          orderBy: 'name',
+          supportsAllDrives: true,
+          includeItemsFromAllDrives: true,
+          pageToken: nextPageToken,
+        });
 
-      images = files.map((file) => ({
+        const filesPage = listResponse.data.files || [];
+        accumulatedFiles.push(...filesPage);
+        nextPageToken = listResponse.data.nextPageToken ?? undefined;
+      } while (nextPageToken);
+
+      console.log(`Found ${accumulatedFiles.length} images in folder (all pages)`);
+
+      images = accumulatedFiles.map((file) => ({
         id: file.id!,
         name: file.name!,
         mimeType: file.mimeType!,
-        thumbnailLink: file.thumbnailLink,
-        webViewLink: file.webViewLink,
+        thumbnailLink: file.thumbnailLink ?? undefined,
+        webViewLink: file.webViewLink ?? undefined,
         size: file.size ? parseInt(file.size) : undefined,
       }));
     } else {
@@ -154,8 +164,8 @@ export async function POST(request: NextRequest) {
         id: fileMetadata.data.id!,
         name: fileMetadata.data.name!,
         mimeType: fileMetadata.data.mimeType!,
-        thumbnailLink: fileMetadata.data.thumbnailLink,
-        webViewLink: fileMetadata.data.webViewLink,
+        thumbnailLink: fileMetadata.data.thumbnailLink ?? undefined,
+        webViewLink: fileMetadata.data.webViewLink ?? undefined,
         size: fileMetadata.data.size ? parseInt(fileMetadata.data.size) : undefined,
       }];
     }

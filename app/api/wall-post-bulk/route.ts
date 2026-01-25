@@ -149,18 +149,27 @@ export async function POST(request: NextRequest) {
         let driveImages: any[] = [];
 
         if (isFolder) {
-          // Fetch all images from folder
-          const listResponse = await drive.files.list({
-            q: `'${resourceId}' in parents and (mimeType contains 'image/')`,
-            spaces: "drive",
-            fields: "files(id, name, mimeType, thumbnailLink, webViewLink, webContentLink)",
-            pageSize: 1000,
-            orderBy: "name",
-            supportsAllDrives: true,
-            includeItemsFromAllDrives: true,
-          });
+          // Fetch all images from folder (handle pagination)
+          const accumulated: any[] = [];
+          let nextPageToken: string | undefined = undefined;
 
-          driveImages = listResponse.data.files || [];
+          do {
+            const listResponse = await drive.files.list({
+              q: `'${resourceId}' in parents and (mimeType contains 'image/')`,
+              spaces: 'drive',
+              fields: "nextPageToken, files(id, name, mimeType, thumbnailLink, webViewLink, webContentLink)",
+              pageSize: 1000,
+              orderBy: 'name',
+              supportsAllDrives: true,
+              includeItemsFromAllDrives: true,
+              pageToken: nextPageToken,
+            });
+
+            accumulated.push(...(listResponse.data.files || []));
+            nextPageToken = (listResponse.data as any).nextPageToken;
+          } while (nextPageToken);
+
+          driveImages = accumulated;
         } else {
           // Single file - check if it's an image
           const isImage = resourceMetadata.data.mimeType?.includes('image/');
@@ -183,9 +192,9 @@ export async function POST(request: NextRequest) {
         // Store as drive://FILE_ID format so we can identify and proxy them later
         photos = driveImages.map((image: any, index: number) => ({
           s3Key: null, // No S3 key for Drive images
-          url: `drive://${image.id}`, // Store Drive file ID with custom protocol for identification
+          url: `drive://${image.id}`,
           position: index,
-          caption: '', // No captions for Drive images
+          caption: '',
           status: 'PENDING_REVIEW',
         }));
 

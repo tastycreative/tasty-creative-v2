@@ -196,19 +196,29 @@ export async function GET(request: NextRequest) {
     console.log("File query:", fileQuery);
 
     // List contents of the target folder ONLY (no recursion)
-    const listResponse = await drive.files.list({
-      q: fileQuery,
-      spaces: "drive",
-      fields:
-        "files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, thumbnailLink)",
-      pageSize: 1000,
-      corpora: "user",
-      includeItemsFromAllDrives: true,
-      supportsAllDrives: true,
-      orderBy: "folder,name",
-    });
+    // Accumulate paginated results from Drive
+    const accumulated: any[] = [];
+    let nextPageToken: string | undefined = undefined;
 
-    const files = (listResponse.data.files || []).map((file) => {
+    do {
+      const listResponse = await drive.files.list({
+        q: fileQuery,
+        spaces: 'drive',
+        fields:
+          "nextPageToken, files(id, name, mimeType, size, createdTime, modifiedTime, parents, webViewLink, thumbnailLink)",
+        pageSize: 1000,
+        corpora: 'user',
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true,
+        orderBy: 'folder,name',
+        pageToken: nextPageToken,
+      });
+
+      accumulated.push(...(listResponse.data.files || []));
+      nextPageToken = (listResponse.data as any).nextPageToken;
+    } while (nextPageToken);
+
+    const files = (accumulated || []).map((file) => {
       // Check if file is a video based on mimeType or file extension
       const isVideo =
         file.mimeType?.includes("video/") ||
@@ -225,14 +235,14 @@ export async function GET(request: NextRequest) {
       return {
         id: file.id!,
         name: file.name!,
-        isFolder: file.mimeType === "application/vnd.google-apps.folder",
+        isFolder: file.mimeType === 'application/vnd.google-apps.folder',
         isVideo: isVideo,
         size: file.size ? parseInt(file.size) : null,
         createdAt: file.createdTime,
         modifiedAt: file.modifiedTime,
         mimeType: file.mimeType,
-        webViewLink: file.webViewLink,
-        thumbnailLink: file.thumbnailLink,
+        webViewLink: file.webViewLink ?? undefined,
+        thumbnailLink: file.thumbnailLink ?? undefined,
         parents: file.parents,
       };
     });
