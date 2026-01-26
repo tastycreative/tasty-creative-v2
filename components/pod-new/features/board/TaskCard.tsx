@@ -314,7 +314,7 @@ function TaskCard({
         <div
           className={`flex items-center ${isMobile ? "flex-shrink-0 ml-2" : "space-x-1 ml-2"}`}
         >
-          {!isMobile && session?.user?.role === "ADMIN" && (
+          {!isMobile && (
             <button
               onClick={(e) => {
                 e.stopPropagation();
