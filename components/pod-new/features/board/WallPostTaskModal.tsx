@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { X, Calendar, Clock, History, Edit3, Save, FileText, Image as ImageIcon, Check, ExternalLink, Download, Loader2 } from "lucide-react";
 import { Task, BoardColumn } from "@/lib/stores/boardStore";
 import { Session } from "next-auth";
@@ -14,6 +14,7 @@ import { extractGoogleDriveFileId, isGoogleDriveUrl } from "@/lib/utils/googleDr
 import { isS3Url, getProxiedS3Url } from "@/lib/utils/s3ImageUrl";
 import { useTeamMembersQuery } from "@/hooks/useBoardQueries";
 import PermissionGoogle from "@/components/PermissionGoogle";
+import { useVirtualizer } from "@tanstack/react-virtual";
 
 // Wrapper component for Google Drive images that shows permission UI inline
 const GoogleDriveImage = ({
@@ -179,6 +180,9 @@ export default function WallPostTaskModal({
   const membersQuery = useTeamMembersQuery(task.podTeamId || '');
   const teamMembers = membersQuery.data?.members || [];
 
+  // Virtualization setup for photo list
+  const photoListRef = useRef<HTMLDivElement>(null);
+
   if (!isOpen || !task.wallPostSubmission) return null;
 
   // Filter photos based on selected filter
@@ -188,6 +192,14 @@ export default function WallPostTaskModal({
 
   const photos = filteredPhotos;
   const selectedPhoto = photos[selectedPhotoIndex];
+
+  // Setup virtualizer for photo thumbnails
+  const photoVirtualizer = useVirtualizer({
+    count: photos.length,
+    getScrollElement: () => photoListRef.current,
+    estimateSize: () => 100, // Estimated height of each photo item (thumbnail + padding)
+    overscan: 5, // Render 5 extra items above and below viewport for smooth scrolling
+  });
 
   // Get the column label for the current task status
   const getStatusLabel = (status: string) => {
@@ -214,6 +226,16 @@ export default function WallPostTaskModal({
       setEditedCaption(selectedPhoto.caption || '');
     }
   }, [selectedPhotoIndex, selectedPhoto?.id]);
+
+  // Auto-scroll to selected photo in virtualized list
+  React.useEffect(() => {
+    if (selectedPhotoIndex >= 0 && selectedPhotoIndex < photos.length) {
+      photoVirtualizer.scrollToIndex(selectedPhotoIndex, {
+        align: 'center',
+        behavior: 'smooth',
+      });
+    }
+  }, [selectedPhotoIndex, photoVirtualizer, photos.length]);
 
   // Reset edit states when task changes
   React.useEffect(() => {
@@ -1242,18 +1264,40 @@ export default function WallPostTaskModal({
                 </div>
               )}
 
-              {/* Photo Thumbnails List */}
-              <div className="flex-1 overflow-y-auto">
-                <div className="p-2 space-y-2">
-                  {photos.length > 0 ? photos.map((photo, index) => (
-                    <div
-                      key={photo.id}
-                      className={`w-full flex items-start space-x-3 p-2 rounded-lg transition-colors ${
-                        selectedPhotoIndex === index
-                          ? 'bg-pink-100 dark:bg-pink-900/30 border-2 border-pink-500'
-                          : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
+              {/* Photo Thumbnails List - Virtualized */}
+              <div ref={photoListRef} className="flex-1 overflow-y-auto">
+                <div
+                  style={{
+                    height: `${photoVirtualizer.getTotalSize()}px`,
+                    width: '100%',
+                    position: 'relative',
+                  }}
+                  className="p-2"
+                >
+                  {photos.length > 0 ? photoVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const photo = photos[virtualItem.index];
+                    const index = virtualItem.index;
+                    return (
+                      <div
+                        key={photo.id}
+                        data-index={virtualItem.index}
+                        ref={photoVirtualizer.measureElement}
+                        style={{
+                          position: 'absolute',
+                          top: 0,
+                          left: 0,
+                          width: '100%',
+                          transform: `translateY(${virtualItem.start}px)`,
+                        }}
+                        className="px-2 pb-2"
+                      >
+                        <div
+                          className={`w-full flex items-start space-x-3 p-2 rounded-lg transition-colors ${
+                            selectedPhotoIndex === index
+                              ? 'bg-pink-100 dark:bg-pink-900/30 border-2 border-pink-500'
+                              : 'bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700'
+                          }`}
+                        >
                       {/* Thumbnail with Download Icon */}
                       <div className="flex-shrink-0 relative group">
                         <button
@@ -1339,8 +1383,10 @@ export default function WallPostTaskModal({
                           </span>
                         </div>
                       </button>
-                    </div>
-                  )) : (
+                        </div>
+                      </div>
+                    );
+                  }) : (
                     <div className="flex flex-col items-center justify-center p-8 text-center">
                       <ImageIcon className="h-12 w-12 text-gray-400 dark:text-gray-600 mb-3" />
                       <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
