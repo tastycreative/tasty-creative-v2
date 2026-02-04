@@ -844,38 +844,37 @@ export default function WallPostTaskModal({
                 <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
                   Assignee
                 </label>
-                {isEditingTask ? (
-                  <UserDropdown
-                    value={editedAssignee}
-                    onChange={(userId, email) => setEditedAssignee(email)}
-                    placeholder="Select assignee..."
-                    teamId={task.podTeamId || undefined}
-                  />
-                ) : task.assignedUser ? (
-                  <div className="flex items-center space-x-3 min-w-0">
-                    <UserProfile
-                      user={task.assignedUser}
-                      size="md"
-                      showTooltip
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {task.assignedUser.name ||
-                          task.assignedUser.email
-                            ?.split("@")[0]
-                            .replace(/[._-]/g, " ")
-                            .replace(/\b\w/g, (l) => l.toUpperCase())}
-                      </p>
-                      <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
-                        {task.assignedUser.email}
-                      </p>
-                    </div>
-                  </div>
-                ) : (
-                  <p className="text-sm text-gray-500 dark:text-gray-400 italic truncate">
-                    Unassigned
-                  </p>
-                )}
+                <UserDropdown
+                  value={editedAssignee}
+                  onChange={async (userId, email) => {
+                    setEditedAssignee(email);
+                    // Auto-save assignee change
+                    try {
+                      const response = await fetch('/api/tasks', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          id: task.id,
+                          assignedTo: email || null,
+                        }),
+                      });
+
+                      if (response.ok) {
+                        handleRefresh(); // Refresh the task data
+                      } else {
+                        const data = await response.json();
+                        alert(data.error || 'Failed to update assignee');
+                        setEditedAssignee(task.assignedTo || ''); // Revert on error
+                      }
+                    } catch (error) {
+                      console.error('Error updating assignee:', error);
+                      alert('Failed to update assignee');
+                      setEditedAssignee(task.assignedTo || ''); // Revert on error
+                    }
+                  }}
+                  placeholder="Select assignee..."
+                  teamId={task.podTeamId || undefined}
+                />
               </div>
 
               {/* Due Date */}
