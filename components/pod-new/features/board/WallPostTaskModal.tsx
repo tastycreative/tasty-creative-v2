@@ -1032,7 +1032,7 @@ export default function WallPostTaskModal({
               </div>
             </div>
 
-            {/* Right Sidebar - Photo List (YouTube-style) */}
+            {/* Right Sidebar - Photo List (YouTube-style) s*/}
             <div className="w-full lg:w-96 lg:flex-shrink-0 bg-[oklch(1_0_0)] dark:bg-[oklch(0.205_0_0)] border-t lg:border-t-0 lg:border-l border-gray-200 dark:border-gray-700 flex flex-col">
               {/* Photo Details Section */}
               {selectedPhoto && (
