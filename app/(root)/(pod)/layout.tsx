@@ -170,7 +170,7 @@ export default function PodLayout({ children }: PodLayoutProps) {
 
   return (
     <div className="h-screen flex bg-gray-50 dark:bg-gray-950 text-gray-900 dark:text-white overflow-hidden">
-      <div className="h-full flex w-full max-w-[1440px] mx-auto">
+      <div className="h-full flex w-full mx-auto">
         {/* Left Sidebar - Full height (collapsed or expanded) */}
         <div className={`h-full shrink-0 border-r border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 overflow-y-auto board-scrollbar transition-all duration-200 ${
           showLeftSidebar ? "w-[220px]" : "w-[60px]"
