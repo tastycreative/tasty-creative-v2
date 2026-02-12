@@ -241,6 +241,12 @@ export interface TaskComment {
     email: string | null;
     image?: string | null;
   };
+  wallPostPhoto?: {
+    id: string;
+    position: number;
+    caption: string | null;
+    url: string | null;
+  } | null;
 }
 
 // Default column configurations

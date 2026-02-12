@@ -310,19 +310,22 @@ model TaskActivityHistory {
 }
 
 model TaskComment {
-  id          String   @id @default(cuid())
-  taskId      String
-  userId      String
-  content     String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  attachments Json?
-  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
-  user        User     @relation("TaskCommentUser", fields: [userId], references: [id])
+  id              String          @id @default(cuid())
+  taskId          String
+  userId          String
+  content         String
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  attachments     Json?
+  wallPostPhotoId String?
+  task            Task            @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user            User            @relation("TaskCommentUser", fields: [userId], references: [id])
+  wallPostPhoto   WallPostPhoto?  @relation(fields: [wallPostPhotoId], references: [id], onDelete: Cascade)
 
   @@index([taskId])
   @@index([userId])
   @@index([createdAt])
+  @@index([wallPostPhotoId])
 }
 
 model ClientModel {
@@ -1234,6 +1237,7 @@ model WallPostPhoto {
   postedAt             DateTime?
   publishedToGalleryAt DateTime?
   wallPostSubmission   WallPostSubmission @relation(fields: [wallPostSubmissionId], references: [id], onDelete: Cascade)
+  comments             TaskComment[]
 
   @@index([wallPostSubmissionId])
   @@index([status])

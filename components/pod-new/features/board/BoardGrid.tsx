@@ -143,7 +143,7 @@ export default function BoardGrid({
         title="Click and drag to scroll horizontally"
       >
         <div
-          className="flex h-full"
+          className="flex h-full min-w-full"
         >
           {getColumnConfig().map(([status, config], index) => {
             const statusTasks = getTasksForStatus(status as Task["status"]);

@@ -94,7 +94,7 @@ export default function TaskColumn({
 
   return (
     <div
-      className={`${isMobile ? "shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0" : `flex flex-col min-w-[300px] w-[300px] ${!isLastColumn ? "border-r-2 border-gray-200 dark:border-gray-600" : ""}`} transition-colors duration-300 ${
+      className={`${isMobile ? "shrink-0 w-80 p-4 border-r border-gray-200 dark:border-gray-600 last:border-r-0" : `flex flex-col flex-1 min-w-[300px] ${!isLastColumn ? "border-r-2 border-gray-200 dark:border-gray-600" : ""}`} transition-colors duration-300 ${
         draggedTask && draggedTask.status !== status
           ? "bg-pink-50/30 dark:bg-pink-900/10 border-pink-200 dark:border-pink-500"
           : ""

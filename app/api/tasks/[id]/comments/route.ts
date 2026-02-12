@@ -22,6 +22,10 @@ export async function GET(request: NextRequest, { params }: CommentsParams) {
       return NextResponse.json({ error: "Task ID is required" }, { status: 400 });
     }
 
+    // Get photoId from query parameters if provided
+    const { searchParams } = new URL(request.url);
+    const photoId = searchParams.get('photoId');
+
     // Verify the task exists and user has access to it
     const task = await prisma.task.findUnique({
       where: { id: taskId },
@@ -32,9 +36,15 @@ export async function GET(request: NextRequest, { params }: CommentsParams) {
       return NextResponse.json({ error: "Task not found" }, { status: 404 });
     }
 
-    // Fetch comments with user information and attachments
+    // Build where clause - filter by photoId if provided
+    const whereClause: any = { taskId };
+    if (photoId) {
+      whereClause.wallPostPhotoId = photoId;
+    }
+
+    // Fetch comments with user information, attachments, and photo info
     const comments = await (prisma as any).taskComment.findMany({
-      where: { taskId },
+      where: whereClause,
       include: {
         user: {
           select: {
@@ -42,6 +52,14 @@ export async function GET(request: NextRequest, { params }: CommentsParams) {
             name: true,
             email: true,
             image: true
+          }
+        },
+        wallPostPhoto: {
+          select: {
+            id: true,
+            position: true,
+            caption: true,
+            url: true
           }
         }
       },
@@ -71,7 +89,7 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
 
     const { id: taskId } = await params;
     const data = await request.json();
-    const { content, attachments } = data;
+    const { content, attachments, wallPostPhotoId } = data;
 
     // Allow comment if there's either content or attachments
     const hasContent = content?.trim()?.length > 0;
@@ -100,7 +118,8 @@ export async function POST(request: NextRequest, { params }: CommentsParams) {
         taskId,
         userId: session.user.id,
         content: content?.trim() || '', // Use empty string if no content
-        attachments: attachments && attachments.length > 0 ? attachments : null
+        attachments: attachments && attachments.length > 0 ? attachments : null,
+        wallPostPhotoId: wallPostPhotoId || null
       },
       include: {
         user: {

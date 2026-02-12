@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from 'react';
-import { Send, MessageSquare, Loader2, AlertCircle, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Send, MessageSquare, Loader2, AlertCircle, Edit2, Trash2, Check, X, Image as ImageIcon } from 'lucide-react';
 import UserProfile from '@/components/ui/UserProfile';
 import CommentFilePreview from '@/components/ui/CommentFilePreview';
 import MentionsInput, { type MentionUser, type Mention } from '@/components/ui/MentionsInput';
@@ -199,6 +199,7 @@ interface TaskCommentsProps {
   teamId?: string;
   currentUser?: CommentUser | null;
   isViewOnly?: boolean;
+  photoId?: string;
 }
 
 const formatTimeAgo = (dateString: string) => {
@@ -214,12 +215,12 @@ const formatTimeAgo = (dateString: string) => {
   return formatForDisplay(dateString);
 };
 
-export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false }: TaskCommentsProps) {
+export default function TaskComments({ taskId, teamId, currentUser, isViewOnly = false, photoId }: TaskCommentsProps) {
   const qc = useQueryClient();
-  const commentsQuery = useTaskCommentsQuery(teamId || 'unknown', taskId);
-  const createComment = useCreateTaskCommentMutation(teamId || 'unknown', taskId);
-  const updateComment = useUpdateTaskCommentMutation(teamId || 'unknown', taskId);
-  const deleteComment = useDeleteTaskCommentMutation(teamId || 'unknown', taskId);
+  const commentsQuery = useTaskCommentsQuery(teamId || 'unknown', taskId, photoId);
+  const createComment = useCreateTaskCommentMutation(teamId || 'unknown', taskId, photoId);
+  const updateComment = useUpdateTaskCommentMutation(teamId || 'unknown', taskId, photoId);
+  const deleteComment = useDeleteTaskCommentMutation(teamId || 'unknown', taskId, photoId);
   const membersQuery = useTeamMembersQuery(teamId || '');
   const comments: TaskComment[] = (commentsQuery.data?.comments as TaskComment[]) || [];
 
@@ -338,14 +339,14 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
 
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if ((!newComment.trim() && newCommentPreviewFiles.length === 0) || !currentUser) return;
-    
+
     try {
       setIsSubmitting(true);
-      
+
       let uploadedAttachments: TaskAttachment[] = [];
-      
+
       // Upload preview files to S3 if any
       if (newCommentPreviewFiles.length > 0) {
         for (const previewFile of newCommentPreviewFiles) {
@@ -366,7 +367,7 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
             const responseData = await response.json();
             const { attachment } = responseData;
             uploadedAttachments.push(attachment);
-            
+
           } catch (uploadError) {
             console.error(`Failed to upload ${previewFile.name}:`, uploadError);
             // Continue with other files, but notify user
@@ -374,9 +375,9 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
           }
         }
       }
-      
+
   const commentText = newComment.trim() || ' ';
-  await createComment.mutateAsync({ content: commentText, attachments: uploadedAttachments });
+  await createComment.mutateAsync({ content: commentText, attachments: uploadedAttachments, wallPostPhotoId: photoId });
       
       // Send mention notifications
       if (newCommentMentions.length > 0) {
@@ -543,10 +544,17 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <MessageSquare className="h-5 w-5 text-gray-500" />
-          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Comments</h3>
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+            {photoId ? 'Photo Comments' : 'Comments'}
+          </h3>
           <span className="text-sm text-gray-500 bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded-full">
             {(commentsQuery.data?.comments || []).length}
           </span>
+          {photoId && (
+            <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full font-medium">
+              Photo-specific
+            </span>
+          )}
         </div>
       </div>
 
@@ -626,13 +634,19 @@ export default function TaskComments({ taskId, teamId, currentUser, isViewOnly =
               <UserProfile user={comment.user} size="sm" showTooltip />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
-                  <div className="flex items-center space-x-2">
+                  <div className="flex items-center space-x-2 flex-wrap">
                     <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
                       {comment.user.name || comment.user.email?.split('@')[0]}
                     </span>
                     <span className="text-xs text-gray-500 dark:text-gray-400">
                       {formatTimeAgo(comment.createdAt)}
                     </span>
+                    {comment.wallPostPhoto && (
+                      <span className="inline-flex items-center gap-1 text-xs bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full font-medium border border-blue-200 dark:border-blue-700">
+                        <ImageIcon className="h-3 w-3" />
+                        Photo {comment.wallPostPhoto.position + 1}
+                      </span>
+                    )}
                   </div>
                   {canEditComment(comment) && (
                     <div className="flex items-center space-x-1">

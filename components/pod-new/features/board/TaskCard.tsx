@@ -90,13 +90,57 @@ const getWorkflowTypeIndicator = (task: Task) => {
   if (task.wallPostSubmission) {
     const photoCount = task.wallPostSubmission.photos.length;
 
+    // Count photos by status
+    const statusCounts = {
+      PENDING_REVIEW: 0,
+      READY_TO_POST: 0,
+      POSTED: 0,
+      REJECTED: 0,
+    };
+
+    task.wallPostSubmission.photos.forEach(photo => {
+      if (statusCounts[photo.status as keyof typeof statusCounts] !== undefined) {
+        statusCounts[photo.status as keyof typeof statusCounts]++;
+      }
+    });
+
     return (
-      <div className="flex items-center space-x-2 mb-3">
+      <div className="space-y-2 mb-3">
         <div className="flex items-center space-x-1.5 bg-gradient-to-r from-pink-50 to-purple-100 dark:from-pink-900/30 dark:to-purple-800/30 text-pink-700 dark:text-pink-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-pink-200/50 dark:border-pink-700/50">
           <Upload className="w-3.5 h-3.5" />
           <span>Wall Post Bulk</span>
-          {photoCount > 0 && <span className="ml-1">({photoCount} photos)</span>}
+          {photoCount > 0 && <span className="ml-1">({photoCount})</span>}
         </div>
+
+        {/* Photo Status Indicators */}
+        {photoCount > 0 && (
+          <div className="flex items-center flex-wrap gap-2">
+            {statusCounts.PENDING_REVIEW > 0 && (
+              <div className="flex items-center gap-1" title={`${statusCounts.PENDING_REVIEW} Pending Review`}>
+                <div className="w-2 h-2 rounded-full bg-gray-500"></div>
+                <span className="text-xs text-gray-600 dark:text-gray-400 font-medium">{statusCounts.PENDING_REVIEW}</span>
+              </div>
+            )}
+            {statusCounts.READY_TO_POST > 0 && (
+              <div className="flex items-center gap-1" title={`${statusCounts.READY_TO_POST} Ready to Post`}>
+                <div className="w-2 h-2 rounded-full bg-blue-500"></div>
+                <span className="text-xs text-blue-600 dark:text-blue-400 font-medium">{statusCounts.READY_TO_POST}</span>
+              </div>
+            )}
+            {statusCounts.POSTED > 0 && (
+              <div className="flex items-center gap-1" title={`${statusCounts.POSTED} Posted`}>
+                <div className="w-2 h-2 rounded-full bg-green-500"></div>
+                <span className="text-xs text-green-600 dark:text-green-400 font-medium">{statusCounts.POSTED}</span>
+              </div>
+            )}
+            {statusCounts.REJECTED > 0 && (
+              <div className="flex items-center gap-1" title={`${statusCounts.REJECTED} Rejected`}>
+                <div className="w-2 h-2 rounded-full bg-red-500"></div>
+                <span className="text-xs text-red-600 dark:text-red-400 font-medium">{statusCounts.REJECTED}</span>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     );
   }

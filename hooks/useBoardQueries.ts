@@ -10,7 +10,7 @@ export const boardQueryKeys = {
   columns: (teamId: string) => [...boardQueryKeys.team(teamId), "columns"] as const,
   members: (teamId: string) => [...boardQueryKeys.team(teamId), "members"] as const,
   settings: (teamId: string) => [...boardQueryKeys.team(teamId), "settings"] as const,
-  comments: (teamId: string, taskId: string) => [...boardQueryKeys.team(teamId), "tasks", taskId, "comments"] as const,
+  comments: (teamId: string, taskId: string, photoId?: string) => [...boardQueryKeys.team(teamId), "tasks", taskId, "comments", ...(photoId ? [photoId] : [])] as const,
   activities: (teamId: string, taskId: string) => [...boardQueryKeys.team(teamId), "tasks", taskId, "activities"] as const,
   attachmentUrl: (s3Key: string) => [...boardQueryKeys.all, "attachment-url", s3Key] as const,
   resources: (teamId: string) => [...boardQueryKeys.team(teamId), "resources"] as const,
@@ -531,11 +531,14 @@ export interface TaskCommentsResponse {
   comments: TaskComment[];
 }
 
-export function useTaskCommentsQuery(teamId: string, taskId: string) {
+export function useTaskCommentsQuery(teamId: string, taskId: string, photoId?: string) {
   return useQuery<TaskCommentsResponse>({
-    queryKey: boardQueryKeys.comments(teamId || "unknown", taskId),
+    queryKey: boardQueryKeys.comments(teamId || "unknown", taskId, photoId),
     queryFn: async () => {
-      const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/comments`);
+      const url = photoId
+        ? `/api/tasks/${encodeURIComponent(taskId)}/comments?photoId=${encodeURIComponent(photoId)}`
+        : `/api/tasks/${encodeURIComponent(taskId)}/comments`;
+      const res = await fetch(url);
       if (!res.ok) throw new Error(`Failed to fetch comments: ${res.statusText}`);
       return res.json();
     },
@@ -565,14 +568,18 @@ export function useTaskActivitiesQuery(teamId: string, taskId: string) {
   });
 }
 
-export function useCreateTaskCommentMutation(teamId: string, taskId: string) {
+export function useCreateTaskCommentMutation(teamId: string, taskId: string, photoId?: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { content: string; attachments?: TaskAttachment[] }) => {
+    mutationFn: async (params: { content: string; attachments?: TaskAttachment[]; wallPostPhotoId?: string }) => {
       const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: params.content, attachments: params.attachments || [] }),
+        body: JSON.stringify({
+          content: params.content,
+          attachments: params.attachments || [],
+          wallPostPhotoId: params.wallPostPhotoId || photoId
+        }),
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -581,12 +588,12 @@ export function useCreateTaskCommentMutation(teamId: string, taskId: string) {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: boardQueryKeys.comments(teamId || "unknown", taskId) });
+      qc.invalidateQueries({ queryKey: boardQueryKeys.comments(teamId || "unknown", taskId, photoId) });
     },
   });
 }
 
-export function useUpdateTaskCommentMutation(teamId: string, taskId: string) {
+export function useUpdateTaskCommentMutation(teamId: string, taskId: string, photoId?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { commentId: string; content: string; attachments?: TaskAttachment[] }) => {
@@ -602,12 +609,12 @@ export function useUpdateTaskCommentMutation(teamId: string, taskId: string) {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: boardQueryKeys.comments(teamId || "unknown", taskId) });
+      qc.invalidateQueries({ queryKey: boardQueryKeys.comments(teamId || "unknown", taskId, photoId) });
     },
   });
 }
 
-export function useDeleteTaskCommentMutation(teamId: string, taskId: string) {
+export function useDeleteTaskCommentMutation(teamId: string, taskId: string, photoId?: string) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (params: { commentId: string }) => {
@@ -621,7 +628,7 @@ export function useDeleteTaskCommentMutation(teamId: string, taskId: string) {
       return res.json();
     },
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: boardQueryKeys.comments(teamId || "unknown", taskId) });
+      qc.invalidateQueries({ queryKey: boardQueryKeys.comments(teamId || "unknown", taskId, photoId) });
     },
   });
 }
