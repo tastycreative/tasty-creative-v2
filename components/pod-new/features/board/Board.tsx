@@ -1483,13 +1483,18 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
     return tasksToFilter.filter(task => {
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
-        const matchesSearch = 
+        const taskIdentifier = (task.podTeam?.projectPrefix && task.taskNumber)
+          ? `${task.podTeam.projectPrefix}-${task.taskNumber}`.toLowerCase()
+          : '';
+        const matchesSearch =
           task.title.toLowerCase().includes(searchLower) ||
           task.description?.toLowerCase().includes(searchLower) ||
           task.assignedUser?.name?.toLowerCase().includes(searchLower) ||
           task.assignedUser?.email?.toLowerCase().includes(searchLower) ||
           task.createdBy.name?.toLowerCase().includes(searchLower) ||
-          task.createdBy.email?.toLowerCase().includes(searchLower);
+          task.createdBy.email?.toLowerCase().includes(searchLower) ||
+          taskIdentifier.includes(searchLower) ||
+          (task.taskNumber && task.taskNumber.toString() === searchTerm.trim());
         
         if (!matchesSearch) return false;
       }
