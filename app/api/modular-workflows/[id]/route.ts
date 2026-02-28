@@ -16,7 +16,7 @@ export async function PATCH(
 
     const { id } = await params;
     const body = await request.json();
-    const { caption, pricing, basePriceDescription, gifUrl, notes, isFinal, contentTags } = body;
+    const { caption, pricing, basePriceDescription, gifUrl, notes, isFinal, contentTags, componentData } = body;
 
     console.log('Updating workflow with contentTags:', contentTags);
 
@@ -32,6 +32,7 @@ export async function PATCH(
     if (notes !== undefined) updateData.notes = notes;
     if (isFinal !== undefined) updateData.isFinal = isFinal;
     if (contentTags !== undefined) updateData.contentTags = contentTags;
+    if (componentData !== undefined) updateData.componentData = componentData;
 
     // Update the workflow
     const workflow = await prisma.modularWorkflow.update({

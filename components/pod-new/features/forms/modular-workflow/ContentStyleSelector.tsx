@@ -1,7 +1,7 @@
 "use client";
 
 import { UseFormRegister } from "react-hook-form";
-import { FileText, BarChart3, Gamepad2, Video } from "lucide-react";
+import { FileText, BarChart3, Gamepad2, Video, Crown } from "lucide-react";
 import { ModularFormData, ContentStyle, StyleTemplate } from "./types";
 
 interface ContentStyleSelectorProps {
@@ -45,6 +45,15 @@ const styleTemplates: StyleTemplate[] = [
     icon: Video,
     requiredComponents: ["release"],
     recommendedComponents: ["release", "upload"],
+  },
+  {
+    id: "vip",
+    name: "VIP",
+    description: "Exclusive content for top subscribers",
+    features: ["Exclusive", "Premium", "VIP-Only"],
+    icon: Crown,
+    requiredComponents: [],
+    recommendedComponents: ["pricing", "upload"],
   },
 ];
 

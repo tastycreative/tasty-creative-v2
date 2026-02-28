@@ -5,7 +5,7 @@ import { TaskAttachment } from "@/lib/stores/boardStore";
 
 // Core Types
 export type SubmissionType = "otp" | "ptr";
-export type ContentStyle = "normal" | "poll" | "game" | "ppv" | "bundle";
+export type ContentStyle = "normal" | "poll" | "game" | "ppv" | "bundle" | "vip";
 export type ComponentModule = "pricing" | "release" | "upload";
 export type Platform = "onlyfans" | "fansly";
 

@@ -620,6 +620,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
           notes: selectedTask.ModularWorkflow.notes || '',
+          componentData: selectedTask.ModularWorkflow.componentData || {},
         } as any) : undefined
       });
     }
@@ -642,6 +643,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
           basePriceDescription: selectedTask.ModularWorkflow.basePriceDescription || '',
           gifUrl: selectedTask.ModularWorkflow.gifUrl || '',
           notes: selectedTask.ModularWorkflow.notes || '',
+          componentData: selectedTask.ModularWorkflow.componentData || {},
         } as any) : undefined
       });
     }
@@ -694,6 +696,7 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
           gifUrl: (editingTaskData as any).ModularWorkflow.gifUrl,
           notes: (editingTaskData as any).ModularWorkflow.notes,
           contentTags: (editingTaskData as any).ModularWorkflow.contentTags,
+          componentData: (editingTaskData as any).ModularWorkflow.componentData,
         };
 
         // Call API to update workflow
@@ -1555,6 +1558,15 @@ export default function Board({ teamId, teamName, session }: BoardProps) {
             break;
           case 'LIVESTREAM':
             if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'LIVESTREAM') return false;
+            break;
+          case 'PPV':
+            if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'PPV') return false;
+            break;
+          case 'BUNDLE':
+            if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'BUNDLE') return false;
+            break;
+          case 'VIP':
+            if (!task.ModularWorkflow || task.ModularWorkflow.contentStyle !== 'VIP') return false;
             break;
           case 'LEGACY':
             if (!task.ContentSubmission) return false;

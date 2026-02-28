@@ -1108,6 +1108,47 @@ export default function EnhancedTaskDetailModalRedesigned({
                             </AccordionTrigger>
                             <AccordionContent className="px-5 pb-5">
                               <div className="space-y-4">
+                                {/* Game Type - only for GAME content style */}
+                                {workflowData?.contentStyle === 'GAME' && (
+                                  <div>
+                                    <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                                      Game Type
+                                    </label>
+                                    {isEditingTask ? (
+                                      <input
+                                        type="text"
+                                        value={
+                                          (editingTaskData as any).ModularWorkflow
+                                            ?.componentData?.gameType || ""
+                                        }
+                                        onChange={(e) => {
+                                          const currentWorkflow = (editingTaskData as any).ModularWorkflow || {};
+                                          const currentComponentData = currentWorkflow.componentData || {};
+                                          onSetEditingTaskData?.({
+                                            ModularWorkflow: {
+                                              ...currentWorkflow,
+                                              componentData: {
+                                                ...currentComponentData,
+                                                gameType: e.target.value,
+                                              },
+                                            },
+                                          });
+                                        }}
+                                        placeholder="e.g. Spin the Wheel, Tip Game, Dice Roll..."
+                                        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-600 rounded-lg bg-white/50 dark:bg-gray-800/50 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-orange-500/50"
+                                      />
+                                    ) : workflowData?.componentData?.gameType ? (
+                                      <p className="text-gray-600 dark:text-gray-400">
+                                        {workflowData.componentData.gameType}
+                                      </p>
+                                    ) : (
+                                      <p className="text-gray-400 dark:text-gray-500 italic">
+                                        No game type specified
+                                      </p>
+                                    )}
+                                  </div>
+                                )}
+
                                 {/* GIF URL */}
                                 <div>
                                   <label className="block text-sm font-semibold text-gray-700 dark:text-gray-300 mb-2">

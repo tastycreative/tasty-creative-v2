@@ -75,6 +75,7 @@ import {
   Command,
   Info,
   RefreshCw,
+  Crown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
@@ -84,7 +85,7 @@ import Link from "next/link";
 
 // Core Types
 export type SubmissionType = "otp" | "ptr";
-export type ContentStyle = "normal" | "poll" | "game" | "ppv" | "bundle";
+export type ContentStyle = "normal" | "poll" | "game" | "ppv" | "bundle" | "vip";
 export type ComponentModule = "pricing" | "release" | "upload";
 export type Platform = "onlyfans" | "fansly";
 
@@ -253,6 +254,19 @@ const formTemplates: FormTemplate[] = [
     tags: ["game", "scheduled", "interactive"],
   },
   {
+    id: "ptr-vip",
+    name: "VIP Content",
+    description: "Exclusive content for VIP subscribers",
+    submissionType: "ptr",
+    contentStyle: "vip",
+    components: ["release", "pricing", "upload"],
+    icon: Crown,
+    color: "from-amber-500 to-yellow-500",
+    popularity: 80,
+    estimatedTime: "3 min",
+    tags: ["vip", "exclusive", "premium"],
+  },
+  {
     id: "ptr-bundle",
     name: "Content Bundle",
     description: "Multiple content pieces bundled",
@@ -323,6 +337,17 @@ const styleTemplates = [
     icon: Package,
     color: "from-orange-500 to-red-500",
     preview: "📦 Multiple content pieces bundled",
+    teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
+    priority: true,
+    submissionTypes: ["otp", "ptr"] as SubmissionType[],
+  },
+  {
+    id: "vip" as ContentStyle,
+    name: "VIP",
+    description: "Exclusive VIP content for top subscribers",
+    icon: Crown,
+    color: "from-amber-500 to-yellow-500",
+    preview: "👑 Exclusive VIP-only content",
     teams: ["Content Team", "PGT", "Flyer Team", "OTP Manager/QA"],
     priority: true,
     submissionTypes: ["otp", "ptr"] as SubmissionType[],
@@ -685,6 +710,9 @@ export default function ModularWorkflowWizard() {
         case "ppv":
           recommendations.push("pricing", "upload");
           break;
+        case "vip":
+          recommendations.push("pricing", "upload");
+          break;
         case "poll":
           recommendations.push("upload");
           break;
@@ -911,6 +939,10 @@ export default function ModularWorkflowWizard() {
             data.originalPollReference && {
               originalPollReference: data.originalPollReference,
             }),
+          // Include Game specific fields
+          ...(data.contentStyle === "game" && {
+            gameType: (data as any).gameType,
+          }),
         },
         modelName: data.model,
         priority: data.priority,
@@ -926,6 +958,11 @@ export default function ModularWorkflowWizard() {
         contentTags: data.contentTags || [],
         externalCreatorTags: data.externalCreatorTags,
         internalModelTags: data.internalModelTags || [],
+        // Game post fields (gifUrl and notes are top-level DB columns)
+        ...(data.contentStyle === "game" && {
+          gifUrl: (data as any).gifUrl,
+          notes: (data as any).notes,
+        }),
         // NOTE: Don't send teamId - let platform-based routing determine the team
         // teamId: selectedTeamId,
         estimatedDuration: parseInt(estimatedTime),
@@ -1720,6 +1757,59 @@ export default function ModularWorkflowWizard() {
                   </p>
                 </div>
 
+                {/* Game Post Specific Fields */}
+                {contentStyle === "game" && (
+                  <Card className="bg-pink-50 dark:bg-pink-950 border-pink-200 dark:border-pink-800">
+                    <CardHeader className="pb-3">
+                      <CardTitle className="text-base flex items-center gap-2">
+                        <Gamepad2 className="w-4 h-4" />
+                        Game Post Specific Fields
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div>
+                        <Label htmlFor="gameType">Game Type</Label>
+                        <Input
+                          id="gameType"
+                          type="text"
+                          placeholder="e.g. Spin the Wheel, Tip Game, Dice Roll..."
+                          {...register("gameType")}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Enter the type or name of the game
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="gifUrl">GIF URL</Label>
+                        <Input
+                          id="gifUrl"
+                          type="url"
+                          placeholder="https://giphy.com/... or https://i.imgur.com/..."
+                          {...register("gifUrl")}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Link to a GIF for this game post
+                        </p>
+                      </div>
+                      <div>
+                        <Label htmlFor="notes">Notes</Label>
+                        <Textarea
+                          id="notes"
+                          placeholder="Add any additional notes or context for the flyer team..."
+                          {...register("notes")}
+                          rows={3}
+                          className="mt-2"
+                        />
+                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
+                          Additional notes or instructions for the team
+                        </p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* PPV/Bundle Specific Fields */}
                 {(contentStyle === "ppv" || contentStyle === "bundle") && (
                   <Card className="bg-purple-50 dark:bg-purple-950 border-purple-200 dark:border-purple-800">
@@ -2166,6 +2256,49 @@ export default function ModularWorkflowWizard() {
                     </div>
                   )}
 
+                {/* Game Post Information */}
+                {contentStyle === "game" &&
+                  ((formData as any).gameType || (formData as any).gifUrl || (formData as any).notes) && (
+                    <div className="p-4 bg-pink-50 dark:bg-pink-950 rounded-lg">
+                      <h4 className="font-medium mb-2 flex items-center gap-2">
+                        <Gamepad2 className="w-4 h-4" />
+                        Game Post Details
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        {(formData as any).gameType && (
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              Game Type
+                            </p>
+                            <p className="font-medium">
+                              {(formData as any).gameType}
+                            </p>
+                          </div>
+                        )}
+                        {(formData as any).gifUrl && (
+                          <div>
+                            <p className="text-sm text-gray-600 dark:text-gray-400">
+                              GIF URL
+                            </p>
+                            <p className="font-medium text-sm break-all">
+                              {(formData as any).gifUrl}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                      {(formData as any).notes && (
+                        <div className="mt-3">
+                          <p className="text-sm text-gray-600 dark:text-gray-400">
+                            Notes
+                          </p>
+                          <p className="text-sm whitespace-pre-wrap">
+                            {(formData as any).notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
                 {/* Release Schedule Information */}
                 {selectedComponents.includes("release") &&
                   (formData.releaseDate || formData.releaseTime) && (
@@ -2378,14 +2511,14 @@ export default function ModularWorkflowWizard() {
       </div>
 
       {/* Floating Help Button */}
-      <motion.button
+      {/* <motion.button
         className="fixed bottom-4 right-4 w-14 h-14 bg-purple-600 hover:bg-purple-700 text-white rounded-full shadow-lg flex items-center justify-center z-30"
         whileHover={{ scale: 1.1 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setShowHelp(!showHelp)}
       >
         <HelpCircle className="w-6 h-6" />
-      </motion.button>
+      </motion.button> */}
 
       {/* Help Panel */}
       <AnimatePresence>

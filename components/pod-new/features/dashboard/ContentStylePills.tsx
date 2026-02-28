@@ -19,7 +19,8 @@ const STYLE_CONFIG = {
   POLL: { color: '#EC4899', label: 'Poll' },
   LIVESTREAM: { color: '#EF4444', label: 'Livestream' },
   BUNDLE: { color: '#10B981', label: 'Bundle' },
-  PPV: { color: '#F59E0B', label: 'PPV' }
+  PPV: { color: '#F59E0B', label: 'PPV' },
+  VIP: { color: '#D97706', label: 'VIP' }
 };
 
 export default function ContentStylePills({ data }: ContentStylePillsProps) {

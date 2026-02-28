@@ -2,7 +2,7 @@
 
 import React from "react";
 import { Session } from "next-auth";
-import { MoreHorizontal, UserPlus, Trash2, Gamepad2, BarChart3, Video, FileText, Tag, DollarSign, Upload, Calendar, CheckCircle2, Circle, Loader2 } from "lucide-react";
+import { MoreHorizontal, UserPlus, Trash2, Gamepad2, BarChart3, Video, FileText, Tag, DollarSign, Upload, Calendar, CheckCircle2, Circle, Loader2, Package, Crown } from "lucide-react";
 import { Task } from "@/lib/stores/boardStore";
 import UserProfile from "@/components/ui/UserProfile";
 import { formatForTaskCard, formatForDisplay, formatDueDate } from "@/lib/dateUtils";
@@ -28,6 +28,9 @@ const getWorkflowTypeIndicator = (task: Task) => {
             <div className="flex items-center space-x-1.5 bg-gradient-to-r from-pink-50 to-rose-100 dark:from-pink-900/30 dark:to-rose-800/30 text-pink-700 dark:text-pink-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-pink-200/50 dark:border-pink-700/50">
               <Gamepad2 className="w-3.5 h-3.5" />
               <span>Game</span>
+              {task.ModularWorkflow?.componentData?.gameType && (
+                <span className="text-pink-500 dark:text-pink-400 font-normal">· {task.ModularWorkflow.componentData.gameType}</span>
+              )}
             </div>
           )}
           {contentStyle === 'POLL' && (
@@ -46,6 +49,24 @@ const getWorkflowTypeIndicator = (task: Task) => {
             <div className="flex items-center space-x-1.5 bg-gradient-to-r from-gray-100 to-slate-100 dark:from-gray-800 dark:to-slate-800 text-gray-700 dark:text-gray-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-gray-200/50 dark:border-gray-700/50">
               <FileText className="w-3.5 h-3.5" />
               <span>Normal</span>
+            </div>
+          )}
+          {contentStyle === 'PPV' && (
+            <div className="flex items-center space-x-1.5 bg-gradient-to-r from-purple-50 to-pink-100 dark:from-purple-900/30 dark:to-pink-800/30 text-purple-700 dark:text-purple-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-purple-200/50 dark:border-purple-700/50">
+              <DollarSign className="w-3.5 h-3.5" />
+              <span>PPV</span>
+            </div>
+          )}
+          {contentStyle === 'BUNDLE' && (
+            <div className="flex items-center space-x-1.5 bg-gradient-to-r from-orange-50 to-red-100 dark:from-orange-900/30 dark:to-red-800/30 text-orange-700 dark:text-orange-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-orange-200/50 dark:border-orange-700/50">
+              <Package className="w-3.5 h-3.5" />
+              <span>Bundle</span>
+            </div>
+          )}
+          {contentStyle === 'VIP' && (
+            <div className="flex items-center space-x-1.5 bg-gradient-to-r from-amber-50 to-yellow-100 dark:from-amber-900/30 dark:to-yellow-800/30 text-amber-700 dark:text-amber-300 px-3 py-1.5 rounded-full text-xs font-semibold shadow-sm border border-amber-200/50 dark:border-amber-700/50">
+              <Crown className="w-3.5 h-3.5" />
+              <span>VIP</span>
             </div>
           )}
         </div>

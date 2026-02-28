@@ -25,6 +25,7 @@ import {
   Zap,
   Signal,
   Circle,
+  Crown,
 } from "lucide-react";
 import { useLayoutStore, useResponsiveLayout } from "@/lib/stores/layoutStore";
 
@@ -37,6 +38,9 @@ type WorkflowFilter =
   | "GAME"
   | "POLL"
   | "LIVESTREAM"
+  | "PPV"
+  | "BUNDLE"
+  | "VIP"
   | "LEGACY";
 type SortBy = "title" | "priority" | "dueDate" | "createdAt" | "updatedAt";
 type SortOrder = "asc" | "desc";
@@ -317,6 +321,36 @@ const WORKFLOW_OPTIONS: Record<WorkflowFilter, DropdownOption> = {
     textColor: "text-red-300",
     glowColor: "shadow-red-500/30",
     description: "Live streaming content",
+  },
+  PPV: {
+    label: "PPV",
+    icon: Signal,
+    gradient: "from-purple-500 to-pink-500",
+    bgGradient: "from-purple-500/20 to-pink-500/20",
+    borderColor: "border-purple-400/40",
+    textColor: "text-purple-300",
+    glowColor: "shadow-purple-500/30",
+    description: "Pay-per-view content",
+  },
+  BUNDLE: {
+    label: "Bundle",
+    icon: Flame,
+    gradient: "from-orange-500 to-red-500",
+    bgGradient: "from-orange-500/20 to-red-500/20",
+    borderColor: "border-orange-400/40",
+    textColor: "text-orange-300",
+    glowColor: "shadow-orange-500/30",
+    description: "Bundled content collection",
+  },
+  VIP: {
+    label: "VIP",
+    icon: Crown,
+    gradient: "from-amber-500 to-yellow-500",
+    bgGradient: "from-amber-500/20 to-yellow-500/20",
+    borderColor: "border-amber-400/40",
+    textColor: "text-amber-300",
+    glowColor: "shadow-amber-500/30",
+    description: "Exclusive VIP content",
   },
   LEGACY: {
     label: "Legacy",

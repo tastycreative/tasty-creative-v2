@@ -30,7 +30,7 @@ interface ComponentData extends PricingComponentData, ReleaseComponentData, PPVB
 
 interface ModularWorkflowData {
   submissionType: 'otp' | 'ptr';
-  contentStyle: 'normal' | 'poll' | 'game' | 'ppv' | 'bundle';
+  contentStyle: 'normal' | 'poll' | 'game' | 'ppv' | 'bundle' | 'vip';
   selectedComponents: string[];
   platform?: 'onlyfans' | 'fansly'; // NEW: Platform selection
   componentData?: ComponentData;
@@ -51,6 +51,10 @@ interface ModularWorkflowData {
   contentTags?: string[];         // QA Team content tags (Dildo, Fingering, etc.)
   externalCreatorTags?: string;   // e.g., "@johndoe @janedoe"
   internalModelTags?: string[];   // Array of internal model names
+
+  // Game post fields
+  gifUrl?: string;
+  notes?: string;
 
   // Enhanced team assignment with manual overrides
   teamId?: string;
@@ -109,6 +113,13 @@ const WORKFLOW_COLUMNS: Record<string, WorkflowColumn[]> = {
     { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'Bundle promotional materials' },
     { label: 'OTP Manager/QA', status: 'otp_manager_qa', position: 3, color: '#F59E0B', description: 'Bundle approval and content verification' },
     { label: 'Posted', status: 'posted', position: 4, color: '#10B981', description: 'Bundle released on model date' }
+  ],
+  'vip': [
+    { label: 'Content Team', status: 'content_team', position: 0, color: '#D97706', description: 'VIP content processing (PRIORITY)' },
+    { label: 'PGT', status: 'pgt', position: 1, color: '#8B5CF6', description: 'VIP descriptions and exclusive copy' },
+    { label: 'Flyer Team', status: 'flyer_team', position: 2, color: '#EC4899', description: 'VIP promotional materials' },
+    { label: 'OTP Manager/QA', status: 'otp_manager_qa', position: 3, color: '#F59E0B', description: 'VIP approval and content verification' },
+    { label: 'Posted', status: 'posted', position: 4, color: '#10B981', description: 'VIP content released' }
   ]
 };
 
@@ -429,7 +440,8 @@ export async function POST(request: NextRequest) {
       'poll': 'POLL',
       'game': 'GAME',
       'ppv': 'PPV',
-      'bundle': 'BUNDLE'
+      'bundle': 'BUNDLE',
+      'vip': 'VIP'
     };
 
     const workflowPriority = priorityMap[data.priority as keyof typeof priorityMap];
@@ -611,6 +623,8 @@ export async function POST(request: NextRequest) {
         contentTags: data.contentTags || [],
         externalCreatorTags: data.externalCreatorTags || null,
         internalModelTags: data.internalModelTags || [],
+        gifUrl: data.gifUrl || null,
+        notes: data.notes || null,
         teamAssignments: {
           primaryTeamId: assignedTeam.id,
           additionalTeamIds: data.teamAssignments?.additionalTeamIds || [],

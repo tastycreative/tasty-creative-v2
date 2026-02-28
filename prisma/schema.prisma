@@ -1413,6 +1413,7 @@ enum ContentStyle {
   LIVESTREAM
   BUNDLE
   PPV
+  VIP
 }
 
 enum ContentType {
