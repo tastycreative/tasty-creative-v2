@@ -263,8 +263,34 @@ export async function GET(request: NextRequest) {
           }
         : null,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error("Google Drive API Error:", error);
+
+    // Handle Google Drive permission errors (403)
+    if (error?.code === 403 || error?.status === 403) {
+      return NextResponse.json(
+        {
+          error: "GooglePermissionDenied",
+          message:
+            "You don't have permission to access this folder. Please request access from the owner.",
+          details: error instanceof Error ? error.message : "Insufficient Permission",
+        },
+        { status: 403 }
+      );
+    }
+
+    // Handle not found errors (404)
+    if (error?.code === 404 || error?.status === 404) {
+      return NextResponse.json(
+        {
+          error: "NotFound",
+          message: "File or folder not found.",
+          details: error instanceof Error ? error.message : "Not Found",
+        },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       {
         error: "Failed to retrieve files",
