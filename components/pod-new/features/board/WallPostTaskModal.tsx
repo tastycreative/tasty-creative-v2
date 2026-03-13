@@ -54,7 +54,14 @@ const GoogleDriveImage = ({
   React.useEffect(() => {
     const checkPermission = async () => {
       try {
-        const response = await fetch("/api/google-drive/list");
+        // Check permission on the specific file itself (not the parent folder)
+        // Extract fileId from the thumbnail src URL
+        const urlParams = new URLSearchParams(src.split("?")[1] || "");
+        const fileId = urlParams.get("fileId");
+        const checkUrl = fileId
+          ? `/api/google-drive/thumbnail?fileId=${fileId}&size=100`
+          : src;
+        const response = await fetch(checkUrl);
         if (response.ok) {
           setHasPermission(true);
           setError(false);
@@ -69,7 +76,7 @@ const GoogleDriveImage = ({
       }
     };
     checkPermission();
-  }, []);
+  }, [src]);
 
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     setImageError(true);
